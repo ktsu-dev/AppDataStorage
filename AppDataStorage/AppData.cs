@@ -1,52 +1,95 @@
-
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using ktsu.io.CaseConverter;
+using ktsu.io.StrongPaths;
 
 namespace ktsu.io.AppDataStorage;
 
-public abstract class AppData
+/// <summary>
+/// Base class for app data storage. The app data is saved to the file system in the application data folder of the current user in a subdirectory named after the application domain.
+/// </summary>
+public abstract class AppData<T> where T : AppData<T>, new()
 {
-	private static string AppName => Path.GetFileNameWithoutExtension(AppDomain.CurrentDomain.FriendlyName);
-	private static string AppDataPath => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-	private static string StoragePath => Path.Combine(AppDataPath, AppName);
-	private string Filename => $"{GetType().Name.ToLowerInvariant()}.json";
-	private string FilePath => Path.Join(StoragePath, Filename);
-	public void Save() => LoadAndSave(load: false);
-	public void Load() => LoadAndSave(save: false);
-
-	public static JsonSerializerSettings JsonSettings { get; } = new()
+	private static DirectoryPath AppDomain => (DirectoryPath)Path.GetFileNameWithoutExtension(System.AppDomain.CurrentDomain.FriendlyName);
+	private static DirectoryPath AppDataPath => (DirectoryPath)Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+	private static DirectoryPath AppDataDomainPath => (DirectoryPath)Path.Combine(AppDataPath, AppDomain);
+	private static FileName FileName => (FileName)$"{typeof(T).Name.ToSnakeCase()}.json";
+	private static FilePath FilePath => (FilePath)Path.Join(AppDataDomainPath, FileName);
+	private static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.General)
 	{
-		ContractResolver = new RealNameContractResolver(),
-		Formatting = Formatting.Indented,
-		DefaultValueHandling = DefaultValueHandling.Include,
-		Converters = { new StringEnumConverter() },
+		WriteIndented = true,
+		DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+		IgnoreReadOnlyFields = true,
+		IgnoreReadOnlyProperties = true,
+		IncludeFields = true,
+		Converters =
+		{
+			new JsonStringEnumConverter(),
+		}
 	};
 
-	public void LoadAndSave() => LoadAndSave(load: true, save: true);
-
-	private void LoadAndSave(bool load = true, bool save = true)
+	private static void EnsureDirectoryExists(AnyFilePath path)
 	{
-		Directory.CreateDirectory(StoragePath);
-		string json;
-		if (load)
+		var dirPath = path.DirectoryPath;
+		if (!string.IsNullOrEmpty(dirPath))
+		{
+			Directory.CreateDirectory(dirPath);
+		}
+	}
+
+	/// <summary>
+	/// Saves the app data to the file system. If the file already exists, it is backed up first incase the save fails the original file is not lost.
+	/// </summary>
+	public void Save()
+	{
+		EnsureDirectoryExists(FilePath);
+
+		string jsonString = JsonSerializer.Serialize(this, JsonSerializerOptions);
+
+		var tmpFilePath = (FilePath)$"{FilePath}.tmp";
+		var bkFilePath = (FilePath)$"{FilePath}.bk";
+		File.Delete(tmpFilePath);
+		File.Delete(bkFilePath);
+		File.WriteAllText(tmpFilePath, jsonString);
+		try
+		{
+			File.Move(FilePath, bkFilePath);
+		}
+		catch (FileNotFoundException) { }
+
+		File.Move(tmpFilePath, FilePath);
+		File.Delete(bkFilePath);
+	}
+
+	/// <summary>
+	/// Attempts to load the app data of the corresponding type T from the file system. If the file does not exist or is invalid, a new instance is created and saved.
+	/// </summary>
+	/// <returns>An instance of the app data of type T.</returns>
+	public static T LoadOrCreate()
+	{
+		EnsureDirectoryExists(FilePath);
+
+		if (!string.IsNullOrEmpty(FilePath))
 		{
 			try
 			{
-				json = File.ReadAllText(FilePath);
-				lock (this)
+				string jsonString = File.ReadAllText(FilePath);
+				var appData = JsonSerializer.Deserialize<T>(jsonString, JsonSerializerOptions);
+				if (appData != null)
 				{
-					JsonConvert.PopulateObject(json, this, JsonSettings);
+					return appData;
 				}
 			}
-			catch (FileNotFoundException) { }
-		}
-
-		if (save)
-		{
-			lock (this)
+			catch (FileNotFoundException)
 			{
-				json = JsonConvert.SerializeObject(this, JsonSettings);
 			}
-
-			File.WriteAllText(FilePath, json);
+			catch (JsonException)
+			{
+			}
 		}
+
+		T newAppData = new();
+		newAppData.Save();
+		return newAppData;
 	}
 }
