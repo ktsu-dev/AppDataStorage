@@ -10,7 +10,7 @@ namespace ktsu.io.AppDataStorage;
 /// </summary>
 public abstract class AppData<T> where T : AppData<T>, new()
 {
-	private static DirectoryPath AppDomain => (DirectoryPath)Path.GetFileNameWithoutExtension(System.AppDomain.CurrentDomain.FriendlyName);
+	private static DirectoryPath AppDomain => (DirectoryPath)System.AppDomain.CurrentDomain.FriendlyName;
 	private static DirectoryPath AppDataPath => (DirectoryPath)Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 	private static DirectoryPath AppDataDomainPath => (DirectoryPath)Path.Combine(AppDataPath, AppDomain);
 	private static FileName FileName => (FileName)$"{typeof(T).Name.ToSnakeCase()}.json";
