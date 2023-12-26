@@ -1,9 +1,9 @@
+namespace ktsu.io.AppDataStorage;
+
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using ktsu.io.CaseConverter;
-using ktsu.io.StrongPaths;
-
-namespace ktsu.io.AppDataStorage;
+using CaseConverter;
+using StrongPaths;
 
 /// <summary>
 /// Base class for app data storage. The app data is saved to the file system in the application data folder of the current user in a subdirectory named after the application domain.
