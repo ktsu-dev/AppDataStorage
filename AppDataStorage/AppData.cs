@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using CaseConverter;
 using StrongPaths;
+using StringifyJsonConvertorFactory;
 
 /// <summary>
 /// Base class for app data storage. The app data is saved to the file system in the application data folder of the current user in a subdirectory named after the application domain.
@@ -18,13 +19,11 @@ public abstract class AppData<T> where T : AppData<T>, new()
 	private static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.General)
 	{
 		WriteIndented = true,
-		DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-		IgnoreReadOnlyFields = true,
-		IgnoreReadOnlyProperties = true,
 		IncludeFields = true,
 		Converters =
 		{
 			new JsonStringEnumConverter(),
+			new StringifyJsonConvertorFactory(),
 		}
 	};
 
