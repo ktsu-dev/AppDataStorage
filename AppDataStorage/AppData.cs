@@ -43,7 +43,7 @@ public abstract class AppData<T> where T : AppData<T>, new()
 	{
 		EnsureDirectoryExists(FilePath);
 
-		string jsonString = JsonSerializer.Serialize(this, JsonSerializerOptions);
+		string jsonString = JsonSerializer.Serialize(this, typeof(T), JsonSerializerOptions);
 
 		var tmpFilePath = (FilePath)$"{FilePath}.tmp";
 		var bkFilePath = (FilePath)$"{FilePath}.bk";
