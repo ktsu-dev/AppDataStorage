@@ -15,7 +15,7 @@ public abstract class AppData<T> where T : AppData<T>, new()
 	private static DirectoryPath AppDataPath => (DirectoryPath)Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 	private static DirectoryPath AppDataDomainPath => (DirectoryPath)Path.Combine(AppDataPath, AppDomain);
 	private static FileName FileName => (FileName)$"{typeof(T).Name.ToSnakeCase()}.json";
-	private static FilePath FilePath => (FilePath)Path.Join(AppDataDomainPath, FileName);
+	internal static FilePath FilePath => (FilePath)Path.Join(AppDataDomainPath, FileName);
 	private static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.General)
 	{
 		WriteIndented = true,
