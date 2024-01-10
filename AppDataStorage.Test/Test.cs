@@ -20,6 +20,7 @@ public class Test
 	[TestMethod]
 	public void TestMethod()
 	{
+		Storage.EnsureDirectoryExists(Storage.FilePath);
 		File.Delete(Storage.FilePath);
 		var storage = Storage.LoadOrCreate();
 		storage.WeakName = "WeakName";
