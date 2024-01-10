@@ -27,7 +27,7 @@ public abstract class AppData<T> where T : AppData<T>, new()
 		}
 	};
 
-	private static void EnsureDirectoryExists(AnyFilePath path)
+	internal static void EnsureDirectoryExists(AnyFilePath path)
 	{
 		var dirPath = path.DirectoryPath;
 		if (!string.IsNullOrEmpty(dirPath))
