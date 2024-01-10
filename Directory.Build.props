@@ -21,6 +21,7 @@
   <ItemGroup>
     <None Include="..\.project.props" />
     <None Include="..\$(PackageLicenseFile)" Pack="True" PackagePath="" Visible="False" />
+    <InternalsVisibleTo Include="$(RootNamespace).Test" />
   </ItemGroup>
 
 </Project>
