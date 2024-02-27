@@ -1,7 +1,5 @@
 <Project>
 
-  <Import Project=".project.props" />
-
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -19,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\.project.props" />
+    <None Include="Directory.Build.props" />
     <None Include="..\$(PackageLicenseFile)" Pack="True" PackagePath="" Visible="False" />
     <InternalsVisibleTo Include="$(RootNamespace).Test" />
   </ItemGroup>
