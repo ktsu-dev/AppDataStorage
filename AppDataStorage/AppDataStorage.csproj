@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <PackageReference Include="ktsu.io.CaseConverter" Version="1.0.0-alpha.3" />
+    <PackageReference Include="ktsu.io.CaseConverter" Version="1.0.0-alpha.5" />
     <PackageReference Include="ktsu.io.StringifyJsonConvertorFactory" Version="1.0.0-alpha.11" />
     <PackageReference Include="ktsu.io.StrongPaths" Version="1.0.2" />
     <PackageReference Include="ktsu.io.StrongStrings" Version="1.0.1" />
