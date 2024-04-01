@@ -2,7 +2,7 @@
   <ItemGroup>
     <PackageReference Include="ktsu.io.CaseConverter" Version="1.0.0" />
     <PackageReference Include="ktsu.io.StringifyJsonConvertorFactory" Version="1.0.0-alpha.11" />
-    <PackageReference Include="ktsu.io.StrongPaths" Version="1.0.7" />
+    <PackageReference Include="ktsu.io.StrongPaths" Version="1.0.8" />
     <PackageReference Include="ktsu.io.StrongStrings" Version="1.0.1" />
   </ItemGroup>
 </Project>
