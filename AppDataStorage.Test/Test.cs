@@ -1,4 +1,3 @@
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 namespace ktsu.io.AppDataStorage.Test;
 
 using StrongStrings;
@@ -11,7 +10,7 @@ public class Storage : AppData<Storage>
 
 	public StrongName StrongName { get; set; } = new();
 
-	public Dictionary<StrongName, string> StrongNames { get; init; } = new();
+	public Dictionary<StrongName, string> StrongNames { get; init; } = [];
 }
 
 [TestClass]
@@ -38,4 +37,3 @@ public class Test
 		}
 	}
 }
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
