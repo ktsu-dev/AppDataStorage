@@ -29,7 +29,7 @@ jobs:
     - name: Install dotnet-script
       run: dotnet tool install -g dotnet-script
     - name: Run Tests
-      run: dotnet test
+      run: dotnet test --collect:"XPlat Code Coverage"
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4.0.1
       with:
