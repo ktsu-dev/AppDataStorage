@@ -1,4 +1,4 @@
-name: build-dotnet-library
+name: "Build ${{ github.repository }}"
 
 on:
   push:
