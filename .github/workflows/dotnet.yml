@@ -1,5 +1,4 @@
 name: "Build"
-run-name: "Build ${{ github.repository }}"
 
 on:
   push:
