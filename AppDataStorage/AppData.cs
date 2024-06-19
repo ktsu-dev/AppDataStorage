@@ -1,10 +1,30 @@
+// Ignore Spelling: App Serializer
+
 namespace ktsu.io.AppDataStorage;
 
+using System.IO.Abstractions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using CaseConverter;
-using StrongPaths;
-using StringifyJsonConvertorFactory;
+using ktsu.io.CaseConverter;
+using ktsu.io.StringifyJsonConvertorFactory;
+using ktsu.io.StrongPaths;
+
+internal static class AppDataShared
+{
+	internal static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.General)
+	{
+		WriteIndented = true,
+		IncludeFields = true,
+		ReferenceHandler = ReferenceHandler.Preserve,
+		Converters =
+		{
+			new JsonStringEnumConverter(),
+			new StringifyJsonConvertorFactory(),
+		}
+	};
+
+	internal static IFileSystem FileSystem { get; set; } = new FileSystem();
+}
 
 /// <summary>
 /// Base class for app data storage. The app data is saved to the file system in the application data folder of the current user in a subdirectory named after the application domain.
@@ -16,48 +36,42 @@ public abstract class AppData<T> where T : AppData<T>, new()
 	private static DirectoryPath AppDataDomainPath => (DirectoryPath)Path.Combine(AppDataPath, AppDomain);
 	private static FileName FileName => (FileName)$"{typeof(T).Name.ToSnakeCase()}.json";
 	internal static FilePath FilePath => (FilePath)Path.Join(AppDataDomainPath, FileName);
-	private static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.General)
-	{
-		WriteIndented = true,
-		IncludeFields = true,
-		Converters =
-		{
-			new JsonStringEnumConverter(),
-			new StringifyJsonConvertorFactory(),
-		}
-	};
+
 
 	internal static void EnsureDirectoryExists(AnyFilePath path)
 	{
 		var dirPath = path.DirectoryPath;
 		if (!string.IsNullOrEmpty(dirPath))
 		{
-			Directory.CreateDirectory(dirPath);
+			AppDataShared.FileSystem.Directory.CreateDirectory(dirPath);
 		}
 	}
 
 	/// <summary>
-	/// Saves the app data to the file system. If the file already exists, it is backed up first incase the save fails the original file is not lost.
+	/// Saves the app data to the file system. If the file already exists, it is backed up first in case the save fails the original file is not lost.
 	/// </summary>
 	public void Save()
 	{
 		EnsureDirectoryExists(FilePath);
 
-		string jsonString = JsonSerializer.Serialize(this, typeof(T), JsonSerializerOptions);
+		string jsonString = JsonSerializer.Serialize(this, typeof(T), AppDataShared.JsonSerializerOptions);
 
-		var tmpFilePath = (FilePath)$"{FilePath}.tmp";
+		var tempFilePath = (FilePath)$"{FilePath}.tmp";
 		var bkFilePath = (FilePath)$"{FilePath}.bk";
-		File.Delete(tmpFilePath);
-		File.Delete(bkFilePath);
-		File.WriteAllText(tmpFilePath, jsonString);
+		AppDataShared.FileSystem.File.Delete(tempFilePath);
+		AppDataShared.FileSystem.File.Delete(bkFilePath);
+		AppDataShared.FileSystem.File.WriteAllText(tempFilePath, jsonString);
 		try
 		{
-			File.Move(FilePath, bkFilePath);
+			AppDataShared.FileSystem.File.Move(FilePath, bkFilePath);
 		}
-		catch (FileNotFoundException) { }
+		catch (FileNotFoundException)
+		{
+			// Ignore
+		}
 
-		File.Move(tmpFilePath, FilePath);
-		File.Delete(bkFilePath);
+		AppDataShared.FileSystem.File.Move(tempFilePath, FilePath);
+		AppDataShared.FileSystem.File.Delete(bkFilePath);
 	}
 
 	/// <summary>
@@ -72,8 +86,8 @@ public abstract class AppData<T> where T : AppData<T>, new()
 		{
 			try
 			{
-				string jsonString = File.ReadAllText(FilePath);
-				var appData = JsonSerializer.Deserialize<T>(jsonString, JsonSerializerOptions);
+				string jsonString = AppDataShared.FileSystem.File.ReadAllText(FilePath);
+				var appData = JsonSerializer.Deserialize<T>(jsonString, AppDataShared.JsonSerializerOptions);
 				if (appData != null)
 				{
 					return appData;
@@ -81,9 +95,11 @@ public abstract class AppData<T> where T : AppData<T>, new()
 			}
 			catch (FileNotFoundException)
 			{
+				// Ignore
 			}
 			catch (JsonException)
 			{
+				// Ignore
 			}
 		}
 

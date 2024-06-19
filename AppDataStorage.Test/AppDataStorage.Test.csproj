@@ -2,4 +2,7 @@
   <PropertyGroup>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="21.0.2" />
+  </ItemGroup>
 </Project>

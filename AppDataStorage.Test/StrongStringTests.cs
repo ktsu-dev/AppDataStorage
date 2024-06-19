@@ -1,6 +1,7 @@
 namespace ktsu.io.AppDataStorage.Test;
 
-using StrongStrings;
+using System.IO.Abstractions.TestingHelpers;
+using ktsu.io.StrongStrings;
 
 public sealed record class StrongName : StrongStringAbstract<StrongName> { }
 
@@ -14,13 +15,20 @@ public class Storage : AppData<Storage>
 }
 
 [TestClass]
-public class Test
+public class StrongStringTests
 {
+	[TestInitialize]
+	public void Setup()
+	{
+		AppDataShared.FileSystem = new MockFileSystem();
+		AppDomain.CurrentDomain.SetData("APP_CONTEXT_BASE_DIRECTORY", "/app");
+	}
+
 	[TestMethod]
-	public void TestMethod()
+	public void TestStrongStrings()
 	{
 		Storage.EnsureDirectoryExists(Storage.FilePath);
-		File.Delete(Storage.FilePath);
+		AppDataShared.FileSystem.File.Delete(Storage.FilePath);
 		var storage = Storage.LoadOrCreate();
 		storage.WeakName = "WeakName";
 		storage.StrongName = (StrongName)"StrongName";
