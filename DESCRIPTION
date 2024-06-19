@@ -1,1 +1,1 @@
-A library to store data in the AppData folder of the current user.
+Application data management library using JSON serialization to save and load data in the user's app data folder.
