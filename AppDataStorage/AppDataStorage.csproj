@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="ktsu.io.ToStringJsonConverter" Version="1.0.0-alpha.2" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" Version="21.0.2" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers " Version="21.0.2" />
     <PackageReference Include="ktsu.io.CaseConverter" Version="1.0.1" />
-    <PackageReference Include="ktsu.io.StringifyJsonConvertorFactory" Version="1.0.0-alpha.11" />
     <PackageReference Include="ktsu.io.StrongPaths" Version="1.0.8" />
     <PackageReference Include="ktsu.io.StrongStrings" Version="1.0.1" />
   </ItemGroup>

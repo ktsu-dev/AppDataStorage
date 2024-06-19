@@ -6,8 +6,8 @@ using System.IO.Abstractions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ktsu.io.CaseConverter;
-using ktsu.io.StringifyJsonConvertorFactory;
 using ktsu.io.StrongPaths;
+using ktsu.io.ToStringJsonConverter;
 
 internal static class AppDataShared
 {
@@ -19,7 +19,7 @@ internal static class AppDataShared
 		Converters =
 		{
 			new JsonStringEnumConverter(),
-			new StringifyJsonConvertorFactory(),
+			new ToStringJsonConverterFactory(),
 		}
 	};
 
