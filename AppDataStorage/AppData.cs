@@ -87,11 +87,7 @@ public abstract class AppData<T> where T : AppData<T>, new()
 			try
 			{
 				string jsonString = AppDataShared.FileSystem.File.ReadAllText(FilePath);
-				var appData = JsonSerializer.Deserialize<T>(jsonString, AppDataShared.JsonSerializerOptions);
-				if (appData != null)
-				{
-					return appData;
-				}
+				return JsonSerializer.Deserialize<T>(jsonString, AppDataShared.JsonSerializerOptions)!;
 			}
 			catch (FileNotFoundException)
 			{
