@@ -49,8 +49,8 @@ public static class AppData
 		}
 	}
 
-	internal static AbsoluteFilePath MakeTempFilePath(AbsoluteFilePath filePath) => (AbsoluteFilePath)filePath.WithSuffix(".tmp");
-	internal static AbsoluteFilePath MakeBackupFilePath(AbsoluteFilePath filePath) => (AbsoluteFilePath)filePath.WithSuffix(".bk");
+	internal static AbsoluteFilePath MakeTempFilePath(AbsoluteFilePath filePath) => filePath.WithSuffix(".tmp");
+	internal static AbsoluteFilePath MakeBackupFilePath(AbsoluteFilePath filePath) => filePath.WithSuffix(".bk");
 
 	/// <summary>
 	/// Write text to a file within this applications app data folder
