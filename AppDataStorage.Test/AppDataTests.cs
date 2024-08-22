@@ -11,7 +11,7 @@ public class AppDataTests
 	[TestInitialize]
 	public void Setup()
 	{
-		AppDataShared.FileSystem = new MockFileSystem();
+		AppData.FileSystem = new MockFileSystem();
 		AppDomain.CurrentDomain.SetData("APP_CONTEXT_BASE_DIRECTORY", "/app");
 	}
 
@@ -27,7 +27,7 @@ public class AppDataTests
 		appData.Save();
 
 		var filePath = TestAppData.FilePath;
-		Assert.IsTrue(AppDataShared.FileSystem.File.Exists(filePath), "File was not created.");
+		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File was not created.");
 	}
 
 	[TestMethod]
@@ -37,11 +37,11 @@ public class AppDataTests
 		appData.Save();
 
 		string backupFilePath = TestAppData.FilePath + ".bk";
-		Assert.IsFalse(AppDataShared.FileSystem.File.Exists(backupFilePath), "Backup file should not exist initially.");
+		Assert.IsFalse(AppData.FileSystem.File.Exists(backupFilePath), "Backup file should not exist initially.");
 
 		appData.Save();
 
-		Assert.IsFalse(AppDataShared.FileSystem.File.Exists(backupFilePath), "Backup file should get cleaned up.");
+		Assert.IsFalse(AppData.FileSystem.File.Exists(backupFilePath), "Backup file should get cleaned up.");
 	}
 
 	[TestMethod]
@@ -50,7 +50,7 @@ public class AppDataTests
 		_ = TestAppData.LoadOrCreate();
 
 		var filePath = TestAppData.FilePath;
-		Assert.IsTrue(AppDataShared.FileSystem.File.Exists(filePath), "File was not created.");
+		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File was not created.");
 	}
 
 	[TestMethod]
@@ -67,8 +67,8 @@ public class AppDataTests
 	public void TestLoadOrCreateCreatesNewFileWhenInvalid()
 	{
 		var filePath = TestAppData.FilePath;
-		TestAppData.EnsureDirectoryExists(filePath);
-		AppDataShared.FileSystem.File.WriteAllText(filePath, "{ invalid json }");
+		AppData.EnsureDirectoryExists(filePath);
+		AppData.FileSystem.File.WriteAllText(filePath, "{ invalid json }");
 
 		var appData = TestAppData.LoadOrCreate();
 
@@ -79,10 +79,10 @@ public class AppDataTests
 	public void TestEnsureDirectoryExistsCreatesDirectory()
 	{
 		var path = TestAppData.FilePath.DirectoryPath;
-		Assert.IsFalse(AppDataShared.FileSystem.Directory.Exists(path), "Directory should not exist initially.");
+		Assert.IsFalse(AppData.FileSystem.Directory.Exists(path), "Directory should not exist initially.");
 
-		TestAppData.EnsureDirectoryExists(TestAppData.FilePath);
+		AppData.EnsureDirectoryExists(TestAppData.FilePath);
 
-		Assert.IsTrue(AppDataShared.FileSystem.Directory.Exists(path), "Directory was not created.");
+		Assert.IsTrue(AppData.FileSystem.Directory.Exists(path), "Directory was not created.");
 	}
 }

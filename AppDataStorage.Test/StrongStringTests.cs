@@ -20,15 +20,15 @@ public class StrongStringTests
 	[TestInitialize]
 	public void Setup()
 	{
-		AppDataShared.FileSystem = new MockFileSystem();
+		AppData.FileSystem = new MockFileSystem();
 		AppDomain.CurrentDomain.SetData("APP_CONTEXT_BASE_DIRECTORY", "/app");
 	}
 
 	[TestMethod]
 	public void TestStrongStrings()
 	{
-		Storage.EnsureDirectoryExists(Storage.FilePath);
-		AppDataShared.FileSystem.File.Delete(Storage.FilePath);
+		AppData.EnsureDirectoryExists(Storage.FilePath);
+		AppData.FileSystem.File.Delete(Storage.FilePath);
 		var storage = Storage.LoadOrCreate();
 		storage.WeakName = "WeakName";
 		storage.StrongName = (StrongName)"StrongName";

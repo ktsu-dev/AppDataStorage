@@ -9,8 +9,18 @@ using ktsu.io.CaseConverter;
 using ktsu.io.StrongPaths;
 using ktsu.io.ToStringJsonConverter;
 
-internal static class AppDataShared
+/// <summary>
+/// Static helpers
+/// </summary>
+public static class AppData
 {
+	/// <summary>
+	/// The path where persistent data is stored for this application
+	/// </summary>
+	public static AbsoluteDirectoryPath Path => AppDataPath / AppDomain;
+	private static RelativeDirectoryPath AppDomain => (RelativeDirectoryPath)System.AppDomain.CurrentDomain.FriendlyName;
+	private static AbsoluteDirectoryPath AppDataPath => (AbsoluteDirectoryPath)Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
 	internal static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.General)
 	{
 		WriteIndented = true,
@@ -24,6 +34,76 @@ internal static class AppDataShared
 	};
 
 	internal static IFileSystem FileSystem { get; set; } = new FileSystem();
+
+	internal static void EnsureDirectoryExists(AbsoluteFilePath path)
+	{
+		var dirPath = path.DirectoryPath;
+		EnsureDirectoryExists(dirPath);
+	}
+
+	internal static void EnsureDirectoryExists(AbsoluteDirectoryPath path)
+	{
+		if (!string.IsNullOrEmpty(path))
+		{
+			FileSystem.Directory.CreateDirectory(path);
+		}
+	}
+
+	internal static AbsoluteFilePath MakeTempFilePath(AbsoluteFilePath filePath) => (AbsoluteFilePath)filePath.WithSuffix(".tmp");
+	internal static AbsoluteFilePath MakeBackupFilePath(AbsoluteFilePath filePath) => (AbsoluteFilePath)filePath.WithSuffix(".bk");
+
+	/// <summary>
+	/// Write text to a file within this applications app data folder
+	/// </summary>
+	/// <param name="fileName">The name of the file to write</param>
+	/// <param name="text">The text to write</param>
+	public static void WriteText(FileName fileName, string text)
+	{
+		var filePath = Path / fileName;
+		EnsureDirectoryExists(filePath);
+		var tempFilePath = MakeTempFilePath(filePath);
+		var bkFilePath = MakeBackupFilePath(filePath);
+		FileSystem.File.Delete(tempFilePath);
+		FileSystem.File.Delete(bkFilePath);
+		FileSystem.File.WriteAllText(tempFilePath, text);
+		try
+		{
+			FileSystem.File.Move(filePath, bkFilePath);
+		}
+		catch (FileNotFoundException)
+		{
+			// Ignore
+		}
+
+		FileSystem.File.Move(tempFilePath, filePath);
+		FileSystem.File.Delete(bkFilePath);
+	}
+
+	/// <summary>
+	/// Reads text from a file within this applications app data folder
+	/// </summary>
+	/// <param name="fileName">The name of the file to read</param>
+	/// <returns>A string containing the text in the file</returns>
+	public static string ReadText(FileName fileName)
+	{
+		var filePath = Path / fileName;
+		try
+		{
+			return FileSystem.File.ReadAllText(filePath);
+		}
+		catch (FileNotFoundException)
+		{
+			var bkFilePath = MakeBackupFilePath(filePath);
+			if (bkFilePath.Exists)
+			{
+				EnsureDirectoryExists(filePath);
+				FileSystem.File.Move(bkFilePath, filePath);
+				return ReadText(fileName);
+			}
+		}
+
+		return string.Empty;
+	}
 }
 
 /// <summary>
@@ -31,47 +111,16 @@ internal static class AppDataShared
 /// </summary>
 public abstract class AppData<T> where T : AppData<T>, new()
 {
-	private static DirectoryPath AppDomain => (DirectoryPath)System.AppDomain.CurrentDomain.FriendlyName;
-	private static DirectoryPath AppDataPath => (DirectoryPath)Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-	private static DirectoryPath AppDataDomainPath => (DirectoryPath)Path.Combine(AppDataPath, AppDomain);
 	private static FileName FileName => (FileName)$"{typeof(T).Name.ToSnakeCase()}.json";
-	internal static FilePath FilePath => (FilePath)Path.Join(AppDataDomainPath, FileName);
-
-
-	internal static void EnsureDirectoryExists(AnyFilePath path)
-	{
-		var dirPath = path.DirectoryPath;
-		if (!string.IsNullOrEmpty(dirPath))
-		{
-			AppDataShared.FileSystem.Directory.CreateDirectory(dirPath);
-		}
-	}
+	internal static AbsoluteFilePath FilePath => AppData.Path / FileName;
 
 	/// <summary>
 	/// Saves the app data to the file system. If the file already exists, it is backed up first in case the save fails the original file is not lost.
 	/// </summary>
 	public void Save()
 	{
-		EnsureDirectoryExists(FilePath);
-
-		string jsonString = JsonSerializer.Serialize(this, typeof(T), AppDataShared.JsonSerializerOptions);
-
-		var tempFilePath = (FilePath)$"{FilePath}.tmp";
-		var bkFilePath = (FilePath)$"{FilePath}.bk";
-		AppDataShared.FileSystem.File.Delete(tempFilePath);
-		AppDataShared.FileSystem.File.Delete(bkFilePath);
-		AppDataShared.FileSystem.File.WriteAllText(tempFilePath, jsonString);
-		try
-		{
-			AppDataShared.FileSystem.File.Move(FilePath, bkFilePath);
-		}
-		catch (FileNotFoundException)
-		{
-			// Ignore
-		}
-
-		AppDataShared.FileSystem.File.Move(tempFilePath, FilePath);
-		AppDataShared.FileSystem.File.Delete(bkFilePath);
+		string jsonString = JsonSerializer.Serialize(this, typeof(T), AppData.JsonSerializerOptions);
+		AppData.WriteText(FileName, jsonString);
 	}
 
 	/// <summary>
@@ -80,23 +129,14 @@ public abstract class AppData<T> where T : AppData<T>, new()
 	/// <returns>An instance of the app data of type T.</returns>
 	public static T LoadOrCreate()
 	{
-		EnsureDirectoryExists(FilePath);
-
-		if (!string.IsNullOrEmpty(FilePath))
+		try
 		{
-			try
-			{
-				string jsonString = AppDataShared.FileSystem.File.ReadAllText(FilePath);
-				return JsonSerializer.Deserialize<T>(jsonString, AppDataShared.JsonSerializerOptions)!;
-			}
-			catch (FileNotFoundException)
-			{
-				// Ignore
-			}
-			catch (JsonException)
-			{
-				// Ignore
-			}
+			string jsonString = AppData.ReadText(FileName);
+			return JsonSerializer.Deserialize<T>(jsonString, AppData.JsonSerializerOptions)!;
+		}
+		catch (JsonException)
+		{
+			// Ignore
 		}
 
 		T newAppData = new();
