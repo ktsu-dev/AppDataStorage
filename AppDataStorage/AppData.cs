@@ -87,6 +87,7 @@ public static class AppData
 	public static string ReadText(FileName fileName)
 	{
 		var filePath = Path / fileName;
+		EnsureDirectoryExists(filePath);
 		try
 		{
 			return FileSystem.File.ReadAllText(filePath);
@@ -96,7 +97,6 @@ public static class AppData
 			var bkFilePath = MakeBackupFilePath(filePath);
 			if (bkFilePath.Exists)
 			{
-				EnsureDirectoryExists(filePath);
 				FileSystem.File.Move(bkFilePath, filePath);
 				return ReadText(fileName);
 			}
