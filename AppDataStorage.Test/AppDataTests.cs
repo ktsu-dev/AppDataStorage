@@ -1,6 +1,6 @@
 // Ignore Spelling: App
 
-namespace ktsu.io.AppDataStorage.Tests;
+namespace ktsu.AppDataStorage.Tests;
 
 using System;
 using System.IO.Abstractions.TestingHelpers;

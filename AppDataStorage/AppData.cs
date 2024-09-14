@@ -1,13 +1,13 @@
 // Ignore Spelling: App Serializer
 
-namespace ktsu.io.AppDataStorage;
+namespace ktsu.AppDataStorage;
 
 using System.IO.Abstractions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using ktsu.io.CaseConverter;
-using ktsu.io.StrongPaths;
-using ktsu.io.ToStringJsonConverter;
+using ktsu.CaseConverter;
+using ktsu.StrongPaths;
+using ktsu.ToStringJsonConverter;
 
 /// <summary>
 /// Static helpers
