@@ -1,6 +1,6 @@
-# ktsu.io.AppDataStorage
+# ktsu.AppDataStorage
 
-`ktsu.io.AppDataStorage` is a .NET library designed to simplify the process of storing application data. This library enables you to save and load configuration or state data in the application data folder of the current user, using JSON serialization.
+`ktsu.AppDataStorage` is a .NET library designed to simplify the process of storing application data. This library enables you to save and load configuration or state data in the application data folder of the current user, using JSON serialization.
 
 ## Features
 
@@ -14,7 +14,7 @@
 Install the package via NuGet:
 
 ```bash
-dotnet add package ktsu.io.AppDataStorage
+dotnet add package ktsu.AppDataStorage
 ```
 
 ## Usage
