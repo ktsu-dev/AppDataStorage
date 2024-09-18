@@ -5,6 +5,6 @@
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers " Version="21.0.29" />
     <PackageReference Include="ktsu.CaseConverter" Version="1.0.2" />
     <PackageReference Include="ktsu.StrongPaths" Version="1.1.2" />
-    <PackageReference Include="ktsu.StrongStrings" Version="1.2.0" />
+    <PackageReference Include="ktsu.StrongStrings" Version="1.2.1" />
   </ItemGroup>
 </Project>
