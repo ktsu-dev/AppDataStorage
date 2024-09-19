@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <PackageReference Include="ktsu.ToStringJsonConverter" Version="1.0.6" />
+    <PackageReference Include="ktsu.ToStringJsonConverter" Version="1.0.8" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" Version="21.0.29" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers " Version="21.0.29" />
-    <PackageReference Include="ktsu.CaseConverter" Version="1.0.8" />
-    <PackageReference Include="ktsu.StrongPaths" Version="1.1.7" />
-    <PackageReference Include="ktsu.StrongStrings" Version="1.2.5" />
+    <PackageReference Include="ktsu.CaseConverter" Version="1.0.10" />
+    <PackageReference Include="ktsu.StrongPaths" Version="1.1.9" />
+    <PackageReference Include="ktsu.StrongStrings" Version="1.2.6" />
   </ItemGroup>
 </Project>
