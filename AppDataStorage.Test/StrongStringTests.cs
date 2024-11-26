@@ -3,9 +3,9 @@ namespace ktsu.AppDataStorage.Test;
 using System.IO.Abstractions.TestingHelpers;
 using ktsu.StrongStrings;
 
-public sealed record class StrongName : StrongStringAbstract<StrongName> { }
+internal sealed record class StrongName : StrongStringAbstract<StrongName> { }
 
-public class Storage : AppData<Storage>
+internal sealed class Storage : AppData<Storage>
 {
 	public string WeakName { get; set; } = "";
 
@@ -15,7 +15,7 @@ public class Storage : AppData<Storage>
 }
 
 [TestClass]
-public class StrongStringTests
+internal sealed class StrongStringTests
 {
 	[TestInitialize]
 	public void Setup()
