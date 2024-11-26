@@ -6,7 +6,7 @@ using System;
 using System.IO.Abstractions.TestingHelpers;
 
 [TestClass]
-internal sealed class AppDataTests
+public sealed class AppDataTests
 {
 	[TestInitialize]
 	public void Setup()
