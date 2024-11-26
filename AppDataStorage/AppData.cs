@@ -6,6 +6,7 @@ using System.IO.Abstractions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ktsu.CaseConverter;
+using ktsu.Extensions;
 using ktsu.StrongPaths;
 using ktsu.ToStringJsonConverter;
 
@@ -18,8 +19,8 @@ public static class AppData
 	/// The path where persistent data is stored for this application
 	/// </summary>
 	public static AbsoluteDirectoryPath Path => AppDataPath / AppDomain;
-	private static RelativeDirectoryPath AppDomain => (RelativeDirectoryPath)System.AppDomain.CurrentDomain.FriendlyName;
-	private static AbsoluteDirectoryPath AppDataPath => (AbsoluteDirectoryPath)Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+	private static RelativeDirectoryPath AppDomain => System.AppDomain.CurrentDomain.FriendlyName.As<RelativeDirectoryPath>();
+	private static AbsoluteDirectoryPath AppDataPath => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create).As<AbsoluteDirectoryPath>();
 
 	internal static JsonSerializerOptions JsonSerializerOptions { get; } = new(JsonSerializerDefaults.General)
 	{
@@ -111,7 +112,7 @@ public static class AppData
 /// </summary>
 public abstract class AppData<T> where T : AppData<T>, new()
 {
-	private static FileName FileName => (FileName)$"{typeof(T).Name.ToSnakeCase()}.json";
+	private static FileName FileName => $"{typeof(T).Name.ToSnakeCase()}.json".As<FileName>();
 	internal static AbsoluteFilePath FilePath => AppData.Path / FileName;
 
 	/// <summary>

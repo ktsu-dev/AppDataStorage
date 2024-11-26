@@ -6,7 +6,7 @@ using System;
 using System.IO.Abstractions.TestingHelpers;
 
 [TestClass]
-public class AppDataTests
+internal sealed class AppDataTests
 {
 	[TestInitialize]
 	public void Setup()
@@ -15,7 +15,7 @@ public class AppDataTests
 		AppDomain.CurrentDomain.SetData("APP_CONTEXT_BASE_DIRECTORY", "/app");
 	}
 
-	public class TestAppData : AppData<TestAppData>
+	internal sealed class TestAppData : AppData<TestAppData>
 	{
 		public string Data { get; set; } = string.Empty;
 	}
