@@ -1,9 +1,11 @@
 // Ignore Spelling: App
 
-namespace ktsu.AppDataStorage.Tests;
+namespace ktsu.AppDataStorage.Test;
 
 using System;
 using System.IO.Abstractions.TestingHelpers;
+using ktsu.Extensions;
+using ktsu.StrongPaths;
 
 [TestClass]
 public sealed class AppDataTests
@@ -84,5 +86,52 @@ public sealed class AppDataTests
 		AppData.EnsureDirectoryExists(TestAppData.FilePath);
 
 		Assert.IsTrue(AppData.FileSystem.Directory.Exists(path), "Directory was not created.");
+	}
+
+	[TestMethod]
+	public void TestWriteTextCreatesFile()
+	{
+		var fileName = "test.txt".As<FileName>();
+		string text = "Hello, World!";
+		AppData.WriteText(fileName, text);
+
+		var filePath = AppData.Path / fileName;
+		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File was not created.");
+		Assert.AreEqual(text, AppData.FileSystem.File.ReadAllText(filePath), "File content does not match.");
+	}
+
+	[TestMethod]
+	public void TestReadTextReturnsCorrectContent()
+	{
+		var fileName = "test.txt".As<FileName>();
+		string text = "Hello, World!";
+		AppData.WriteText(fileName, text);
+
+		string readText = AppData.ReadText(fileName);
+		Assert.AreEqual(text, readText, "Read text does not match written text.");
+	}
+
+	[TestMethod]
+	public void TestReadTextReturnsEmptyStringForNonExistentFile()
+	{
+		var fileName = "nonexistent.txt".As<FileName>();
+		string readText = AppData.ReadText(fileName);
+		Assert.AreEqual(string.Empty, readText, "Read text should be empty for non-existent file.");
+	}
+
+	[TestMethod]
+	public void TestMakeTempFilePath()
+	{
+		var filePath = (AppData.Path / "test.txt".As<FileName>()).As<AbsoluteFilePath>();
+		var tempFilePath = AppData.MakeTempFilePath(filePath);
+		Assert.AreEqual(filePath + ".tmp", tempFilePath, "Temp file path does not match expected value.");
+	}
+
+	[TestMethod]
+	public void TestMakeBackupFilePath()
+	{
+		var filePath = (AppData.Path / "test.txt".As<FileName>()).As<AbsoluteFilePath>();
+		var backupFilePath = AppData.MakeBackupFilePath(filePath);
+		Assert.AreEqual(filePath + ".bk", backupFilePath, "Backup file path does not match expected value.");
 	}
 }
