@@ -10,6 +10,7 @@
 - **File System Abstraction**: Uses `System.IO.Abstractions` for easy unit testing and mocking.
 - **Debounced Saves**: Prevents frequent file writes to improve performance.
 - **Support for Multiple Applications**: Organizes data by application domain for isolation.
+- **Static Instance Access**: Provides easy access to a singleton-like instance for centralized data management.
 
 ## Installation
 
@@ -47,17 +48,42 @@ Console.WriteLine(data.Setting2);
 // 12
 ```
 
+### Accessing the Static Instance
+
+The `AppData<T>` class provides a static instance through the `Get` method, which ensures a single, easily accessible instance is available throughout your application:
+
+```csharp
+var data = MyAppData.Get();
+Console.WriteLine(data.Setting1);
+```
+
+The static instance is initialized automatically and matches the instance returned by `LoadOrCreate`. Changes to the static instance are persistent once saved:
+
+```csharp
+var data = MyAppData.Get();
+data.Setting1 = "new value";
+data.Save();
+
+var sameData = MyAppData.Get();
+Console.WriteLine(sameData.Setting1);
+
+// Output:
+// new value
+```
+
+This functionality is useful for applications where centralized access to app data is required without repeatedly loading or instantiating objects.
+
 ### Saving Data
 
 Modify properties and save the data using the `Save` method.
 
 ```csharp
-var data = MyAppData.LoadOrCreate();
+var data = MyAppData.Get();
 data.Setting1 = "goodbye";
 data.Setting2 = 42;
 data.Save();
 
-var reloadedData = MyAppData.LoadOrCreate();
+var reloadedData = MyAppData.Get();
 Console.WriteLine(reloadedData.Setting1);
 Console.WriteLine(reloadedData.Setting2);
 
