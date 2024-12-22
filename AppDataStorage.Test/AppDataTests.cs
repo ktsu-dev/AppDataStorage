@@ -1,5 +1,3 @@
-// Ignore Spelling: App
-
 namespace ktsu.AppDataStorage.Test;
 
 using System;
@@ -368,6 +366,72 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
+	public void TestEnsureDirectoryExistsWithNullFilePath()
+	{
+		AbsoluteFilePath path = null!;
+		AppData.EnsureDirectoryExists(path);
+		// No exception should be thrown
+	}
+
+	[TestMethod]
+	public void TestEnsureDirectoryExistsWithEmptyFilePath()
+	{
+		var path = new AbsoluteFilePath();
+		AppData.EnsureDirectoryExists(path);
+		// No exception should be thrown
+	}
+
+	[TestMethod]
+	public void TestEnsureDirectoryExistsWithNullDirectoryPath()
+	{
+		AbsoluteDirectoryPath path = null!;
+		AppData.EnsureDirectoryExists(path);
+		// No exception should be thrown
+	}
+
+	[TestMethod]
+	public void TestEnsureDirectoryExistsWithEmptyDirectoryPath()
+	{
+		var path = new AbsoluteDirectoryPath();
+		AppData.EnsureDirectoryExists(path);
+		// No exception should be thrown
+	}
+
+	[TestMethod]
+	public void TestEnsureDirectoryExistsWithValidFilePath()
+	{
+		var filePath = (AppData.Path / "test.txt".As<FileName>()).As<AbsoluteFilePath>();
+		var dirPath = filePath.DirectoryPath;
+		Assert.IsFalse(AppData.FileSystem.Directory.Exists(dirPath), "Directory should not exist initially.");
+
+		AppData.EnsureDirectoryExists(filePath);
+
+		Assert.IsTrue(AppData.FileSystem.Directory.Exists(dirPath), "Directory was not created.");
+	}
+
+	[TestMethod]
+	public void TestEnsureDirectoryExistsWithValidDirectoryPath()
+	{
+		var dirPath = (AppData.Path / "testDir".As<RelativeDirectoryPath>()).As<AbsoluteDirectoryPath>();
+		Assert.IsFalse(AppData.FileSystem.Directory.Exists(dirPath), "Directory should not exist initially.");
+
+		AppData.EnsureDirectoryExists(dirPath);
+
+		Assert.IsTrue(AppData.FileSystem.Directory.Exists(dirPath), "Directory was not created.");
+	}
+
+	[TestMethod]
+	public void TestEnsureDirectoryExistsWithNestedDirectories()
+	{
+		var dirPath = (AppData.Path / "nested/dir/structure".As<RelativeDirectoryPath>()).As<AbsoluteDirectoryPath>();
+		Assert.IsFalse(AppData.FileSystem.Directory.Exists(dirPath), "Nested directory structure should not exist initially.");
+
+		AppData.EnsureDirectoryExists(dirPath);
+
+		Assert.IsTrue(AppData.FileSystem.Directory.Exists(dirPath), "Nested directory structure was not created.");
+	}
+
+	[TestMethod]
 	public void TestSaveCreatesBackupIfInitialSaveFails()
 	{
 		using var appData = new TestAppData { Data = "Test data" };
@@ -418,5 +482,83 @@ public sealed class AppDataTests
 		AppData.EnsureDirectoryExists(absoluteDirPath);
 
 		Assert.IsTrue(AppData.FileSystem.Directory.Exists(absoluteDirPath), "Directory should be created.");
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateWithSubdirectory()
+	{
+		var subdirectory = "subdir".As<RelativeDirectoryPath>();
+		var appData = TestAppData.LoadOrCreate(subdirectory);
+
+		Assert.IsNotNull(appData, "AppData instance should not be null.");
+		Assert.AreEqual(subdirectory, appData.Subdirectory, "Subdirectory should be set correctly.");
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateWithFileName()
+	{
+		var fileName = "custom_file.json".As<FileName>();
+		var appData = TestAppData.LoadOrCreate(fileName);
+
+		Assert.IsNotNull(appData, "AppData instance should not be null.");
+		Assert.AreEqual(fileName, appData.FileNameOverride, "FileNameOverride should be set correctly.");
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateWithSubdirectoryAndFileName()
+	{
+		var subdirectory = "subdir".As<RelativeDirectoryPath>();
+		var fileName = "custom_file.json".As<FileName>();
+		var appData = TestAppData.LoadOrCreate(subdirectory, fileName);
+
+		Assert.IsNotNull(appData, "AppData instance should not be null.");
+		Assert.AreEqual(subdirectory, appData.Subdirectory, "Subdirectory should be set correctly.");
+		Assert.AreEqual(fileName, appData.FileNameOverride, "FileNameOverride should be set correctly.");
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateCreatesNewInstanceIfFileDoesNotExist()
+	{
+		var appData = TestAppData.LoadOrCreate();
+
+		Assert.IsNotNull(appData, "AppData instance should not be null.");
+		Assert.AreEqual(string.Empty, appData.Data, "Data should be default if file does not exist.");
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateLoadsExistingData()
+	{
+		var appData = TestAppData.Get();
+		appData.Data = "Persistent Data";
+		appData.Save();
+
+		var loadedAppData = TestAppData.LoadOrCreate();
+		Assert.AreEqual("Persistent Data", loadedAppData.Data, "Data should persist across LoadOrCreate calls.");
+	}
+
+	[TestMethod]
+	public void TestQueueSaveStaticMethod()
+	{
+		var beforeQueueTime = DateTime.UtcNow;
+
+		TestAppData.QueueSave();
+
+		var appData = TestAppData.Get();
+		Assert.IsTrue(appData.SaveQueuedTime >= beforeQueueTime, "SaveQueuedTime was not set correctly.");
+	}
+
+	[TestMethod]
+	public void TestSaveIfRequiredStaticMethod()
+	{
+		var appData = TestAppData.Get();
+		appData.Data = "Test data";
+		appData.QueueSave();
+		Thread.Sleep(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100)); // Wait for more than debounce time
+
+		TestAppData.SaveIfRequired();
+
+		var filePath = appData.FilePath;
+		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File was not saved.");
+		Assert.AreEqual("Test data", JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(filePath), AppData.JsonSerializerOptions)?.Data, "Saved data does not match.");
 	}
 }
