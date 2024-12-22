@@ -27,8 +27,9 @@ public sealed class StrongStringTests
 	[TestMethod]
 	public void TestStrongStrings()
 	{
-		AppData.EnsureDirectoryExists(Storage.FilePath);
-		AppData.FileSystem.File.Delete(Storage.FilePath);
+		using var storage1 = new Storage();
+		AppData.EnsureDirectoryExists(storage1.FilePath);
+		AppData.FileSystem.File.Delete(storage1.FilePath);
 		var storage = Storage.LoadOrCreate();
 		storage.WeakName = "WeakName";
 		storage.StrongName = (StrongName)"StrongName";
