@@ -155,7 +155,10 @@ public sealed class AppDataTests
 
 		var filePath = appData.FilePath;
 		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File was not saved.");
-		Assert.AreEqual("Test data", JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(filePath), AppData.JsonSerializerOptions)?.Data, "Saved data does not match.");
+
+		var fileContents = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(filePath), AppData.JsonSerializerOptions);
+		Assert.IsNotNull(fileContents, "Saved data should be deserialized correctly.");
+		Assert.AreEqual("Test data", fileContents.Data, "Saved data does not match.");
 	}
 
 	[TestMethod]
@@ -241,16 +244,6 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
-	public void TestLockIsNotNull()
-	{
-		using var appData = new TestAppData();
-
-#pragma warning disable CS9216 // A value of type 'System.Threading.Lock' converted to a different type will use likely unintended monitor-based locking in 'lock' statement.
-		Assert.IsNotNull(appData.Lock, "Lock object should not be null.");
-#pragma warning restore CS9216 // A value of type 'System.Threading.Lock' converted to a different type will use likely unintended monitor-based locking in 'lock' statement.
-	}
-
-	[TestMethod]
 	public void TestMultipleSavesOnlyWriteOnceWithinDebouncePeriod()
 	{
 		using var appData = new TestAppData { Data = "Data1" };
@@ -261,13 +254,15 @@ public sealed class AppDataTests
 		appData.SaveIfRequired();
 
 		var fileContent = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(appData.FilePath), AppData.JsonSerializerOptions);
-		Assert.AreEqual("Data1", fileContent?.Data, "Data should not be updated due to debounce.");
+		Assert.IsNotNull(fileContent, "File should not be empty after save.");
+		Assert.AreEqual("Data1", fileContent.Data, "Data should not be updated due to debounce.");
 
 		Thread.Sleep(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100));
 		appData.SaveIfRequired();
 
 		fileContent = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(appData.FilePath), AppData.JsonSerializerOptions);
-		Assert.AreEqual("Data2", fileContent?.Data, "Data should be updated after debounce period.");
+		Assert.IsNotNull(fileContent, "File should not be empty after debounce period.");
+		Assert.AreEqual("Data2", fileContent.Data, "Data should be updated after debounce period.");
 	}
 
 	[TestMethod]
@@ -559,6 +554,9 @@ public sealed class AppDataTests
 
 		var filePath = appData.FilePath;
 		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File was not saved.");
-		Assert.AreEqual("Test data", JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(filePath), AppData.JsonSerializerOptions)?.Data, "Saved data does not match.");
+
+		var testAppData = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(filePath), AppData.JsonSerializerOptions);
+		Assert.IsNotNull(testAppData, "Saved data should be deserialized correctly.");
+		Assert.AreEqual("Test data", testAppData.Data, "Saved data does not match.");
 	}
 }
