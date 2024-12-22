@@ -6,7 +6,7 @@
     <PackageReference Include="ktsu.ToStringJsonConverter" Version="1.0.34" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" Version="21.1.7" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers " Version="21.1.7" />
-    <PackageReference Include="ktsu.CaseConverter" Version="1.0.19" />
+    <PackageReference Include="ktsu.CaseConverter" Version="1.0.20" />
     <PackageReference Include="ktsu.StrongPaths" Version="1.1.37" />
     <PackageReference Include="ktsu.StrongStrings" Version="1.2.15" />
   </ItemGroup>
