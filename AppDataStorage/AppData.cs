@@ -225,12 +225,12 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// Gets the current instance of the app data.
 	/// </summary>
 	/// <returns>The current instance of the app data.</returns>
-	public static T Get() => InternalState;
+	public static T Get() => InternalState.Value;
 
 	/// <summary>
 	/// Gets the internal state of the app data.
 	/// </summary>
-	internal static T InternalState { get; } = LoadOrCreate(); // TODO: make this a Lazy<T>
+	internal static Lazy<T> InternalState { get; } = new(LoadOrCreate);
 
 	/// <summary>
 	/// Gets or sets the last save time of the app data.
@@ -398,11 +398,11 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// <summary>
 	/// Queues a save operation for the current app data instance.
 	/// </summary>
-	public static void QueueSave() => InternalState.QueueSave();
+	public static void QueueSave() => Get().QueueSave();
 
 
 	/// <summary>
 	/// Saves the app data if required based on the debounce time and the last save time.
 	/// </summary>
-	public static void SaveIfRequired() => InternalState.SaveIfRequired();
+	public static void SaveIfRequired() => Get().SaveIfRequired();
 }
