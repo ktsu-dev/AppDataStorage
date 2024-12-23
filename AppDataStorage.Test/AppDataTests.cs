@@ -233,7 +233,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestLoadOrCreateHandlesCorruptFile()
 	{
-		var filePath = TestAppData.InternalState.FilePath;
+		var filePath = TestAppData.Get().FilePath;
 		AppData.EnsureDirectoryExists(filePath);
 		AppData.FileSystem.File.WriteAllText(filePath, "Invalid JSON");
 
@@ -444,7 +444,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestLoadOrCreateRecoversFromCorruptBackup()
 	{
-		var filePath = TestAppData.InternalState.FilePath;
+		var filePath = TestAppData.Get().FilePath;
 		var backupFilePath = AppData.MakeBackupFilePath(filePath);
 
 		AppData.EnsureDirectoryExists(filePath);
