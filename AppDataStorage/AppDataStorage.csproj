@@ -7,7 +7,7 @@
     <PackageReference Include="TestableIO.System.IO.Abstractions" Version="21.1.7" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers " Version="21.1.7" />
     <PackageReference Include="ktsu.CaseConverter" Version="1.0.23" />
-    <PackageReference Include="ktsu.StrongPaths" Version="1.1.40" />
+    <PackageReference Include="ktsu.StrongPaths" Version="1.1.41" />
     <PackageReference Include="ktsu.StrongStrings" Version="1.2.18" />
   </ItemGroup>
 </Project>
