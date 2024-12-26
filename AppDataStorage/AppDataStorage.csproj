@@ -3,11 +3,11 @@
     <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ktsu.ToStringJsonConverter" Version="1.0.38" />
+    <PackageReference Include="ktsu.ToStringJsonConverter" Version="1.0.46" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" Version="21.1.7" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers " Version="21.1.7" />
-    <PackageReference Include="ktsu.CaseConverter" Version="1.0.23" />
-    <PackageReference Include="ktsu.StrongPaths" Version="1.1.41" />
-    <PackageReference Include="ktsu.StrongStrings" Version="1.2.18" />
+    <PackageReference Include="ktsu.CaseConverter" Version="1.0.27" />
+    <PackageReference Include="ktsu.StrongPaths" Version="1.1.49" />
+    <PackageReference Include="ktsu.StrongStrings" Version="1.2.25" />
   </ItemGroup>
 </Project>
