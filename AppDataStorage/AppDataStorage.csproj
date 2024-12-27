@@ -3,7 +3,7 @@
     <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ktsu.ToStringJsonConverter" Version="1.0.46" />
+    <PackageReference Include="ktsu.ToStringJsonConverter" Version="1.0.48" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" Version="21.1.7" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers " Version="21.1.7" />
     <PackageReference Include="ktsu.CaseConverter" Version="1.0.27" />
