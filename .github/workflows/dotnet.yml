@@ -71,7 +71,7 @@ jobs:
       shell: pwsh
       run: |
         # find the last version that was released
-        $LAST_TAG = (git tag --list)[-1]
+        $LAST_TAG = (git tag --list --sort=-v:refname)[0]
         $LAST_VERSION = $LAST_TAG -replace 'v', ''
         $LAST_VERSION = $LAST_VERSION -replace '-alpha', ''
         $LAST_VERSION = $LAST_VERSION -replace '-beta', ''
