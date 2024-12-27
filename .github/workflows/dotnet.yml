@@ -93,7 +93,7 @@ jobs:
 
         $IS_PRERELEASE = $LAST_VERSION.Contains('-')
 
-        $EXCLUDE_BOT_COMMITS = "--committer='^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$' --author='^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$' --regexp-ignore-case"
+        $EXCLUDE_BOT_COMMITS = "--committer='^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*`$' --author='^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*`$' --regexp-ignore-case"
         $EXCLUDE_HIDDEN_FILES = ":(icase,exclude)*/.*"
         $EXCLUDE_DOCUMENTATION_FILES = ":(icase,exclude)*/*.md :(icase,exclude)*/*.txt"
         $EXCLUDE_SOLUTIONS_FILES = ":(icase,exclude)*/*.sln"
