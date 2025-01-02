@@ -79,7 +79,7 @@ jobs:
 
     - name: Make License
       shell: pwsh
-      run: scripts/make-license.ps1 "${{ github.server_url }}" "${{ github.repository_owner }}" "${{ github.repository }}""
+      run: scripts/make-license.ps1 "${{ github.server_url }}" "${{ github.repository_owner }}" "${{ github.repository }}"
         
     - name: Make Changelog
       shell: pwsh
