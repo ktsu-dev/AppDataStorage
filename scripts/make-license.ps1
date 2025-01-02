@@ -1,6 +1,9 @@
 param (
+    [Parameter(Mandatory, Position=0)]
     [string]$github_server_url = 'https://github.com', # URL of the GitHub server
+    [Parameter(Mandatory, Position=1)]
     [string]$github_repository_owner = 'github_owner', # owner of the repository
+    [Parameter(Mandatory, Position=2)]
     [string]$github_repository = 'github_repository' # name of the repository
 )
 
