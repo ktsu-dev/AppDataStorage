@@ -1,3 +1,9 @@
+## v1.4.5 (patch)
+
+Changes since v1.4.4:
+
+- Fix typo in variable name and remove unnecessary logging in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.4.4 (patch)
 
 Changes since v1.4.3:
