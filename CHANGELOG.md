@@ -1,10 +1,14 @@
+## v1.4.2 (patch)
+
+Changes since v1.4.1:- Add changelog entry for changes since the specified tag in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.4.1 (patch)
 
-- Refactor version type checks in MakeNotesForRange function and add exclusion for PowerShell files in make-version.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.4.0:- Refactor version type checks in MakeNotesForRange function and add exclusion for PowerShell files in make-version.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.4.0 (minor)
 
-- Add VERSION_TYPE variable to MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.0:- Add VERSION_TYPE variable to MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix license ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix regex for bot commit exclusion patterns in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -27,7 +31,7 @@
 
 ## v1.3.16-pre.5 (unknown)
 
-- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.16-pre.6:- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -35,7 +39,7 @@
 
 ## v1.3.16-pre.4 (unknown)
 
-- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.16-pre.6:- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -43,7 +47,7 @@
 
 ## v1.3.16-pre.3 (unknown)
 
-- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.16-pre.6:- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -51,7 +55,7 @@
 
 ## v1.3.16-pre.2 (unknown)
 
-- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.16-pre.6:- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -59,7 +63,7 @@
 
 ## v1.3.16-pre.1 (unknown)
 
-- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.16-pre.6:- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -67,52 +71,52 @@
 
 ## v1.3.16 (patch)
 
-- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.15:- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.15 (patch)
 
-- Move IS_PRERELEASE assignment to where its actually gonna work ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.14:- Move IS_PRERELEASE assignment to where its actually gonna work ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.14 (patch)
 
-- Refactor bot commit exclusion patterns in dotnet workflow for improved clarity and case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.13-pre.1:- Refactor bot commit exclusion patterns in dotnet workflow for improved clarity and case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.13-pre.1 (patch)
 
-- Fix regex for bot commit exclusion patterns in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.12-pre.1:- Fix regex for bot commit exclusion patterns in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor bot commit exclusion patterns in dotnet workflow for case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.12-pre.1 (patch)
 
-- Refactor exclusion patterns in dotnet workflow to simplify bot commit filtering ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.11-pre.1:- Refactor exclusion patterns in dotnet workflow to simplify bot commit filtering ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.11-pre.1 (patch)
 
-- Refactor exclusion patterns in dotnet workflow for improved clarity and consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.10-pre.1:- Refactor exclusion patterns in dotnet workflow for improved clarity and consistency ([@matt-edmondson](https://github.com/matt-edmondson))
 - Sort git tags when retrieving the last released version in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update exclusion pattern for hidden files in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.5 (patch)
 
-- Fix license ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.4:- Fix license ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.4 (patch)
 
-- Replace LICENSE file with LICENSE.md ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.3:- Replace LICENSE file with LICENSE.md ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.1 (patch)
 
-- Update .NET workflow to trigger on main and develop branches ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.3.0:- Update .NET workflow to trigger on main and develop branches ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.0 (minor)
 
-- Refactor AppData to use Lazy<T> for internal state ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.2.0:- Refactor AppData to use Lazy<T> for internal state ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.2.0 (minor)
 
-- Add compatibility suppressions and update build properties ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since 1.1.0:- Add compatibility suppressions and update build properties ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add comprehensive tests for AppData methods ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add GitHub Actions workflow to automate issue and PR management for ktsu.dev project ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add new tests and update namespace in AppDataTests.cs ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -138,27 +142,27 @@
 
 ## v1.1.45 (patch)
 
-- Add new tests and update namespace in AppDataTests.cs ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.1.44:- Add new tests and update namespace in AppDataTests.cs ([@matt-edmondson](https://github.com/matt-edmondson))
 - Enhance AppData functionality and documentation ([@matt-edmondson](https://github.com/matt-edmondson))
 - Enhance AppDataStorage docs and add new examples ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update README with Static Instance Access feature ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.1.43 (patch)
 
-- Add GitHub Actions workflow to automate issue and PR management for ktsu.dev project ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.1.42:- Add GitHub Actions workflow to automate issue and PR management for ktsu.dev project ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.1.40 (patch)
 
-- Update dependencies ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.1.39:- Update dependencies ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.1.34 (patch)
 
-- Make test classes and records public; update NoWarn property ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.1.33:- Make test classes and records public; update NoWarn property ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor visibility and enhance type conversion ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.1.3 (minor)
 
-- Add reading and writing to arbitrary files within the app directory ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since v1.0.0-alpha.14:- Add reading and writing to arbitrary files within the app directory ([@matt-edmondson](https://github.com/matt-edmondson))
 - Disable SourceLink in project settings ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix a crash on first launch if you dont have the app data directory ([@matt-edmondson](https://github.com/matt-edmondson))
 - Migrate ktsu.io to ktsu namespace ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -171,7 +175,7 @@
 
 ## v1.0.0 (major)
 
-- Add github package support ([@matt-edmondson](https://github.com/matt-edmondson))
+Changes since 0.0.0.0:- Add github package support ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add stringify convertor and update strong strings ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add tests ([@matt-edmondson](https://github.com/matt-edmondson))
 - Added readme content ([@matt-edmondson](https://github.com/matt-edmondson))
