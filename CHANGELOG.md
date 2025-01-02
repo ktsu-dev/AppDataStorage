@@ -1,4 +1,59 @@
-## v1.3.16-pre.6 ()
+## v1.4.0 (minor)
+
+- Add VERSION_TYPE variable to MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix license ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix regex for bot commit exclusion patterns in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Move IS_PRERELEASE assignment to where its actually gonna work ([@matt-edmondson](https://github.com/matt-edmondson))
+- Move shared workflow into local workflow ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor bot commit exclusion patterns in dotnet workflow for case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor bot commit exclusion patterns in dotnet workflow for improved clarity and case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor exclusion patterns in dotnet workflow for improved clarity and consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor exclusion patterns in dotnet workflow to simplify bot commit filtering ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove URL escaping from workflow and adjust environment variable output ([@matt-edmondson](https://github.com/matt-edmondson))
+- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
+- Replace LICENSE file with LICENSE.md ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sort git tags when retrieving the last released version in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update .NET workflow to trigger on main and develop branches ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update exclusion pattern for hidden files in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
+
+## v1.3.16-pre.5 (unknown)
+
+- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+
+## v1.3.16-pre.4 (unknown)
+
+- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+
+## v1.3.16-pre.3 (unknown)
+
+- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+
+## v1.3.16-pre.2 (unknown)
+
+- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+
+## v1.3.16-pre.1 (unknown)
 
 - Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
