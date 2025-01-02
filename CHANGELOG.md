@@ -1,3 +1,9 @@
+## v1.4.6 (patch)
+
+Changes since v1.4.5:
+
+- Fix typo in variable name in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.4.5 (patch)
 
 Changes since v1.4.4:
@@ -53,56 +59,6 @@ Changes since v1.3.0:
 - Update .NET workflow to trigger on main and develop branches ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update exclusion pattern for hidden files in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.3.16-pre.5 (unknown)
-
-Changes since v1.3.16-pre.6:
-
-- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
-- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.3.16-pre.4 (unknown)
-
-Changes since v1.3.16-pre.6:
-
-- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
-- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.3.16-pre.3 (unknown)
-
-Changes since v1.3.16-pre.6:
-
-- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
-- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.3.16-pre.2 (unknown)
-
-Changes since v1.3.16-pre.6:
-
-- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
-- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.3.16-pre.1 (unknown)
-
-Changes since v1.3.16-pre.6:
-
-- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
-- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.3.16 (patch)
 
 Changes since v1.3.15:
@@ -138,9 +94,12 @@ Changes since v1.3.11-pre.1:
 
 ## v1.3.11-pre.1 (patch)
 
-Changes since v1.3.10-pre.1:
+Changes since v1.3.10:
 
+- Move shared workflow into local workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor exclusion patterns in dotnet workflow for improved clarity and consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove URL escaping from workflow and adjust environment variable output ([@matt-edmondson](https://github.com/matt-edmondson))
+- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
 - Sort git tags when retrieving the last released version in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update exclusion pattern for hidden files in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 
@@ -226,17 +185,12 @@ Changes since v1.1.33:
 
 ## v1.1.3 (minor)
 
-Changes since v1.0.0-alpha.14:
+Changes since v1.0.0:
 
 - Add reading and writing to arbitrary files within the app directory ([@matt-edmondson](https://github.com/matt-edmondson))
-- Disable SourceLink in project settings ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix a crash on first launch if you dont have the app data directory ([@matt-edmondson](https://github.com/matt-edmondson))
 - Migrate ktsu.io to ktsu namespace ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor AppData<T> deserialization ([@matt-edmondson](https://github.com/matt-edmondson))
 - Take latest StrongPaths ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update docs and stabilize library version ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update JSON conversion strategy in AppData ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update ToStringJsonConverter to 1.0.0 ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update VERSION ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.0.0 (major)
