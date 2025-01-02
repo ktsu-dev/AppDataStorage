@@ -1,3 +1,7 @@
+## v1.4.3 (patch)
+
+Changes since v1.4.2:- Add logging for note generation in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.4.2 (patch)
 
 Changes since v1.4.1:- Add changelog entry for changes since the specified tag in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
