@@ -35,6 +35,7 @@ $EXCLUDE_PROJECTS_FILES = ":(icase,exclude)*/*.*proj"
 $EXCLUDE_URL_FILES = ":(icase,exclude)*/*.url"
 $EXCLUDE_BUILD_FILES = ":(icase,exclude)*/Directory.Build.*"
 $EXCLUDE_CI_FILES = ":(icase,exclude).github/workflows/*"
+$EXCLUDE_PS_FILES = ":(icase,exclude)*/*.ps1"
 
 $INCLUDE_ALL_FILES = "*/*.*"
 
@@ -55,6 +56,7 @@ $LAST_MINOR_COMMIT = git log -n 1 --perl-regexp --regexp-ignore-case --format=fo
     $EXCLUDE_PROJECTS_FILES `
     $EXCLUDE_URL_FILES `
     $EXCLUDE_BUILD_FILES `
+    $EXCLUDE_PS_FILES `
     $EXCLUDE_CI_FILES
 
 $VERSION_INCREMENT = 'prerelease'
