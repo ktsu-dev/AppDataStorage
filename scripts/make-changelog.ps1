@@ -131,6 +131,7 @@ function MakeNotesForRange {
         $VERSION_CHANGELOG = "## $TO_TAG ($VERSION_TYPE)"
         $VERSION_CHANGELOG += "`n"
         $VERSION_CHANGELOG += "`n"
+        $VERSION_CHANGELOG += "Changes since ${SEARCH_TAG}:"
 
         $COMMITS | Where-Object { -not $_.Contains("Update VERSION to") -and -not $_.Contains("[skip ci]") } | ForEach-Object {
             $COMMIT = $_
