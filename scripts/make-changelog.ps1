@@ -23,7 +23,7 @@ function TranslateTagTo4ComponentVersion {
     $TRANSLATE_VERSION_MINOR = [int]$TRANSLATE_VERSION_COMPONENTS[1]
     $TRANSLATE_VERSION_PATCH = [int]$TRANSLATE_VERSION_COMPONENTS[2]
     $TRANSLATE_VERSION_PRERELEASE = 0
-    if ($VTRANSLATE_ERSION_COMPONENTS.Length -gt 3) {
+    if ($TRANSLATE_ERSION_COMPONENTS.Length -gt 3) {
       $TRANSLATE_VERSION_PRERELEASE = [int]$TRANSLATE_VERSION_COMPONENTS[3]
     }
     
@@ -87,8 +87,6 @@ function MakeNotesForRange {
     }
 
     $SEARCH_VERSION = TranslateTagTo4ComponentVersion $SEARCH_TAG
-
-    Write-Host "Making notes for $FROM_TAG/$SEARCH_TAG to $TO_TAG ($FROM_VERSION/$SEARCH_VERSION to $TO_VERSION) as $VERSION_TYPE"
 
     if ($FROM_TAG -ne "v0.0.0") {
         $FOUND_SEARCH_TAG = $false
