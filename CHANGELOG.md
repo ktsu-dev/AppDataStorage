@@ -1,4 +1,4 @@
-## v1.3.16 ()
+## v1.3.16-pre.6 ()
 
 - Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
