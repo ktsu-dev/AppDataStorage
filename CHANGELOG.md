@@ -1,3 +1,16 @@
+## v1.3.16 ()
+
+- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+
+## v1.3.16 (patch)
+
+- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.3.15 (patch)
 
 - Move IS_PRERELEASE assignment to where its actually gonna work ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -17,10 +30,7 @@
 
 ## v1.3.11-pre.1 (patch)
 
-- Move shared workflow into local workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor exclusion patterns in dotnet workflow for improved clarity and consistency ([@matt-edmondson](https://github.com/matt-edmondson))
-- Remove URL escaping from workflow and adjust environment variable output ([@matt-edmondson](https://github.com/matt-edmondson))
-- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
 - Sort git tags when retrieving the last released version in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update exclusion pattern for hidden files in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 
@@ -89,46 +99,5 @@
 ## v1.1.3 (patch)
 
 - Migrate ktsu.io to ktsu namespace ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.0.0 (major)
-
-- Add github package support ([@matt-edmondson](https://github.com/matt-edmondson))
-- Add stringify convertor and update strong strings ([@matt-edmondson](https://github.com/matt-edmondson))
-- Add tests ([@matt-edmondson](https://github.com/matt-edmondson))
-- Added readme content ([@matt-edmondson](https://github.com/matt-edmondson))
-- Alpha 1 ([@matt-edmondson](https://github.com/matt-edmondson))
-- Assign dependabot PRs to matt ([@matt-edmondson](https://github.com/matt-edmondson))
-- Avoid double upload of symbols package ([@matt-edmondson](https://github.com/matt-edmondson))
-- Bump to version 1.0.0-alpha.10 ([@matt-edmondson](https://github.com/matt-edmondson))
-- Bump version to 1.0.0-alpha.2 and add a package description ([@matt-edmondson](https://github.com/matt-edmondson))
-- Bump version to 1.0.0-alpha.9 ([@matt-edmondson](https://github.com/matt-edmondson))
-- Create dependabot-merge.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Create VERSION ([@matt-edmondson](https://github.com/matt-edmondson))
-- Disable SourceLink in project settings ([@matt-edmondson](https://github.com/matt-edmondson))
-- Dont try to push packages when building pull requests ([@matt-edmondson](https://github.com/matt-edmondson))
-- dotnet 8 ([@matt-edmondson](https://github.com/matt-edmondson))
-- Enable dependabot and sourcelink ([@matt-edmondson](https://github.com/matt-edmondson))
-- Enhanced testing with mock file systems ([@matt-edmondson](https://github.com/matt-edmondson))
-- Ensure appdata path exists before tests run ([@matt-edmondson](https://github.com/matt-edmondson))
-- Fix a bug where the serializer would never serialize anything, because it was missing the derived typeinfo ([@matt-edmondson](https://github.com/matt-edmondson))
-- Fix an issue where the application domain was being truncated if it was inside a namespace. Add a package description. Attempt to include source and symbols in the nuget to help with debugging. ([@matt-edmondson](https://github.com/matt-edmondson))
-- Initial commit - non working ([@matt-edmondson](https://github.com/matt-edmondson))
-- Migrate from .project.props to Directory.Build.props ([@matt-edmondson](https://github.com/matt-edmondson))
-- Read from AUTHORS file during build ([@matt-edmondson](https://github.com/matt-edmondson))
-- Read from VERSION when building ([@matt-edmondson](https://github.com/matt-edmondson))
-- Read PackageDescription from DESCRIPTION file ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor AppData<T> deserialization ([@matt-edmondson](https://github.com/matt-edmondson))
-- Take latest StringifyJsonConvertorFactory ([@matt-edmondson](https://github.com/matt-edmondson))
-- Take latest StrongPaths ([@matt-edmondson](https://github.com/matt-edmondson))
-- Take latest StrongPaths to get a bugfix ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update build config ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update Directory.Build.props ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update Directory.Build.targets ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update docs and stabilize library version ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update JSON conversion strategy in AppData ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update LICENSE ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update nuget.config ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update ToStringJsonConverter to 1.0.0 ([@matt-edmondson](https://github.com/matt-edmondson))
 
 
