@@ -62,6 +62,7 @@ function MakeNotesForRange {
     $FROM_PATCH_VERSION_NUMBER = $TO_VERSION_PATCH - 1;
     $FROM_PRERELEASE_VERSION_NUMBER = $TO_VERSION_PRERELEASE - 1;
 
+    
     $SEARCH_TAG = $FROM_TAG
     $VERSION_TYPE = "unknown"
     if ($TO_VERSION_PRERELEASE -gt $FROM_VERSION_PRERELEASE) {
@@ -86,6 +87,8 @@ function MakeNotesForRange {
     }
 
     $SEARCH_VERSION = TranslateTagTo4ComponentVersion $SEARCH_TAG
+
+    Write-Host "Making notes for $FROM_TAG/$SEARCH_TAG to $TO_TAG ($FROM_VERSION/$SEARCH_VERSION to $TO_VERSION) as $VERSION_TYPE"
 
     if ($FROM_TAG -ne "v0.0.0") {
         $FOUND_SEARCH_TAG = $false
