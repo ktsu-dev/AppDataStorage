@@ -1,3 +1,7 @@
+## v1.4.1 (patch)
+
+- Refactor version type checks in MakeNotesForRange function and add exclusion for PowerShell files in make-version.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.4.0 (minor)
 
 - Add VERSION_TYPE variable to MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -152,9 +156,18 @@
 - Make test classes and records public; update NoWarn property ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor visibility and enhance type conversion ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.1.3 (patch)
+## v1.1.3 (minor)
 
+- Add reading and writing to arbitrary files within the app directory ([@matt-edmondson](https://github.com/matt-edmondson))
+- Disable SourceLink in project settings ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix a crash on first launch if you dont have the app data directory ([@matt-edmondson](https://github.com/matt-edmondson))
 - Migrate ktsu.io to ktsu namespace ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor AppData<T> deserialization ([@matt-edmondson](https://github.com/matt-edmondson))
+- Take latest StrongPaths ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update docs and stabilize library version ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update JSON conversion strategy in AppData ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update ToStringJsonConverter to 1.0.0 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update VERSION ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.0.0 (major)
 
