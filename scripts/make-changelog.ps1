@@ -1,148 +1,173 @@
+param (
+    [Parameter(Mandatory, Position=0)]
+    [string]$COMMIT_VERSION,
+    [Parameter(Mandatory, Position=1)]
+    [string]$COMMIT_SHA
+)
+
+Set-PSDebug -Trace 0
+
 function TranslateTagTo4ComponentVersion {
     param (
-        $TAG
+        [Parameter(Mandatory, Position=0)]
+        [string]$TRANSLATE_TAG
     )
 
-    $VERSION = $TAG -replace 'v', ''
-    $VERSION = $VERSION -replace '-alpha', ''
-    $VERSION = $VERSION -replace '-beta', ''
-    $VERSION = $VERSION -replace '-rc', ''
-    $VERSION = $VERSION -replace '-pre', ''
-    $VERSION_COMPONENTS = $VERSION -split '\.'
-    $VERSION_MAJOR = [int]$VERSION_COMPONENTS[0]
-    $VERSION_MINOR = [int]$VERSION_COMPONENTS[1]
-    $VERSION_PATCH = [int]$VERSION_COMPONENTS[2]
-    $VERSION_PRERELEASE = 0
-    if ($VERSION_COMPONENTS.Length -gt 3) {
-      $VERSION_PRERELEASE = [int]$VERSION_COMPONENTS[3]
+    $TRANSLATE_VERSION = $TRANSLATE_TAG -replace 'v', ''
+    $TRANSLATE_VERSION = $TRANSLATE_VERSION -replace '-alpha', ''
+    $TRANSLATE_VERSION = $TRANSLATE_VERSION -replace '-beta', ''
+    $TRANSLATE_VERSION = $TRANSLATE_VERSION -replace '-rc', ''
+    $TRANSLATE_VERSION = $TRANSLATE_VERSION -replace '-pre', ''
+    $TRANSLATE_VERSION_COMPONENTS = $TRANSLATE_VERSION -split '\.'
+    $TRANSLATE_VERSION_MAJOR = [int]$TRANSLATE_VERSION_COMPONENTS[0]
+    $TRANSLATE_VERSION_MINOR = [int]$TRANSLATE_VERSION_COMPONENTS[1]
+    $TRANSLATE_VERSION_PATCH = [int]$TRANSLATE_VERSION_COMPONENTS[2]
+    $TRANSLATE_VERSION_PRERELEASE = 0
+    if ($VTRANSLATE_ERSION_COMPONENTS.Length -gt 3) {
+      $TRANSLATE_VERSION_PRERELEASE = [int]$TRANSLATE_VERSION_COMPONENTS[3]
     }
     
-    "$VERSION_MAJOR.$VERSION_MINOR.$VERSION_PATCH.$VERSION_PRERELEASE"
+    "$TRANSLATE_VERSION_MAJOR.$TRANSLATE_VERSION_MINOR.$TRANSLATE_VERSION_PATCH.$TRANSLATE_VERSION_PRERELEASE"
   }
 
-  $CHANGELOG = ""
+function MakeNotesForRange {
+    param (
+        [Parameter(Mandatory, Position=0)]
+        [string[]]$SEARCH_TAGS,
+        [Parameter(Mandatory, Position=1)]
+        [string]$FROM_TAG,
+        [Parameter(Mandatory, Position=2)]
+        [string]$TO_TAG,
+        [Parameter(Position=3)]
+        [string]$TO_SHA = ""
+    )
 
-  $TAG_INDEX = 0
-  $TAGS = git tag --list --sort=-v:refname
-  $TAGS | ForEach-Object {
-    $TAG = $_
-    if ($TAG -like "v*") {
-      $PREVIOUS_TAG = "v0.0.0"
-      if ($TAG_INDEX -lt $TAGS.Length - 1) {
-        $PREVIOUS_TAG = $TAGS[$TAG_INDEX + 1]
-      }
-      
-      if (-not ($PREVIOUS_TAG -like "v*")) {
-        $PREVIOUS_TAG = "v0.0.0"
-      }
-      
-      $VERSION = TranslateTagTo4ComponentVersion($TAG)
-      $PREVIOUS_VERSION = TranslateTagTo4ComponentVersion($PREVIOUS_TAG)
+    $TO_VERSION = TranslateTagTo4ComponentVersion $TO_TAG
+    $FROM_VERSION = TranslateTagTo4ComponentVersion $FROM_TAG
 
-      $VERSION_COMPONENTS = $VERSION -split '\.'
-      $VERSION_MAJOR = [int]$VERSION_COMPONENTS[0]
-      $VERSION_MINOR = [int]$VERSION_COMPONENTS[1]
-      $VERSION_PATCH = [int]$VERSION_COMPONENTS[2]
-      $VERSION_PRERELEASE = [int]$VERSION_COMPONENTS[3]
+    $TO_VERSION_COMPONENTS = $TO_VERSION -split '\.'
+    $TO_VERSION_MAJOR = [int]$TO_VERSION_COMPONENTS[0]
+    $TO_VERSION_MINOR = [int]$TO_VERSION_COMPONENTS[1]
+    $TO_VERSION_PATCH = [int]$TO_VERSION_COMPONENTS[2]
+    $TO_VERSION_PRERELEASE = [int]$TO_VERSION_COMPONENTS[3]
 
-      $PREVIOUS_VERSION_COMPONENTS = $PREVIOUS_VERSION -split '\.'
-      $PREVIOUS_VERSION_MAJOR = [int]$PREVIOUS_VERSION_COMPONENTS[0]
-      $PREVIOUS_VERSION_MINOR = [int]$PREVIOUS_VERSION_COMPONENTS[1]
-      $PREVIOUS_VERSION_PATCH = [int]$PREVIOUS_VERSION_COMPONENTS[2]
-      $PREVIOUS_VERSION_PRERELEASE = [int]$PREVIOUS_VERSION_COMPONENTS[3]
-      
-      $PREVIOUS_MAJOR_VERSION_NUMBER = $VERSION_MAJOR - 1;
-      $PREVIOUS_MINOR_VERSION_NUMBER = $VERSION_MINOR - 1;
-      $PREVIOUS_PATCH_VERSION_NUMBER = $VERSION_PATCH - 1;
-      $PREVIOUS_PRERELEASE_VERSION_NUMBER = $VERSION_PRERELEASE - 1;
+    $FROM_VERSION_COMPONENTS = $FROM_VERSION -split '\.'
+    $FROM_VERSION_MAJOR = [int]$FROM_VERSION_COMPONENTS[0]
+    $FROM_VERSION_MINOR = [int]$FROM_VERSION_COMPONENTS[1]
+    $FROM_VERSION_PATCH = [int]$FROM_VERSION_COMPONENTS[2]
+    $FROM_VERSION_PRERELEASE = [int]$FROM_VERSION_COMPONENTS[3]
+    
+    $FROM_MAJOR_VERSION_NUMBER = $TO_VERSION_MAJOR - 1;
+    $FROM_MINOR_VERSION_NUMBER = $TO_VERSION_MINOR - 1;
+    $FROM_PATCH_VERSION_NUMBER = $TO_VERSION_PATCH - 1;
+    $FROM_PRERELEASE_VERSION_NUMBER = $TO_VERSION_PRERELEASE - 1;
 
-      if ($VERSION_PRERELEASE -gt $PREVIOUS_VERSION_PRERELEASE) {
+    $SEARCH_TAG = $FROM_TAG
+    if ($TO_VERSION_PRERELEASE -gt $FROM_VERSION_PRERELEASE) {
         $VERSION_TYPE = "prerelease"
-        $COMPARE_TAG = "$VERSION_MAJOR.$VERSION_MINOR.$VERSION_PATCH.$PREVIOUS_PRERELEASE_VERSION_NUMBER"
-      } elseif ($VERSION_PATCH -gt $PREVIOUS_VERSION_PATCH) {
+        $SEARCH_TAG = "$TO_VERSION_MAJOR.$TO_VERSION_MINOR.$TO_VERSION_PATCH.$FROM_PRERELEASE_VERSION_NUMBER"
+    } elseif ($TO_VERSION_PATCH -gt $FROM_VERSION_PATCH) {
         $VERSION_TYPE = "patch"
-        $COMPARE_TAG = "$VERSION_MAJOR.$VERSION_MINOR.$PREVIOUS_PATCH_VERSION_NUMBER.0"
-      } elseif ($VERSION_MINOR -gt $PREVIOUS_VERSION_MINOR) {
+        $SEARCH_TAG = "$TO_VERSION_MAJOR.$TO_VERSION_MINOR.$FROM_PATCH_VERSION_NUMBER.0"
+    } elseif ($TO_VERSION_MINOR -gt $FROM_VERSION_MINOR) {
         $VERSION_TYPE = "minor"
-        $COMPARE_TAG = "$VERSION_MAJOR.$PREVIOUS_MINOR_VERSION_NUMBER.0.0"
-      } elseif ($VERSION_MAJOR -gt $PREVIOUS_VERSION_MAJOR) {
+        $SEARCH_TAG = "$TO_VERSION_MAJOR.$FROM_MINOR_VERSION_NUMBER.0.0"
+    } elseif ($TO_VERSION_MAJOR -gt $FROM_VERSION_MAJOR) {
         $VERSION_TYPE = "major"
-        $COMPARE_TAG = "$PREVIOUS_MAJOR_VERSION_NUMBER.0.0.0"
-      }
+        $SEARCH_TAG = "$FROM_MAJOR_VERSION_NUMBER.0.0.0"
+    }
 
-      if ($COMPARE_TAG.Contains("-")) {
-        $COMPARE_TAG = $PREVIOUS_TAG
-      }
+    if ($SEARCH_TAG.Contains("-")) {
+        $SEARCH_TAG = $FROM_TAG
+    }
 
-      $COMPARE_VERSION = TranslateTagTo4ComponentVersion($COMPARE_TAG)
+    $SEARCH_VERSION = TranslateTagTo4ComponentVersion $SEARCH_TAG
 
-      if ($PREVIOUS_TAG -ne "v0.0.0") {
-        $FOUND_COMPARE_TAG = $false
-        $TAGS | ForEach-Object {
-          if (-not $FOUND_COMPARE_TAG) {
-            $OTHER_TAG = $_
-            $OTHER_VERSION = TranslateTagTo4ComponentVersion($OTHER_TAG)
-            if ($COMPARE_VERSION -eq $OTHER_VERSION) {
-              $FOUND_COMPARE_TAG = $true
-              $COMPARE_TAG = $OTHER_TAG
+    if ($FROM_TAG -ne "v0.0.0") {
+        $FOUND_SEARCH_TAG = $false
+        $SEARCH_TAGS | ForEach-Object {
+            if (-not $FOUND_SEARCH_TAG) {
+                $OTHER_TAG = $_
+                $OTHER_VERSION = TranslateTagTo4ComponentVersion $OTHER_TAG
+                if ($SEARCH_VERSION -eq $OTHER_VERSION) {
+                    $FOUND_SEARCH_TAG = $true
+                    $SEARCH_TAG = $OTHER_TAG
+                }
             }
-          }
         }
         
-        if (-not $FOUND_COMPARE_TAG) {
-          $COMPARE_TAG = $PREVIOUS_TAG
+        if (-not $FOUND_SEARCH_TAG) {
+            $SEARCH_TAG = $FROM_TAG
         }
-      }
-      
-      $EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
-      $EXCLUDE_PRS = @'
+    }
+    
+    $EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
+    $EXCLUDE_PRS = @'
 ^.*(Merge pull request|Merge branch 'main'|Updated packages in|Update.*package version).*$
 '@
 
+    $RANGE_FROM = $SEARCH_TAG
+    if ($RANGE_FROM -eq "v0.0.0") {
+        $RANGE_FROM = ""
+    }
 
-      $RANGE = "$TAG"
-      if ($PREVIOUS_TAG -ne "v0.0.0") {
-        $RANGE = "$COMPARE_TAG...$TAG"  
-      }
+    $RANGE_TO = $TO_SHA
+    if ($RANGE_TO -eq "") {
+        $RANGE_TO = $TO_TAG
+    }
 
-      $COMMITS = git log --pretty=format:"%s ([@%aN](https://github.com/%aN))" --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $RANGE | Sort-Object | Get-Unique
+    $RANGE = $RANGE_TO
+    if ($RANGE_FROM -ne "") {
+        $RANGE = "$RANGE_FROM...$RANGE_TO"  
+    }
 
-    #   $CONTRIBUTORS = git log --pretty=format:"[@%aN](https://github.com/%aN)" --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $RANGE | Sort-Object | Get-Unique
-    #   if ($CONTRIBUTORS.Length -eq 0) {
-    #     $CONTRIBUTORS = git log --pretty=format:"[@%aN](https://github.com/%aN)" --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep $RANGE | Sort-Object | Get-Unique
-    #   }
+    $COMMITS = git log --pretty=format:"%s ([@%aN](https://github.com/%aN))" --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $RANGE | Sort-Object | Get-Unique
 
-      if ($VERSION_TYPE -ne "prerelease" -and $COMMITS.Length -gt 0) {
-        $CHANGELOG += "## $TAG ($VERSION_TYPE)"
-        $CHANGELOG += "`n"
-        $CHANGELOG += "`n"
-        # if ($COMPARE_TAG -ne "0.0.0.0") {
-        #     $CHANGELOG += "### Changes since $COMPARE_TAG"
-        #     $CHANGELOG += "`n"
-        #     $CHANGELOG += "`n"
-        # }
+    if ($VERSION_TYPE -ne "prerelease" -and $COMMITS.Length -gt 0) {
+        $VERSION_CHANGELOG = "## $TO_TAG ($VERSION_TYPE)"
+        $VERSION_CHANGELOG += "`n"
+        $VERSION_CHANGELOG += "`n"
 
         $COMMITS | Where-Object { -not $_.Contains("Update VERSION to") -and -not $_.Contains("[skip ci]") } | ForEach-Object {
             $COMMIT = $_
-            $CHANGELOG += "- $COMMIT"
-            $CHANGELOG += "`n"
+            $VERSION_CHANGELOG += "- $COMMIT"
+            $VERSION_CHANGELOG += "`n"
         }
-        $CHANGELOG += "`n"
-        # $CHANGELOG += "#### Contributors"
-        # $CHANGELOG += "`n"
-        # $CHANGELOG += "`n"
-        # $CONTRIBUTORS | ForEach-Object {
-        #     $CONTRIBUTOR = $_
-        #     $CHANGELOG += "- $CONTRIBUTOR"
-        #     $CHANGELOG += "`n"
-        # }
-        # $CHANGELOG += "`n"
-      }
+        $VERSION_CHANGELOG += "`n"
+    }
+
+    $VERSION_CHANGELOG
+}
+
+$CHANGELOG = ""
+
+$TAG_INDEX = 0
+$TAGS = git tag --list --sort=-v:refname
+
+$PREVIOUS_TAG = $TAGS[0]
+
+$TAG = "v$COMMIT_VERSION"
+
+$CHANGELOG += MakeNotesForRange $TAGS $PREVIOUS_TAG $TAG $COMMIT_SHA
+
+$TAGS | ForEach-Object {
+    $TAG = $_
+    if ($TAG -like "v*") {
+        $PREVIOUS_TAG = "v0.0.0"
+        if ($TAG_INDEX -lt $TAGS.Length - 1) {
+        $PREVIOUS_TAG = $TAGS[$TAG_INDEX + 1]
+        }
+        
+        if (-not ($PREVIOUS_TAG -like "v*")) {
+        $PREVIOUS_TAG = "v0.0.0"
+        }
+
+        $CHANGELOG += MakeNotesForRange $TAGS $PREVIOUS_TAG $TAG
     }
     $TAG_INDEX += 1
-  }
+}
 
-  Write-Host "CHANGELOG: $CHANGELOG"
-  $CHANGELOG | Out-File -FilePath CHANGELOG.md -Encoding utf8
+Write-Host "CHANGELOG: $CHANGELOG"
+$CHANGELOG | Out-File -FilePath CHANGELOG.md -Encoding utf8
 
-  $global:LASTEXITCODE = 0
+$global:LASTEXITCODE = 0

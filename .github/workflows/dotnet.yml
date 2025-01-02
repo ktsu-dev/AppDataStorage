@@ -83,7 +83,7 @@ jobs:
         
     - name: Make Changelog
       shell: pwsh
-      run: scripts/make-changelog.ps1
+      run: scripts/make-changelog.ps1 "${{ env.VERSION }}" "${{ github.sha }}"
 
     - name: Commit Metadata
       shell: pwsh

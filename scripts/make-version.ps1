@@ -1,4 +1,5 @@
 param (
+    [Parameter(Mandatory, Position=0)]
     [string]$github_sha = "" # SHA of the commit
 )
 
