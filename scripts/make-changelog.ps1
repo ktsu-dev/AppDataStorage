@@ -107,7 +107,7 @@ function MakeNotesForRange {
 '@
 
     $RANGE_FROM = $SEARCH_TAG
-    if ($RANGE_FROM -eq "v0.0.0") {
+    if ($RANGE_FROM -eq "v0.0.0" -or $RANGE_FROM -eq "0.0.0.0") {
         $RANGE_FROM = ""
     }
 
