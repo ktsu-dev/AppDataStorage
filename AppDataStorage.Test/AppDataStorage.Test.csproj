@@ -3,6 +3,6 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="21.2.1" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="21.2.8" />
   </ItemGroup>
 </Project>
