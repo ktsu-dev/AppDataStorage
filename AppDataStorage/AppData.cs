@@ -256,8 +256,10 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// Gets the lock object used for synchronizing access to the app data instance.
 	/// </summary>
 #if NET8_0
+	[JsonIgnore]
 	public object Lock { get; } = new();
 #else
+	[JsonIgnore]
 	public Lock Lock { get; } = new();
 #endif
 
