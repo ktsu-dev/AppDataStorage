@@ -1,9 +1,3 @@
-## v1.4.8-pre.1 (patch)
-
-Changes since v1.4.7:
-
-- Don't serialise the lock member ([@Damon3000s](https://github.com/Damon3000s))
-
 ## v1.4.6 (patch)
 
 Changes since v1.4.5:
@@ -84,38 +78,6 @@ Changes since v1.3.14:
 Changes since v1.3.13-pre.1:
 
 - Refactor bot commit exclusion patterns in dotnet workflow for improved clarity and case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.3.13-pre.1 (patch)
-
-Changes since v1.3.12-pre.1:
-
-- Fix regex for bot commit exclusion patterns in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor bot commit exclusion patterns in dotnet workflow for case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.3.12-pre.1 (patch)
-
-Changes since v1.3.11-pre.1:
-
-- Refactor exclusion patterns in dotnet workflow to simplify bot commit filtering ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.3.11-pre.1 (patch)
-
-Changes since v1.3.10:
-
-- Move shared workflow into local workflow ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor exclusion patterns in dotnet workflow for improved clarity and consistency ([@matt-edmondson](https://github.com/matt-edmondson))
-- Remove URL escaping from workflow and adjust environment variable output ([@matt-edmondson](https://github.com/matt-edmondson))
-- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
-- Sort git tags when retrieving the last released version in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
-- Update exclusion pattern for hidden files in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
-
-## v1.3.10-pre.1 (patch)
-
-Changes since v1.3.9:
-
-- Move shared workflow into local workflow ([@matt-edmondson](https://github.com/matt-edmondson))
-- Remove URL escaping from workflow and adjust environment variable output ([@matt-edmondson](https://github.com/matt-edmondson))
-- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.5 (patch)
 
