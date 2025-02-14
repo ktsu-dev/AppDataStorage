@@ -1,3 +1,16 @@
+## v1.5.0 (minor)
+
+Changes since v1.4.0:
+
+- Add changelog entry for changes since the specified tag in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
+- Add logging for note generation in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
+- Apply new editorconfig ([@matt-edmondson](https://github.com/matt-edmondson))
+- Don't serialise the lock member ([@Damon3000s](https://github.com/Damon3000s))
+- Enhance changelog formatting by adding additional line breaks for improved readability ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix typo in variable name and remove unnecessary logging in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix typo in variable name in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor version type checks in MakeNotesForRange function and add exclusion for PowerShell files in make-version.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.4.6 (patch)
 
 Changes since v1.4.5:
