@@ -1,6 +1,7 @@
 namespace ktsu.AppDataStorage.Test;
 
 using System.IO.Abstractions.TestingHelpers;
+
 using ktsu.StrongStrings;
 
 public sealed record class StrongName : StrongStringAbstract<StrongName> { }
