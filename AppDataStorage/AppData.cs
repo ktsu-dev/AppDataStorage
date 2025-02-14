@@ -3,6 +3,7 @@ namespace ktsu.AppDataStorage;
 using System.IO.Abstractions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using ktsu.CaseConverter;
 using ktsu.Extensions;
 using ktsu.StrongPaths;
@@ -122,6 +123,7 @@ public static class AppData
 			{
 				// Ignore
 			}
+
 			FileSystem.File.Move(tempFilePath, appData.FilePath);
 			FileSystem.File.Delete(bkFilePath);
 		}
@@ -303,10 +305,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 			if (!IsDisposeRegistered)
 			{
 				IsDisposeRegistered = true;
-				AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
-				{
-					Dispose();
-				};
+				AppDomain.CurrentDomain.ProcessExit += (sender, e) => Dispose();
 			}
 		}
 	}
@@ -325,6 +324,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 				{
 					Save();
 				}
+
 				disposedValue = true;
 			}
 		}
@@ -401,7 +401,6 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// Queues a save operation for the current app data instance.
 	/// </summary>
 	public static void QueueSave() => Get().QueueSave();
-
 
 	/// <summary>
 	/// Saves the app data if required based on the debounce time and the last save time.
