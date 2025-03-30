@@ -107,7 +107,7 @@ public static class AppData
 		ArgumentNullException.ThrowIfNull(appData);
 		ArgumentNullException.ThrowIfNull(text);
 
-		lock (appData.Lock)
+		lock (AppData<T>.Lock)
 		{
 			EnsureDirectoryExists(appData.FilePath);
 			var tempFilePath = MakeTempFilePath(appData.FilePath);
@@ -140,7 +140,7 @@ public static class AppData
 	{
 		ArgumentNullException.ThrowIfNull(appData);
 
-		lock (appData.Lock)
+		lock (AppData<T>.Lock)
 		{
 			EnsureDirectoryExists(appData.FilePath);
 			try
@@ -172,7 +172,7 @@ public static class AppData
 	{
 		ArgumentNullException.ThrowIfNull(appData);
 
-		lock (appData.Lock)
+		lock (AppData<T>.Lock)
 		{
 			appData.SaveQueuedTime = DateTime.UtcNow;
 			appData.EnsureDisposeOnExit();
@@ -188,7 +188,7 @@ public static class AppData
 	public static void SaveIfRequired<T>(this T appData) where T : AppData<T>, new()
 	{
 		ArgumentNullException.ThrowIfNull(appData);
-		lock (appData.Lock)
+		lock (AppData<T>.Lock)
 		{
 			//debounce the save requests and avoid saving multiple times per frame or multiple frames in a row
 			if (appData.IsSaveQueued() && appData.IsDoubounceTimeElapsed())
@@ -255,14 +255,14 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	internal bool IsDisposeRegistered { get; private set; }
 
 	/// <summary>
-	/// Gets the lock object used for synchronizing access to the app data instance.
+	/// Gets the lock object used for synchronizing access to the app data.
 	/// </summary>
 #if NET8_0
 	[JsonIgnore]
-	public object Lock { get; } = new();
+	public static object Lock { get; } = new();
 #else
 	[JsonIgnore]
-	public Lock Lock { get; } = new();
+	public static Lock Lock { get; } = new();
 #endif
 
 	internal bool IsSaveQueued()
@@ -348,32 +348,36 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// <returns>The loaded or newly created app data instance.</returns>
 	public static T LoadOrCreate(RelativeDirectoryPath? subdirectory, FileName? fileName)
 	{
-		T newAppData = new()
+		lock (Lock)
 		{
-			Subdirectory = subdirectory,
-			FileNameOverride = fileName,
-		};
+			T newAppData = new()
+			{
+				Subdirectory = subdirectory,
+				FileNameOverride = fileName,
+			};
 
-		string jsonString = AppData.ReadText(newAppData);
-		if (string.IsNullOrEmpty(jsonString))
-		{
-			newAppData.Save();
-			return newAppData;
-		}
+			string jsonString = AppData.ReadText(newAppData);
 
-		try
-		{
-			newAppData = JsonSerializer.Deserialize<T>(jsonString, AppData.JsonSerializerOptions)!;
-			newAppData.Subdirectory = subdirectory;
-			newAppData.FileNameOverride = fileName;
-			return newAppData;
-		}
-		catch (JsonException)
-		{
-			// file was corrupt or could not be deserialized
-			// delete and try load a backup
-			AppData.FileSystem.File.Delete(newAppData.FilePath);
-			return LoadOrCreate(subdirectory, fileName);
+			if (string.IsNullOrEmpty(jsonString))
+			{
+				newAppData.Save();
+				return newAppData;
+			}
+
+			try
+			{
+				newAppData = JsonSerializer.Deserialize<T>(jsonString, AppData.JsonSerializerOptions)!;
+				newAppData.Subdirectory = subdirectory;
+				newAppData.FileNameOverride = fileName;
+				return newAppData;
+			}
+			catch (JsonException)
+			{
+				// file was corrupt or could not be deserialized
+				// delete and try load a backup
+				AppData.FileSystem.File.Delete(newAppData.FilePath);
+				return LoadOrCreate(subdirectory, fileName);
+			}
 		}
 	}
 

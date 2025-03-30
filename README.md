@@ -2,6 +2,16 @@
 
 `ktsu.AppDataStorage` is a .NET library designed to simplify the process of managing application data. It facilitates saving and loading configuration or state data to the application's data folder, leveraging JSON serialization.
 
+[![License](https://img.shields.io/github/license/ktsu-dev/AppDataStorage.svg?label=License&logo=nuget)](LICENSE.md)
+
+[![NuGet Version](https://img.shields.io/nuget/v/ktsu.AppDataStorage?label=Stable&logo=nuget)](https://nuget.org/packages/ktsu.AppDataStorage)
+[![NuGet Version](https://img.shields.io/nuget/vpre/ktsu.AppDataStorage?label=Latest&logo=nuget)](https://nuget.org/packages/ktsu.AppDataStorage)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.AppDataStorage?label=Downloads&logo=nuget)](https://nuget.org/packages/ktsu.AppDataStorage)
+
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ktsu-dev/AppDataStorage?label=Commits&logo=github)](https://github.com/ktsu-dev/AppDataStorage/commits/main)
+[![GitHub contributors](https://img.shields.io/github/contributors/ktsu-dev/AppDataStorage?label=Contributors&logo=github)](https://github.com/ktsu-dev/AppDataStorage/graphs/contributors)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/AppDataStorage/dotnet.yml?label=Build&logo=github)](https://github.com/ktsu-dev/AppDataStorage/actions)
+
 ## Features
 
 - **Easy-to-use API**: Intuitive methods for saving and loading data.
