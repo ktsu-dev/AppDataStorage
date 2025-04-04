@@ -1,3 +1,9 @@
+## v1.7.2 (patch)
+
+Changes since v1.7.1:
+
+- Update .editorconfig to include additional file types and formatting rules ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.7.1 (patch)
 
 Changes since v1.7.0:
