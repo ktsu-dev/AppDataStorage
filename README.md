@@ -1,16 +1,18 @@
 # ktsu.AppDataStorage
 
-`ktsu.AppDataStorage` is a .NET library designed to simplify the process of managing application data. It facilitates saving and loading configuration or state data to the application's data folder, leveraging JSON serialization.
+> A .NET library for simple application data management with JSON serialization.
 
 [![License](https://img.shields.io/github/license/ktsu-dev/AppDataStorage.svg?label=License&logo=nuget)](LICENSE.md)
-
 [![NuGet Version](https://img.shields.io/nuget/v/ktsu.AppDataStorage?label=Stable&logo=nuget)](https://nuget.org/packages/ktsu.AppDataStorage)
 [![NuGet Version](https://img.shields.io/nuget/vpre/ktsu.AppDataStorage?label=Latest&logo=nuget)](https://nuget.org/packages/ktsu.AppDataStorage)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.AppDataStorage?label=Downloads&logo=nuget)](https://nuget.org/packages/ktsu.AppDataStorage)
-
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ktsu-dev/AppDataStorage?label=Commits&logo=github)](https://github.com/ktsu-dev/AppDataStorage/commits/main)
 [![GitHub contributors](https://img.shields.io/github/contributors/ktsu-dev/AppDataStorage?label=Contributors&logo=github)](https://github.com/ktsu-dev/AppDataStorage/graphs/contributors)
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/AppDataStorage/dotnet.yml?label=Build&logo=github)](https://github.com/ktsu-dev/AppDataStorage/actions)
+
+## Introduction
+
+`ktsu.AppDataStorage` is a .NET library designed to simplify the process of managing application data. It facilitates saving and loading configuration or state data to the application's data folder, leveraging JSON serialization. The library handles file operations with safety mechanisms like automatic backups and provides an intuitive API for developers.
 
 ## Features
 
@@ -24,13 +26,25 @@
 
 ## Installation
 
-Install the package via NuGet:
+### Package Manager Console
+
+```powershell
+Install-Package ktsu.AppDataStorage
+```
+
+### .NET CLI
 
 ```bash
 dotnet add package ktsu.AppDataStorage
 ```
 
-## Usage
+### Package Reference
+
+```xml
+<PackageReference Include="ktsu.AppDataStorage" Version="x.y.z" />
+```
+
+## Usage Examples
 
 ### Defining Your Application Data Class
 
@@ -81,8 +95,6 @@ Console.WriteLine(sameData.Setting1);
 // new value
 ```
 
-This functionality is useful for applications where centralized access to app data is required without repeatedly loading or instantiating objects.
-
 ### Saving Data
 
 Modify properties and save the data using the `Save` method.
@@ -102,6 +114,8 @@ Console.WriteLine(reloadedData.Setting2);
 // 42
 ```
 
+## Advanced Usage
+
 ### Queued and Debounced Saving
 
 For scenarios with frequent updates, you can queue save operations using `QueueSave`, which automatically debounces writes to avoid frequent file system operations.
@@ -115,12 +129,14 @@ MyAppData.SaveIfRequired();  // Performs the save if the debounce threshold is e
 
 Write and read arbitrary files in the application's data folder using the static `AppData` class.
 
-#### Write Text:
+#### Write Text
+
 ```csharp
 AppData.WriteText("example.txt".As<FileName>(), "Hello, AppData!");
 ```
 
-#### Read Text:
+#### Read Text
+
 ```csharp
 string content = AppData.ReadText("example.txt".As<FileName>());
 Console.WriteLine(content);
@@ -146,18 +162,46 @@ var appDataPath = AppData.Path;
 Console.WriteLine($"App Data Path: {appDataPath}");
 ```
 
-## Advanced Features
+## API Reference
 
-### Backup and Temporary Files
+### `AppData` Static Class
 
-Backup and temporary files are automatically managed during save operations to ensure data integrity:
+The primary static class for working with application data storage.
 
-- Backup file extension: `.bk`
-- Temporary file extension: `.tmp`
+#### Properties
 
-### File System Abstraction
+| Name | Type | Description |
+|------|------|-------------|
+| `Path` | `AbsoluteDirectoryPath` | The path where persistent data is stored for this application |
 
-The library uses `System.IO.Abstractions`, allowing you to inject a custom file system implementation for testing.
+#### Methods
+
+| Name | Return Type | Description |
+|------|-------------|-------------|
+| `WriteText<T>(T appData, string text)` | `void` | Writes text to an app data file with backup safety |
+| `ReadText<T>(T appData)` | `string` | Reads text from an app data file |
+| `QueueSave<T>(this T appData)` | `void` | Queues a save operation for the app data |
+| `SaveIfRequired<T>(this T appData)` | `void` | Saves the app data if required based on debounce settings |
+
+### `AppData<T>` Generic Abstract Class
+
+Base class for app data storage implementations.
+
+#### Properties
+
+| Name | Type | Description |
+|------|------|-------------|
+| `FilePath` | `AbsoluteFilePath` | The file path for the app data file |
+
+#### Methods
+
+| Name | Return Type | Description |
+|------|-------------|-------------|
+| `Get()` | `T` | Gets the current instance of the app data |
+| `LoadOrCreate()` | `T` | Loads app data from file or creates a new instance |
+| `Save()` | `void` | Saves the app data to the file system |
+| `QueueSave()` | `void` | Queues a save operation for the current app data instance |
+| `SaveIfRequired()` | `void` | Saves the app data if required based on debounce settings |
 
 ## Contributing
 
@@ -165,4 +209,4 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See the [LICENSE.md](LICENSE.md) file for details.
