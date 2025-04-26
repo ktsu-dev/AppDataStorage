@@ -100,8 +100,8 @@ function Get-BuildConfiguration {
     # Set build arguments
     $BUILD_ARGS = $USE_DOTNET_SCRIPT ? "-maxCpuCount:1" : ""
 
-    # Return configuration object
-    return [PSCustomObject]@{
+    # Create configuration object
+    $config = [PSCustomObject]@{
         IsOfficial = $IS_OFFICIAL
         IsMain = $IS_MAIN
         IsTagged = $IS_TAGGED
@@ -116,6 +116,32 @@ function Get-BuildConfiguration {
         WorkspacePath = $WorkspacePath
         DotnetVersion = $script:DOTNET_VERSION
     }
+
+    # Display configuration details
+    Write-Host "Build Configuration:" -ForegroundColor Cyan
+    Write-Host "  Repository Status:" -ForegroundColor Yellow
+    Write-Host "    Is Official Repo: $($config.IsOfficial)"
+    Write-Host "    Is Main Branch:  $($config.IsMain)"
+    Write-Host "    Is Tagged:       $($config.IsTagged)"
+    Write-Host "    Should Release:  $($config.ShouldRelease)"
+    Write-Host ""
+    Write-Host "  Build Settings:" -ForegroundColor Yellow
+    Write-Host "    .NET Version:    $($config.DotnetVersion)"
+    Write-Host "    Uses Script:     $($config.UseDotnetScript)"
+    Write-Host "    Build Args:      $($config.BuildArgs)"
+    Write-Host ""
+    Write-Host "  Paths:" -ForegroundColor Yellow
+    Write-Host "    Workspace:       $($config.WorkspacePath)"
+    Write-Host "    Output:          $($config.OutputPath)"
+    Write-Host "    Staging:         $($config.StagingPath)"
+    Write-Host ""
+    Write-Host "  Artifact Patterns:" -ForegroundColor Yellow
+    Write-Host "    Packages:        $($config.PackagePattern)"
+    Write-Host "    Symbols:         $($config.SymbolsPattern)"
+    Write-Host "    Applications:    $($config.ApplicationPattern)"
+    Write-Host ""
+
+    return $config
 }
 
 #endregion
