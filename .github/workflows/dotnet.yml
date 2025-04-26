@@ -2,202 +2,84 @@ name: .NET Workflow
 
 on:
   push:
-    branches:
-      - main
-      - develop
-    paths-ignore:
-      - '**.md'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/pull_request_template.md'
+    branches: [main, develop]
+    paths-ignore: ['**.md', '.github/ISSUE_TEMPLATE/**', '.github/pull_request_template.md']
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/pull_request_template.md'
+    paths-ignore: ['**.md', '.github/ISSUE_TEMPLATE/**', '.github/pull_request_template.md']
   schedule:
-    - cron: "0 23 * * *"
+    - cron: "0 23 * * *"  # Daily at 11 PM UTC
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Default minimal permissions
+# Default permissions
 permissions: read-all
 
 env:
-  OUTPUT_PATH: 'output'
-  STAGING_PATH: 'staging'
-  DOTNET_VERSION: '9.0'
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
-  DOTNET_CLI_TELEMETRY_OPTOUT: 1
-  DOTNET_NOLOGO: true
+  DOTNET_VERSION: '9.0'  # Only needed for actions/setup-dotnet
 
 jobs:
   build:
-    name: Build and Test
+    name: Build, Test & Release
     runs-on: windows-latest
     timeout-minutes: 15
     permissions:
-      contents: write  # Needed for committing metadata
-      packages: read   # Only need read for restore
+      contents: write  # For creating releases and committing metadata
+      packages: write  # For publishing packages
+
+    outputs:
+      version: ${{ steps.pipeline.outputs.version }}
+      release_hash: ${{ steps.pipeline.outputs.release_hash }}
+      should_release: ${{ steps.pipeline.outputs.should_release }}
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
+        fetch-depth: 0  # Full history for versioning
+        fetch-tags: true
+        lfs: true
         submodules: recursive
         persist-credentials: true
-        lfs: true
-        fetch-tags: true
-        fetch-depth: 0
 
-    - name: Setup .NET Core SDK
+    - name: Setup .NET SDK ${{ env.DOTNET_VERSION }}
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: |
-          ${{ env.DOTNET_VERSION }}.x
+        dotnet-version: ${{ env.DOTNET_VERSION }}.x
         cache: true
-        cache-dependency-path: |
-          **/*.csproj
-          **/*.fsproj
-          **/*.vbproj
+        cache-dependency-path: '**/*.csproj'
 
-    - name: Cache NuGet packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.fsproj', '**/*.vbproj') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
-
-    - name: Configure Environment
-      id: configure_env
+    - name: Run PSBuild Pipeline
+      id: pipeline
       shell: pwsh
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        try {
-            $IS_FORK = (gh repo view --json isFork | ConvertFrom-Json).isFork
-            $IS_MAIN = "${{ github.ref }}" -eq "refs/heads/main"
-            $IS_TAGGED = (git show-ref --tags -d | Out-String).Contains("${{ github.sha }}")
-            $SHOULD_RELEASE = ($IS_MAIN -AND -NOT $IS_TAGGED -AND -NOT $IS_FORK)
-            $USE_DOTNET_SCRIPT = (Get-ChildItem -Recurse -Filter *.csx).Count -gt 0
-            $PACKAGE_PATTERN = Join-Path -Path "${{ github.workspace }}" -ChildPath "${{ env.STAGING_PATH }}" -AdditionalChildPath "*.nupkg"
-            $SYMBOLS_PATTERN = Join-Path -Path "${{ github.workspace }}" -ChildPath "${{ env.STAGING_PATH }}" -AdditionalChildPath "*.snupkg"
-            $APPLICATION_PATTERN = Join-Path -Path "${{ github.workspace }}" -ChildPath "${{ env.STAGING_PATH }}" -AdditionalChildPath "*.zip"
+        # Import the PSBuild module
+        Import-Module ${{ github.workspace }}/scripts/PSBuild.psm1
 
-            $BUILD_ARGS = ""
-            $BUILD_ARGS += $USE_DOTNET_SCRIPT ? "-maxCpuCount:1" : ""
+        # Run the complete CI/CD pipeline
+        $result = Invoke-CIPipeline `
+          -GitRef "${{ github.ref }}" `
+          -GitSha "${{ github.sha }}" `
+          -WorkspacePath "${{ github.workspace }}" `
+          -ServerUrl "${{ github.server_url }}" `
+          -Owner "${{ github.repository_owner }}" `
+          -Repository "${{ github.repository }}" `
+          -GithubToken "${{ github.token }}" `
+          -NuGetApiKey "${{ secrets.NUGET_KEY }}"
 
-            # Set environment variables
-            @{
-                "IS_FORK" = $IS_FORK
-                "IS_MAIN" = $IS_MAIN
-                "IS_TAGGED" = $IS_TAGGED
-                "SHOULD_RELEASE" = $SHOULD_RELEASE
-                "USE_DOTNET_SCRIPT" = $USE_DOTNET_SCRIPT
-                "PACKAGE_PATTERN" = $PACKAGE_PATTERN
-                "SYMBOLS_PATTERN" = $SYMBOLS_PATTERN
-                "APPLICATION_PATTERN" = $APPLICATION_PATTERN
-                "BUILD_ARGS" = $BUILD_ARGS
-            }.GetEnumerator() | ForEach-Object {
-                "$($_.Key)=$($_.Value)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-                Write-Host "$($_.Key): $($_.Value)"
-            }
+        # Set outputs for GitHub Actions
+        "should_release=$($result.ShouldRelease)" >> $env:GITHUB_OUTPUT
 
-            # Set outputs for the job
-            @{
-                "is_fork" = $IS_FORK
-                "is_main" = $IS_MAIN
-                "is_tagged" = $IS_TAGGED
-                "should_release" = $SHOULD_RELEASE
-                "use_dotnet_script" = $USE_DOTNET_SCRIPT
-                "package_pattern" = $PACKAGE_PATTERN
-                "symbols_pattern" = $SYMBOLS_PATTERN
-                "application_pattern" = $APPLICATION_PATTERN
-                "build_args" = $BUILD_ARGS
-            }.GetEnumerator() | ForEach-Object {
-                "$($_.Key)=$($_.Value)" | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding utf8 -Append
-                Write-Host "Setting output $($_.Key): $($_.Value)"
-            }
-        }
-        catch {
-            Write-Error "Failed to configure environment: $_"
-            exit 1
-        }
+        if ($result.ShouldRelease) {
+            "version=$($result.Version)" >> $env:GITHUB_OUTPUT
+            "release_hash=$($result.ReleaseHash)" >> $env:GITHUB_OUTPUT
 
-    - name: Generate Version and Metadata
-      id: version
-      if: ${{ env.SHOULD_RELEASE == 'True' }}
-      shell: pwsh
-      run: |
-        try {
-            # Make version and metadata
-            ./scripts/make-version.ps1 "${{ github.sha }}"
-            if ($LASTEXITCODE -ne 0) { throw "Version generation failed" }
-
-            ./scripts/make-license.ps1 "${{ github.server_url }}" "${{ github.repository_owner }}" "${{ github.repository }}"
-            if ($LASTEXITCODE -ne 0) { throw "License generation failed" }
-
-            ./scripts/make-changelog.ps1 "${{ env.VERSION }}" "${{ github.sha }}"
-            if ($LASTEXITCODE -ne 0) { throw "Changelog generation failed" }
-
-            # Get the commit hash after metadata changes
-            $RELEASE_HASH = git rev-parse HEAD
-            "RELEASE_HASH=$RELEASE_HASH" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-            "release_hash=$RELEASE_HASH" | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-            # Get the version that was generated
-            $VERSION = Get-Content version.txt -Raw
-            "VERSION=$VERSION" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-            "version=$VERSION" | Out-File -FilePath $Env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-            ./scripts/commit-metadata.ps1
-            if ($LASTEXITCODE -ne 0) { throw "Metadata commit failed" }
-        }
-        catch {
-            Write-Error "Version and metadata generation failed: $_"
-            exit 1
-        }
-
-    - name: Install dotnet-script
-      if: ${{ env.USE_DOTNET_SCRIPT == 'True' }}
-      shell: pwsh
-      run: |
-        try {
-            dotnet tool install -g dotnet-script
-            if ($LASTEXITCODE -ne 0) { throw "Failed to install dotnet-script" }
-        }
-        catch {
-            Write-Error "Failed to install dotnet-script: $_"
-            exit 1
-        }
-
-    - name: Build
-      shell: pwsh
-      run: |
-        try {
-            dotnet restore --locked-mode
-            if ($LASTEXITCODE -ne 0) { throw "Restore failed" }
-
-            dotnet build --configuration Release --verbosity normal --no-incremental ${{ env.BUILD_ARGS }} --no-restore
-            if ($LASTEXITCODE -ne 0) { throw "Build failed" }
-        }
-        catch {
-            Write-Error "Build failed: $_"
-            exit 1
-        }
-
-    - name: Run Tests
-      shell: pwsh
-      run: |
-        try {
-            dotnet test -m:1 --configuration Release --verbosity normal --no-build --collect:"XPlat Code Coverage" --results-directory ./coverage
-            if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
-        }
-        catch {
-            Write-Error "Tests failed: $_"
-            exit 1
+            # Create artifacts directory
+            New-Item -Path "artifacts" -ItemType Directory -Force | Out-Null
+            Copy-Item -Path "output", "staging" -Destination "artifacts" -Recurse -Force
         }
 
     - name: Upload Coverage Report
@@ -208,98 +90,28 @@ jobs:
         path: ./coverage
         retention-days: 7
 
-    - name: Upload Build Output
-      if: ${{ env.SHOULD_RELEASE == 'True' }}
+    - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
+      if: steps.pipeline.outputs.should_release == 'True'
       with:
-        name: build-output
-        path: |
-          ${{ github.workspace }}/**/*.dll
-          ${{ github.workspace }}/**/*.pdb
-          ${{ github.workspace }}/**/*.xml
+        name: build-artifacts
+        path: ./artifacts
         retention-days: 1
 
-    outputs:
-      commit_hash: ${{ steps.version.outputs.release_hash }}
-      should_release: ${{ steps.configure_env.outputs.should_release }}
-      version: ${{ steps.version.outputs.version }}
-      package_pattern: ${{ steps.configure_env.outputs.package_pattern }}
-      symbols_pattern: ${{ steps.configure_env.outputs.symbols_pattern }}
-      application_pattern: ${{ steps.configure_env.outputs.application_pattern }}
-
-  release:
-    name: Release
+  security:
+    name: Security Scanning
     needs: build
     if: needs.build.outputs.should_release == 'True'
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
-      contents: write     # For creating releases
-      packages: write     # For publishing packages
       security-events: write  # For security scanning
 
-    env:
-      VERSION: ${{ needs.build.outputs.version }}
-      PACKAGE_PATTERN: ${{ needs.build.outputs.package_pattern }}
-      SYMBOLS_PATTERN: ${{ needs.build.outputs.symbols_pattern }}
-      APPLICATION_PATTERN: ${{ needs.build.outputs.application_pattern }}
-
     steps:
-    - name: Checkout Repository
+    - name: Checkout Release Commit
       uses: actions/checkout@v4
       with:
-        submodules: recursive
-        persist-credentials: true
-        lfs: true
-        fetch-tags: true
-        fetch-depth: 0
-        ref: ${{ needs.build.outputs.commit_hash }}  # Checkout the commit with metadata
-
-    - name: Setup .NET Core SDK
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: |
-          ${{ env.DOTNET_VERSION }}.x
-
-    - name: Download Build Output
-      uses: actions/download-artifact@v4
-      with:
-        name: build-output
-        path: ${{ github.workspace }}
-
-    - name: Package Release Assets
-      shell: pwsh
-      run: |
-        try {
-            # Package libraries
-            dotnet pack --configuration Release --no-build --output ${{ github.workspace }}/${{ env.STAGING_PATH }}
-            if ($LASTEXITCODE -ne 0) { throw "Library packaging failed" }
-
-            # Package applications
-            if (Test-Path ${{ github.workspace }}/${{ env.OUTPUT_PATH }}) {
-                Remove-Item -Recurse -Force ${{ github.workspace }}/${{ env.OUTPUT_PATH }}
-            }
-
-            Get-ChildItem -Recurse -Filter *.csproj | ForEach-Object {
-                $csproj = $_
-                $projName = [System.IO.Path]::GetFileNameWithoutExtension($csproj)
-                $outDir = "${{ github.workspace }}/${{ env.OUTPUT_PATH }}/$projName"
-                $stageDir = "${{ github.workspace }}/${{ env.STAGING_PATH }}"
-                $stageFile = "$stageDir/$projName-${{ env.VERSION }}.zip"
-
-                New-Item -Path $outDir -ItemType Directory -Force
-                New-Item -Path $stageDir -ItemType Directory -Force
-
-                dotnet publish $csproj --no-build --configuration Release --framework net${{ env.DOTNET_VERSION }} --output $outDir
-                if ($LASTEXITCODE -ne 0) { throw "Application publish failed for $projName" }
-
-                Compress-Archive -Path $outDir/* -DestinationPath $stageFile -Force
-            }
-        }
-        catch {
-            Write-Error "Release asset packaging failed: $_"
-            exit 1
-        }
+        ref: ${{ needs.build.outputs.release_hash }}
 
     - name: Run Security Analysis
       uses: microsoft/security-devops-action@v1
@@ -308,43 +120,3 @@ jobs:
 
     - name: Detect Dependencies
       uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
-
-    - name: Publish Libraries to GitHub
-      if: hashFiles(env.PACKAGE_PATTERN) != ''
-      shell: pwsh
-      run: |
-        try {
-            dotnet nuget push ${{ env.PACKAGE_PATTERN }} --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
-            if ($LASTEXITCODE -ne 0) { throw "GitHub package publish failed" }
-        }
-        catch {
-            Write-Error "GitHub package publish failed: $_"
-            exit 1
-        }
-
-    - name: Publish Libraries to NuGet
-      if: hashFiles(env.PACKAGE_PATTERN) != ''
-      shell: pwsh
-      run: |
-        try {
-            dotnet nuget push ${{ env.PACKAGE_PATTERN }} --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-            if ($LASTEXITCODE -ne 0) { throw "NuGet publish failed" }
-        }
-        catch {
-            Write-Error "NuGet publish failed: $_"
-            exit 1
-        }
-
-    - name: Create GitHub Release
-      uses: ncipollo/release-action@v1
-      with:
-        artifacts: "${{ env.PACKAGE_PATTERN }},${{ env.SYMBOLS_PATTERN }},${{ env.APPLICATION_PATTERN }}"
-        tag: v${{ env.VERSION }}
-        commit: ${{ needs.build.outputs.commit_hash }}
-        allowUpdates: false
-        skipIfReleaseExists: true
-        generateReleaseNotes: true
-        bodyFile: CHANGELOG.md
-        replacesArtifacts: false
-        makeLatest: true
-        token: ${{ secrets.GITHUB_TOKEN }}
