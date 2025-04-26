@@ -76,7 +76,8 @@ function Get-BuildConfiguration {
     $SHOULD_RELEASE = ($IS_MAIN -AND -NOT $IS_TAGGED -AND $IS_OFFICIAL)
 
     # Check for .csx files (dotnet-script)
-    $USE_DOTNET_SCRIPT = (Get-ChildItem -Path $WorkspacePath -Recurse -Filter *.csx).Count -gt 0
+    $csx = @(Get-ChildItem -Path $WorkspacePath -Recurse -Filter *.csx -ErrorAction SilentlyContinue)
+    $USE_DOTNET_SCRIPT = $csx.Count -gt 0
 
     # Setup paths
     $OUTPUT_PATH = Join-Path $WorkspacePath 'output'
@@ -129,9 +130,12 @@ function Get-GitTags {
     git config versionsort.suffix "-rc"
     git config versionsort.suffix "-pre"
 
-    $tags = git tag --list --sort=-v:refname
-    if ($null -eq $tags) {
-        return @('v1.0.0-pre.0') # Default return if no tags exist
+    # Get tags and ensure we return an array
+    $tags = @(git tag --list --sort=-v:refname)
+
+    # Return default if no tags exist
+    if ($null -eq $tags -or $tags.Count -eq 0) {
+        return @('v1.0.0-pre.0')
     }
 
     return $tags
@@ -225,7 +229,9 @@ function Get-VersionInfoFromGit {
 
     # Get tag information
     $allTags = Get-GitTags
-    $noTagsExist = ($allTags.Count -eq 1 -and $allTags[0] -eq 'v1.0.0-pre.0')
+    $noTagsExist = ($null -eq $allTags) -or
+                   (($allTags -is [string]) -and $allTags -eq 'v1.0.0-pre.0') -or
+                   (($allTags -is [array]) -and $allTags.Count -eq 1 -and $allTags[0] -eq 'v1.0.0-pre.0')
 
     if ($noTagsExist) {
         # Special case: This is the first version, no real tags exist yet
@@ -680,10 +686,16 @@ function New-Changelog {
     $tagIndex = 0
 
     # Add entry for current/new version
-    $previousTag = if ($null -eq $tags -or $tags.Length -eq 0) {
+    $previousTag = if ($null -eq $tags -or
+                      ($tags -is [string]) -or
+                      (($tags -is [array]) -and $tags.Length -eq 0)) {
         'v0.0.0'
     } else {
-        $tags[0]
+        if ($tags -is [array]) {
+            $tags[0]
+        } else {
+            $tags
+        }
     }
 
     $currentTag = "v$Version"
