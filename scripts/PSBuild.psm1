@@ -33,7 +33,7 @@ function Initialize-BuildEnvironment {
     $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
     $env:DOTNET_NOLOGO = 'true'
 
-    Write-Output "Build environment initialized"
+    Write-Host "Build environment initialized"
 }
 
 function Get-BuildConfiguration {
@@ -480,7 +480,6 @@ function New-Version {
     }
 
     Write-Verbose "Previous version: $($versionInfo.LastVersion), New version: $($versionInfo.Version)"
-    Write-Output "Version $($versionInfo.Version) generated"
     return $versionInfo.Version
 }
 
@@ -534,8 +533,6 @@ function New-License {
 
     $filePath = if ($OutputPath) { Join-Path $OutputPath "LICENSE.md" } else { "LICENSE.md" }
     $content | Out-File -FilePath $filePath -Encoding utf8
-
-    Write-Output "License file generated"
 }
 
 #endregion
@@ -800,7 +797,7 @@ function New-Changelog {
     $filePath = if ($OutputPath) { Join-Path $OutputPath "CHANGELOG.md" } else { "CHANGELOG.md" }
     $changelog | Out-File -FilePath $filePath -Encoding utf8
 
-    Write-Output "Changelog generated with entries for $($tags.Length + 1) versions"
+    Write-Host "Changelog generated with entries for $($tags.Length + 1) versions"
     return $changelog
 }
 
@@ -910,7 +907,7 @@ function Update-ProjectMetadata {
 
     # Get and set release hash
     $releaseHash = git rev-parse HEAD
-    Write-Output "Metadata committed as $releaseHash"
+    Write-Host "Metadata committed as $releaseHash"
 
     # Set GitHub environment variable if requested
     if ($SetGitHubEnv -and $env:GITHUB_ENV) {
