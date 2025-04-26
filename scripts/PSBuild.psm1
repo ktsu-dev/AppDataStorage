@@ -1445,11 +1445,11 @@ function Invoke-ReleaseWorkflow {
 
         # Generate Metadata
         Write-Host "Generating version information..."
-        $versionInfo = Get-VersionInfoFromGit -CommitHash $GitSha
+        $versionInfo = Get-VersionInfoFromGit -CommitHash $GitSha.ToString()
 
         # Update and commit all metadata files
         Write-Host "Updating metadata files..."
-        $releaseHash = Update-ProjectMetadata -Version $versionInfo.Version -CommitHash $GitSha -GitHubOwner $Owner -GitHubRepo $Repository
+        $releaseHash = Update-ProjectMetadata -Version $versionInfo.Version -CommitHash $GitSha.ToString() -GitHubOwner $Owner -GitHubRepo $Repository
 
         # Check if we have any project files before attempting to package
         $hasProjects = (Get-ChildItem -Path "*.csproj" -Recurse -ErrorAction SilentlyContinue).Count -gt 0
@@ -1569,9 +1569,11 @@ function Invoke-CIPipeline {
         [string]$GitRef,
 
         [Parameter(Mandatory = $true, Position = 1, HelpMessage = "Git commit SHA being built")]
+        [ValidateNotNullOrEmpty()]
         [string]$GitSha,
 
         [Parameter(Mandatory = $true, Position = 2, HelpMessage = "Path to workspace/repository root")]
+        [ValidateNotNullOrEmpty()]
         [string]$WorkspacePath,
 
         [Parameter(Mandatory = $true, Position = 3, HelpMessage = "GitHub server URL")]
