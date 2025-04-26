@@ -748,6 +748,7 @@ function Update-ProjectMetadata {
     .DESCRIPTION
         Updates VERSION.md, LICENSE.md, AUTHORS.md, COPYRIGHT.md, CHANGELOG.md and other
         metadata files, commits them to git, and optionally pushes the changes.
+        Note: Existing AUTHORS.md file will always be preserved if it exists.
     .PARAMETER Version
         The version number for the release.
     .PARAMETER CommitHash
@@ -789,37 +790,53 @@ function Update-ProjectMetadata {
     git config --global user.name "Github Actions"
     git config --global user.email "actions@users.noreply.github.com"
 
-    # Generate metadata files if they don't exist
+    # 1. Version file - always update
+    $Version | Out-File -FilePath "VERSION.md" -Encoding utf8 -NoNewline
+    Write-Host "Generated VERSION.md file"
 
-    # 1. Version file
-    if (-not (Test-Path "VERSION.md")) {
-        $Version | Out-File -FilePath "VERSION.md" -Encoding utf8 -NoNewline
+    # 2. License file - always update
+    New-License -ServerUrl $ServerUrl -Owner $GitHubOwner -Repository $GitHubRepo
+    Write-Host "Generated LICENSE.md file"
+
+    # 3. Generate AUTHORS.md only if it doesn't already exist
+    if (-not (Test-Path "AUTHORS.md")) {
+        if (-not $Authors -or $Authors.Count -eq 0) {
+            $Authors = git log --format="%aN" | Sort-Object -Unique
+        }
+        $authorsList = $Authors -join "`n"
+        $authorsList | Out-File -FilePath "AUTHORS.md" -Encoding utf8
+        Write-Host "Generated AUTHORS.md file"
+    } else {
+        Write-Host "Preserving existing AUTHORS.md file"
     }
 
-    # 2. License file (if not already created)
-    if (-not (Test-Path "LICENSE.md")) {
-        New-License -ServerUrl $ServerUrl -Owner $GitHubOwner -Repository $GitHubRepo
-    }
-
-    # 3. Generate AUTHORS.md if not provided
-    if (-not $Authors -or $Authors.Count -eq 0) {
-        $Authors = git log --format="%aN" | Sort-Object -Unique
-    }
-    $authorsList = $Authors -join "`n"
-    $authorsList | Out-File -FilePath "AUTHORS.md" -Encoding utf8
-
-    # 4. URL files
+    # 4. URL files - always generate
     "$ServerUrl/$GitHubOwner/$GitHubRepo" | Out-File -FilePath "PROJECT_URL.url" -Encoding utf8
+    Write-Host "Generated PROJECT_URL.url file"
+
     "$ServerUrl/$GitHubOwner" | Out-File -FilePath "AUTHORS.url" -Encoding utf8
+    Write-Host "Generated AUTHORS.url file"
 
-    # 6. Ensure CHANGELOG.md exists
-    if (-not (Test-Path "CHANGELOG.md")) {
-        New-Changelog -Version $Version -CommitHash $CommitHash
+    # 5. Always generate CHANGELOG.md
+    New-Changelog -Version $Version -CommitHash $CommitHash
+    Write-Host "Generated CHANGELOG.md file"
+
+    # Add all metadata files to git (will only add files that exist)
+    $filesToAdd = @(
+        "VERSION.md",
+        "LICENSE.md",
+        "AUTHORS.md",
+        "CHANGELOG.md",
+        "PROJECT_URL.url",
+        "AUTHORS.url"
+    ) | Where-Object { Test-Path $_ }
+
+    if ($filesToAdd.Count -gt 0) {
+        git add $filesToAdd
+        git commit -m $CommitMessage
+    } else {
+        Write-Warning "No metadata files to commit"
     }
-
-    # Commit metadata files
-    git add VERSION.md LICENSE.md AUTHORS.md CHANGELOG.md PROJECT_URL.url AUTHORS.url
-    git commit -m $CommitMessage
 
     # Push changes if requested
     if ($Push) {
