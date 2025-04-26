@@ -831,7 +831,7 @@ function Update-ProjectMetadata {
         Whether to set GitHub environment variables for the release hash.
     #>
     [CmdletBinding()]
-    [OutputType([hashtable])]
+    [OutputType([PSCustomObject])]
     param (
         [Parameter(Mandatory=$true)]
         [string]$GitSha,
@@ -894,15 +894,15 @@ function Update-ProjectMetadata {
     ) | Where-Object { Test-Path $_ }
 
     if ($filesToAdd.Count -gt 0) {
-        git add $filesToAdd
-        git commit -m $CommitMessage
+        git add $filesToAdd 2>&1
+        git commit -m $CommitMessage 2>&1
     } else {
         Write-Warning "No metadata files to commit"
     }
 
     # Push changes if requested
     if ($Push) {
-        git push
+        git push 2>&1
     }
 
     # Get and set release hash
@@ -914,6 +914,7 @@ function Update-ProjectMetadata {
         "RELEASE_HASH=$releaseHash" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
     }
 
+    Write-Host "Metadata updated and committed Version: $version ReleaseHash: $releaseHash"
     return [PSCustomObject]@{
         Version = $version
         ReleaseHash = $releaseHash
@@ -937,7 +938,7 @@ function Invoke-DotNetRestore {
     Write-StepHeader "Restoring Dependencies"
 
     # Execute command and stream output directly to console
-    & dotnet restore --locked-mode -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" | ForEach-Object {
+    & dotnet restore --locked-mode -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" | ForEach-Object {
         Write-Host $_
     }
     Assert-LastExitCode "Restore failed"
@@ -963,8 +964,8 @@ function Invoke-DotNetBuild {
     Write-StepHeader "Building Solution"
 
     try {
-        # First attempt with normal verbosity - stream output directly
-        & dotnet build --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-incremental $BuildArgs --no-restore | ForEach-Object {
+        # First attempt with quiet verbosity - stream output directly
+        & dotnet build --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-incremental $BuildArgs --no-restore | ForEach-Object {
             Write-Host $_
         }
 
@@ -972,7 +973,7 @@ function Invoke-DotNetBuild {
             Write-Warning "Build failed with exit code $LASTEXITCODE. Retrying with detailed verbosity..."
 
             # Retry with more detailed verbosity - stream output directly
-            & dotnet build --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-incremental $BuildArgs --no-restore | ForEach-Object {
+            & dotnet build --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-incremental $BuildArgs --no-restore | ForEach-Object {
                 Write-Host $_
             }
 
@@ -1018,7 +1019,7 @@ function Invoke-DotNetTest {
     Write-StepHeader "Running Tests"
 
     # Execute command and stream output directly to console
-    & dotnet test -m:1 --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
+    & dotnet test -m:1 --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
         Write-Host $_
     }
     Assert-LastExitCode "Tests failed"
@@ -1061,12 +1062,12 @@ function Invoke-DotNetPack {
         # Build either a specific project or all projects
         if ([string]::IsNullOrWhiteSpace($Project)) {
             Write-Host "Packaging all projects in solution..."
-            & dotnet pack --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
         } else {
             Write-Host "Packaging project: $Project"
-            & dotnet pack $Project --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack $Project --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
         }
@@ -1160,7 +1161,7 @@ function Invoke-DotNetPublish {
         New-Item -Path $outDir -ItemType Directory -Force | Out-Null
 
         # Publish application - stream output directly
-        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$DotnetVersion --output $outDir /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" | ForEach-Object {
+        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$DotnetVersion --output $outDir /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" | ForEach-Object {
             Write-Host $_
         }
 
@@ -1634,7 +1635,7 @@ function Invoke-CIPipeline {
         Author: ktsu.dev
     #>
     [CmdletBinding()]
-    [OutputType([hashtable])]
+    [OutputType([PSCustomObject])]
     param (
         [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Git reference (branch/tag) being built")]
         [string]$GitRef,
@@ -1731,6 +1732,7 @@ function Invoke-CIPipeline {
             BuildSuccess = $false
             ReleaseSuccess = $false
             ShouldRelease = $false
+            Version = $metadata.Version
             Error = $_.ToString()
             StackTrace = $_.ScriptStackTrace
         }
