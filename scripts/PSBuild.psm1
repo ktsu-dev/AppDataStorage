@@ -563,7 +563,7 @@ function ConvertTo-FourComponentVersion {
     $versionPatch = [int]$versionComponents[2]
     $versionPrerelease = 0
 
-    if ($versionComponents.Length -gt 3) {
+    if (@($versionComponents).Count -gt 3) {
         $versionPrerelease = [int]$versionComponents[3]
     }
 
@@ -711,7 +711,7 @@ function Get-VersionNotes {
 
     # Format changelog entry
     $versionChangelog = ""
-    if ($versionType -ne "prerelease" -and $commits.Length -gt 0) {
+    if ($versionType -ne "prerelease" -and @($commits).Count -gt 0) {
         $versionChangelog = "## $ToTag ($versionType)`n`n"
         $versionChangelog += "Changes since ${searchTag}:`n`n"
 
