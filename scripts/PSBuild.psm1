@@ -1452,7 +1452,7 @@ function Invoke-ReleaseWorkflow {
         $releaseHash = Update-ProjectMetadata -Version $versionInfo.Version -CommitHash $GitSha -GitHubOwner $Owner -GitHubRepo $Repository
 
         # Check if we have any project files before attempting to package
-        $hasProjects = Test-Path -Path "*.csproj" -Recurse
+        $hasProjects = (Get-ChildItem -Path "*.csproj" -Recurse -ErrorAction SilentlyContinue).Count -gt 0
 
         if (-not $hasProjects) {
             Write-Warning "No .NET projects found in repository. Skipping packaging steps."
