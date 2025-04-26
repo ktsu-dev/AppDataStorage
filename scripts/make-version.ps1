@@ -74,9 +74,9 @@ $LAST_NON_MERGE_COMMIT = git log -n 1 --date-order --perl-regexp --regexp-ignore
 $COMMITS = "$FIRST_COMMIT...$LAST_NON_MERGE_COMMIT"
 
 #note: use topo order for the rest so that branched commits are grouped together
-$LAST_PATCH_COMMIT = git log -n 1 --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $COMMITS
+$HAS_PATCH_COMMITS = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $COMMITS
 
-$LAST_MINOR_COMMIT = git log -n 1 --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $COMMITS `
+$HAS_MINOR_COMMITS = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $COMMITS `
     -- `
     $INCLUDE_ALL_FILES `
     $EXCLUDE_HIDDEN_FILES `
@@ -90,24 +90,28 @@ $LAST_MINOR_COMMIT = git log -n 1 --topo-order --perl-regexp --regexp-ignore-cas
     $EXCLUDE_CI_FILES
 
 $VERSION_INCREMENT = 'prerelease'
-if ($LAST_NON_MERGE_COMMIT -eq $LAST_PATCH_COMMIT) {
+if ($HAS_PATCH_COMMITS) {
     $VERSION_INCREMENT = 'patch'
 }
 
-if ($LAST_NON_MERGE_COMMIT -eq $LAST_MINOR_COMMIT) {
+if ($HAS_MINOR_COMMITS) {
     $VERSION_INCREMENT = 'minor'
 }
 
-$LAST_NON_MERGE_COMMIT_MESSAGE = git log -n 1 --format=format:%s $LAST_NON_MERGE_COMMIT
+# Check all commits for [major], [minor], [patch], [pre] tags
+$COMMIT_MESSAGES = git log --format=format:%s $COMMITS
 
-if ($LAST_NON_MERGE_COMMIT_MESSAGE.Contains('[major]')) {
-    $VERSION_INCREMENT = 'major'
-} elseif ($LAST_NON_MERGE_COMMIT_MESSAGE.Contains('[minor]')) {
-    $VERSION_INCREMENT = 'minor'
-} elseif ($LAST_NON_MERGE_COMMIT_MESSAGE.Contains('[patch]')) {
-    $VERSION_INCREMENT = 'patch'
-} elseif ($LAST_NON_MERGE_COMMIT_MESSAGE.Contains('[pre]')) {
-    $VERSION_INCREMENT = 'prerelease'
+foreach ($MESSAGE in $COMMIT_MESSAGES) {
+    if ($MESSAGE.Contains('[major]')) {
+        $VERSION_INCREMENT = 'major'
+        break
+    } elseif ($MESSAGE.Contains('[minor]') -and $VERSION_INCREMENT -ne 'major') {
+        $VERSION_INCREMENT = 'minor'
+    } elseif ($MESSAGE.Contains('[patch]') -and $VERSION_INCREMENT -notin @('major', 'minor')) {
+        $VERSION_INCREMENT = 'patch'
+    } elseif ($MESSAGE.Contains('[pre]') -and $VERSION_INCREMENT -notin @('major', 'minor', 'patch')) {
+        $VERSION_INCREMENT = 'prerelease'
+    }
 }
 
 if ($IS_PRERELEASE) {
