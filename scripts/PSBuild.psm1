@@ -1,5 +1,14 @@
-# PSBuild Module
-# A comprehensive build module for .NET projects
+# PSBuild Module for .NET CI/CD
+# Version: 1.0.0
+# Author: ktsu.dev
+# License: MIT
+#
+# A comprehensive PowerShell module for automating the build, test, package,
+# and release process for .NET applications using Git-based versioning.
+#
+# Usage:
+#   Import-Module ./PSBuild.psm1
+#   $result = Invoke-CIPipeline -GitRef "refs/heads/main" -GitSha "abc123" -WorkspacePath "." -ServerUrl "https://github.com" -Owner "myorg" -Repository "myrepo" -GithubToken $env:GITHUB_TOKEN
 
 #region Module Variables
 $script:DOTNET_VERSION = '9.0'
@@ -845,9 +854,10 @@ function Invoke-DotNetRestore {
 
     Write-StepHeader "Restoring Dependencies"
 
+    $cmd = "dotnet restore --locked-mode"
     # Execute command and let output flow to console for GitHub logs
     & dotnet restore --locked-mode
-    Assert-LastExitCode "Restore failed"
+    Assert-LastExitCode "Restore failed" -Command $cmd
 }
 
 function Invoke-DotNetBuild {
@@ -869,9 +879,10 @@ function Invoke-DotNetBuild {
 
     Write-StepHeader "Building Solution"
 
+    $cmd = "dotnet build --configuration $Configuration --verbosity normal --no-incremental $BuildArgs --no-restore"
     # Execute command and let output flow to console for GitHub logs
     & dotnet build --configuration $Configuration --verbosity normal --no-incremental $BuildArgs --no-restore
-    Assert-LastExitCode "Build failed"
+    Assert-LastExitCode "Build failed" -Command $cmd
 }
 
 function Invoke-DotNetTest {
@@ -893,9 +904,10 @@ function Invoke-DotNetTest {
 
     Write-StepHeader "Running Tests"
 
+    $cmd = "dotnet test -m:1 --configuration $Configuration --verbosity normal --no-build --collect:'XPlat Code Coverage' --results-directory $CoverageOutputPath"
     # Execute command and let output flow to console for GitHub logs
     & dotnet test -m:1 --configuration $Configuration --verbosity normal --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath
-    Assert-LastExitCode "Tests failed"
+    Assert-LastExitCode "Tests failed" -Command $cmd
 }
 
 function Invoke-DotNetPack {
@@ -1192,29 +1204,51 @@ function New-GitHubRelease {
 function Assert-LastExitCode {
     <#
     .SYNOPSIS
-        Checks if the last command succeeded.
+        Verifies that the last command executed successfully.
     .DESCRIPTION
-        Throws an exception if the last exit code was non-zero.
+        Throws an exception if the last command execution resulted in a non-zero exit code.
+        This function is used internally to ensure each step completes successfully.
     .PARAMETER Message
-        The error message to throw.
+        The error message to display if the exit code check fails.
+    .PARAMETER Command
+        Optional. The command that was executed, for better error reporting.
+    .EXAMPLE
+        dotnet build
+        Assert-LastExitCode "The build process failed" -Command "dotnet build"
+    .NOTES
+        Author: ktsu.dev
     #>
     [CmdletBinding()]
     param (
-        [string]$Message = "Command failed"
+        [string]$Message = "Command failed",
+        [string]$Command = ""
     )
+
     if ($LASTEXITCODE -ne 0) {
-        throw $Message
+        $errorDetails = "Exit code: $LASTEXITCODE"
+        if (-not [string]::IsNullOrWhiteSpace($Command)) {
+            $errorDetails += " | Command: $Command"
+        }
+
+        $fullMessage = "$Message`n$errorDetails"
+        Write-Error $fullMessage
+        throw $fullMessage
     }
 }
 
 function Write-StepHeader {
     <#
     .SYNOPSIS
-        Writes a formatted step header.
+        Writes a formatted step header to the console.
     .DESCRIPTION
-        Outputs a visually distinct header for a build step.
+        Creates a visually distinct header for build steps in the console output.
+        Used to improve readability of the build process logs.
     .PARAMETER Message
         The header message to display.
+    .EXAMPLE
+        Write-StepHeader "Restoring Packages"
+    .NOTES
+        Author: ktsu.dev
     #>
     [CmdletBinding()]
     param (
@@ -1227,18 +1261,30 @@ function Write-StepHeader {
 function Test-AnyFiles {
     <#
     .SYNOPSIS
-        Checks if any files match a pattern.
+        Tests if any files match the specified pattern.
     .DESCRIPTION
-        Returns true if any files match the given glob pattern.
+        Tests if any files exist that match the given glob pattern. This is useful for
+        determining if certain file types (like packages) exist before attempting operations
+        on them.
     .PARAMETER Pattern
-        The glob pattern to check.
+        The glob pattern to check for matching files.
+    .EXAMPLE
+        if (Test-AnyFiles -Pattern "*.nupkg") {
+            Write-Host "NuGet packages found!"
+        }
+    .NOTES
+        Author: ktsu.dev
     #>
     [CmdletBinding()]
+    [OutputType([bool])]
     param (
         [Parameter(Mandatory=$true)]
         [string]$Pattern
     )
-    return [bool](Get-Item -Path $Pattern -ErrorAction SilentlyContinue)
+
+    # Use array subexpression to ensure consistent collection handling
+    $matchingFiles = @(Get-Item -Path $Pattern -ErrorAction SilentlyContinue)
+    return $matchingFiles.Count -gt 0
 }
 
 #endregion
@@ -1429,69 +1475,123 @@ function Invoke-CIPipeline {
     .SYNOPSIS
         Executes the complete CI/CD pipeline.
     .DESCRIPTION
-        Runs the entire build, test, package, and release process.
+        Runs the entire build, test, package, and release process as a single pipeline.
+        This is the main entry point for CI systems like GitHub Actions.
     .PARAMETER GitRef
-        The Git reference (branch/tag) being built.
+        The Git reference (branch/tag) being built (e.g., "refs/heads/main").
     .PARAMETER GitSha
         The Git commit SHA being built.
     .PARAMETER WorkspacePath
         The path to the workspace/repository root.
     .PARAMETER ServerUrl
-        The GitHub server URL.
+        The GitHub server URL (e.g., "https://github.com").
     .PARAMETER Owner
-        The repository owner/organization.
+        The repository owner/organization name.
     .PARAMETER Repository
         The repository name.
     .PARAMETER GithubToken
-        The GitHub token for authentication.
+        The GitHub token for authentication and API operations.
     .PARAMETER NuGetApiKey
-        Optional NuGet.org API key.
+        Optional NuGet.org API key for publishing packages.
     .PARAMETER Configuration
-        The build configuration (Debug/Release).
+        The build configuration (Debug/Release). Defaults to "Release".
+    .PARAMETER ExpectedOwner
+        The expected owner for official builds. Defaults to "ktsu-dev".
+    .EXAMPLE
+        $result = Invoke-CIPipeline -GitRef "refs/heads/main" -GitSha "abc123" -WorkspacePath "." -ServerUrl "https://github.com" -Owner "myorg" -Repository "myrepo" -GithubToken $env:GITHUB_TOKEN
+    .NOTES
+        Author: ktsu.dev
     #>
     [CmdletBinding()]
+    [OutputType([hashtable])]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Git reference (branch/tag) being built")]
         [string]$GitRef,
-        [Parameter(Mandatory=$true)]
+
+        [Parameter(Mandatory = $true, Position = 1, HelpMessage = "Git commit SHA being built")]
         [string]$GitSha,
-        [Parameter(Mandatory=$true)]
+
+        [Parameter(Mandatory = $true, Position = 2, HelpMessage = "Path to workspace/repository root")]
         [string]$WorkspacePath,
-        [Parameter(Mandatory=$true)]
+
+        [Parameter(Mandatory = $true, Position = 3, HelpMessage = "GitHub server URL")]
         [string]$ServerUrl,
-        [Parameter(Mandatory=$true)]
+
+        [Parameter(Mandatory = $true, Position = 4, HelpMessage = "Repository owner/organization")]
         [string]$Owner,
-        [Parameter(Mandatory=$true)]
+
+        [Parameter(Mandatory = $true, Position = 5, HelpMessage = "Repository name")]
         [string]$Repository,
-        [Parameter(Mandatory=$true)]
+
+        [Parameter(Mandatory = $true, Position = 6, HelpMessage = "GitHub token for authentication")]
         [string]$GithubToken,
+
+        [Parameter(Position = 7, HelpMessage = "NuGet.org API key for publishing packages")]
         [string]$NuGetApiKey,
-        [string]$Configuration = "Release"
+
+        [Parameter(Position = 8, HelpMessage = "Build configuration (Debug/Release)")]
+        [ValidateSet("Debug", "Release")]
+        [string]$Configuration = "Release",
+
+        [Parameter(HelpMessage = "Expected owner for official builds")]
+        [string]$ExpectedOwner = "ktsu-dev"
     )
 
-    # Get build configuration
-    $buildConfig = Get-BuildConfiguration -GitRef $GitRef -GitSha $GitSha -WorkspacePath $WorkspacePath -GithubToken $GithubToken
+    Write-StepHeader "Starting CI/CD Pipeline"
+    Write-Host "Repository: $Owner/$Repository"
+    Write-Host "Git Reference: $GitRef"
+    Write-Host "Git SHA: $GitSha"
+    Write-Host "Configuration: $Configuration"
 
-    # Run build workflow
-    $buildResult = Invoke-BuildWorkflow -Configuration $Configuration -BuildArgs $buildConfig.BuildArgs -BuildConfig $buildConfig
+    try {
+        # Get build configuration
+        $buildConfig = Get-BuildConfiguration -GitRef $GitRef -GitSha $GitSha -WorkspacePath $WorkspacePath -GithubToken $GithubToken -ExpectedOwner $ExpectedOwner
 
-    # If build succeeded and we should release, run release workflow
-    if ($buildResult -and $buildConfig.ShouldRelease) {
-        $releaseResult = Invoke-ReleaseWorkflow -GitSha $GitSha -ServerUrl $ServerUrl -Owner $Owner -Repository $Repository `
-                          -Configuration $Configuration -BuildConfig $buildConfig -GithubToken $GithubToken -NuGetApiKey $NuGetApiKey
+        # Run build workflow
+        Write-Host "Running build workflow..."
+        $buildResult = Invoke-BuildWorkflow -Configuration $Configuration -BuildArgs $buildConfig.BuildArgs -BuildConfig $buildConfig
 
-        return @{
-            BuildSuccess = $true
-            ReleaseSuccess = $releaseResult.Success
-            Version = $releaseResult.Version
-            ReleaseHash = $releaseResult.ReleaseHash
+        if (-not $buildResult) {
+            Write-Error "Build workflow failed"
+            return @{
+                BuildSuccess = $false
+                ReleaseSuccess = $false
+                ShouldRelease = $false
+                Error = "Build workflow failed"
+            }
+        }
+
+        # If build succeeded and we should release, run release workflow
+        if ($buildConfig.ShouldRelease) {
+            Write-Host "Build successful! Running release workflow..."
+            $releaseResult = Invoke-ReleaseWorkflow -GitSha $GitSha -ServerUrl $ServerUrl -Owner $Owner -Repository $Repository `
+                             -Configuration $Configuration -BuildConfig $buildConfig -GithubToken $GithubToken -NuGetApiKey $NuGetApiKey
+
+            return @{
+                BuildSuccess = $true
+                ReleaseSuccess = $releaseResult.Success
+                Version = $releaseResult.Version
+                ReleaseHash = $releaseResult.ReleaseHash
+                ShouldRelease = $true
+            }
+        }
+        else {
+            Write-Host "Build successful! Release not required for this build."
+            return @{
+                BuildSuccess = $true
+                ReleaseSuccess = $false
+                ShouldRelease = $false
+            }
         }
     }
-    else {
+    catch {
+        Write-Error "CI/CD pipeline failed: $_"
         return @{
-            BuildSuccess = $buildResult
+            BuildSuccess = $false
             ReleaseSuccess = $false
-            ShouldRelease = $buildConfig.ShouldRelease
+            ShouldRelease = $false
+            Error = $_.ToString()
+            StackTrace = $_.ScriptStackTrace
         }
     }
 }
@@ -1499,12 +1599,42 @@ function Invoke-CIPipeline {
 #endregion
 
 # Export public functions
-Export-ModuleMember -Function Initialize-BuildEnvironment, Get-BuildConfiguration,
-                              Get-GitTags, Get-VersionType, Get-VersionInfoFromGit, New-Version,
-                              ConvertTo-FourComponentVersion, Get-VersionNotes, New-Changelog,
-                              Update-ProjectMetadata,
-                              New-License,
-                              Invoke-DotNetRestore, Invoke-DotNetBuild, Invoke-DotNetTest,
-                              Invoke-DotNetPack, Invoke-DotNetPublish,
-                              Invoke-NuGetPublish, New-GitHubRelease,
-                              Invoke-BuildWorkflow, Invoke-ReleaseWorkflow, Invoke-CIPipeline
+# Core build and environment functions
+Export-ModuleMember -Function Initialize-BuildEnvironment,
+                             Get-BuildConfiguration
+
+# Version management functions
+Export-ModuleMember -Function Get-GitTags,
+                             Get-VersionType,
+                             Get-VersionInfoFromGit,
+                             New-Version
+
+# Version comparison and conversion functions
+Export-ModuleMember -Function ConvertTo-FourComponentVersion,
+                             Get-VersionNotes
+
+# Metadata and documentation functions
+Export-ModuleMember -Function New-Changelog,
+                             Update-ProjectMetadata,
+                             New-License
+
+# .NET SDK operations
+Export-ModuleMember -Function Invoke-DotNetRestore,
+                             Invoke-DotNetBuild,
+                             Invoke-DotNetTest,
+                             Invoke-DotNetPack,
+                             Invoke-DotNetPublish
+
+# Release and publishing functions
+Export-ModuleMember -Function Invoke-NuGetPublish,
+                             New-GitHubRelease
+
+# Utility functions
+Export-ModuleMember -Function Assert-LastExitCode,
+                             Write-StepHeader,
+                             Test-AnyFiles
+
+# High-level workflow functions
+Export-ModuleMember -Function Invoke-BuildWorkflow,
+                             Invoke-ReleaseWorkflow,
+                             Invoke-CIPipeline
