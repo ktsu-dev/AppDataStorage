@@ -914,7 +914,7 @@ function Update-ProjectMetadata {
         "RELEASE_HASH=$releaseHash" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
     }
 
-    return @{
+    return [PSCustomObject]@{
         Version = $version
         ReleaseHash = $releaseHash
     }
@@ -1585,7 +1585,7 @@ function Invoke-ReleaseWorkflow {
 
         Write-StepHeader "Release Process Completed"
         Write-Host "Release process completed successfully!" -ForegroundColor Green
-        return @{
+        return [PSCustomObject]@{
             Version = $Version
             ReleaseHash = $GitSha
             Success = $true
@@ -1593,7 +1593,7 @@ function Invoke-ReleaseWorkflow {
     }
     catch {
         Write-Error "Release workflow failed: $_"
-        return @{
+        return [PSCustomObject]@{
             Success = $false
             Error = $_.ToString()
             StackTrace = $_.ScriptStackTrace
@@ -1691,7 +1691,7 @@ function Invoke-CIPipeline {
 
         if (-not $buildResult) {
             Write-Error "Build workflow failed"
-            return @{
+            return [PSCustomObject]@{
                 BuildSuccess = $false
                 ReleaseSuccess = $false
                 ShouldRelease = $false
@@ -1706,18 +1706,18 @@ function Invoke-CIPipeline {
                              -Configuration $Configuration -BuildConfig $buildConfig -GithubToken $GithubToken -NuGetApiKey $NuGetApiKey `
                              -Version $metadata.Version
 
-            return @{
+            return [PSCustomObject]@{
                 BuildSuccess = $true
                 ReleaseSuccess = $releaseResult.Success
                 Version = $metadata.Version
-                ReleaseHash = $metadata.ReleaseHash
+                ReleaseHash = $releaseResult.ReleaseHash
                 ShouldRelease = $true
             }
         }
         else {
             Write-StepHeader "Build Completed"
             Write-Host "Build successful! Release not required for this build."
-            return @{
+            return [PSCustomObject]@{
                 BuildSuccess = $true
                 ReleaseSuccess = $false
                 ShouldRelease = $false
@@ -1727,7 +1727,7 @@ function Invoke-CIPipeline {
     }
     catch {
         Write-Error "CI/CD pipeline failed: $_"
-        return @{
+        return [PSCustomObject]@{
             BuildSuccess = $false
             ReleaseSuccess = $false
             ShouldRelease = $false
