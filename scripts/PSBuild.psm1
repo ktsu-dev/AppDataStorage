@@ -968,13 +968,13 @@ function Invoke-DotNetBuild {
     Write-StepHeader "Building Solution"
 
     # Add explicit logger parameters for better CI output
-    $loggerParams = '-logger:console --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=normal --nologo'
+    $loggerParams = '-logger:console --consoleLoggerParameters:Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal'
     $cmd = "dotnet build --configuration $Configuration $loggerParams --no-incremental $BuildArgs --no-restore"
     Write-Host "Running: $cmd"
 
     try {
         # First attempt with normal verbosity - stream output directly
-        & dotnet build --configuration $Configuration -logger:console --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=normal --nologo --no-incremental $BuildArgs --no-restore | ForEach-Object {
+        & dotnet build --configuration $Configuration -logger:console --consoleLoggerParameters:Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal --no-incremental $BuildArgs --no-restore | ForEach-Object {
             Write-Host $_
         }
 
@@ -982,7 +982,7 @@ function Invoke-DotNetBuild {
             Write-Warning "Build failed with exit code $LASTEXITCODE. Retrying with detailed verbosity..."
 
             # Retry with more detailed verbosity - stream output directly
-            & dotnet build --configuration $Configuration -logger:console --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=detailed --nologo --no-incremental $BuildArgs --no-restore | ForEach-Object {
+            & dotnet build --configuration $Configuration -logger:console --consoleLoggerParameters:Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed --no-incremental $BuildArgs --no-restore | ForEach-Object {
                 Write-Host $_
             }
 
@@ -1027,11 +1027,11 @@ function Invoke-DotNetTest {
 
     Write-StepHeader "Running Tests"
 
-    $cmd = "dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=normal --nologo --no-build --collect:""XPlat Code Coverage"" --results-directory $CoverageOutputPath"
+    $cmd = "dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal --no-build --collect:""XPlat Code Coverage"" --results-directory $CoverageOutputPath"
     Write-Host "Running: $cmd"
 
     # Execute command and stream output directly to console
-    & dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=normal --nologo --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
+    & dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
         Write-Host $_
     }
     Assert-LastExitCode "Tests failed" -Command $cmd
@@ -1077,12 +1077,12 @@ function Invoke-DotNetPack {
         # Build either a specific project or all projects
         if ([string]::IsNullOrWhiteSpace($Project)) {
             Write-Host "Packaging all projects in solution..."
-            & dotnet pack --configuration $Configuration /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=$Verbosity" --nologo --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack --configuration $Configuration /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=$Verbosity" --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
         } else {
             Write-Host "Packaging project: $Project"
-            & dotnet pack $Project --configuration $Configuration /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=$Verbosity" --nologo --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack $Project --configuration $Configuration /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=$Verbosity" --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
         }
@@ -1090,7 +1090,7 @@ function Invoke-DotNetPack {
         if ($LASTEXITCODE -ne 0) {
             # Get more details about what might have failed
             Write-Error "Packaging failed with exit code $LASTEXITCODE, trying again with detailed verbosity..."
-            & dotnet pack --configuration $Configuration /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed" --nologo --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack --configuration $Configuration /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed" --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
             throw "Library packaging failed with exit code $LASTEXITCODE"
@@ -1176,7 +1176,7 @@ function Invoke-DotNetPublish {
         New-Item -Path $outDir -ItemType Directory -Force | Out-Null
 
         # Publish application - stream output directly
-        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$DotnetVersion --output $outDir /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --nologo | ForEach-Object {
+        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$DotnetVersion --output $outDir /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" | ForEach-Object {
             Write-Host $_
         }
 
