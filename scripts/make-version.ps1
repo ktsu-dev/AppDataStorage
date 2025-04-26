@@ -3,28 +3,21 @@ param (
     [string]$github_sha = "" # SHA of the commit
 )
 
-Set-PSDebug -Trace 1
+# Import common module
+$ErrorActionPreference = 'Stop'
+Import-Module $PSScriptRoot/ktsu-build-common.ps1
 
-git config versionsort.suffix "-alpha"
-git config versionsort.suffix "-beta"
-git config versionsort.suffix "-rc"
-git config versionsort.suffix "-pre"
+# Initialize git configuration
+Initialize-GitConfig
 
-# find the last version that was released
-$ALL_TAGS = git tag --list --sort=-v:refname
-if ($null -eq $ALL_TAGS) {
-    $LAST_TAG = 'v1.0.0-pre.0'
-} elseif ($ALL_TAGS -is [array]) {
-    $LAST_TAG = $ALL_TAGS[0]
-} else {
-    $LAST_TAG = $ALL_TAGS
-}
+# Find the last version that was released
+$ALL_TAGS = Get-GitTags
+$LAST_TAG = $ALL_TAGS[0]
 
-Write-Host $LAST_TAG
+Write-Host "Last tag: $LAST_TAG"
 
 $LAST_VERSION = $LAST_TAG -replace 'v', ''
-
-Write-Host $LAST_VERSION
+Write-Host "Last version: $LAST_VERSION"
 
 $IS_PRERELEASE = $LAST_VERSION.Contains('-')
 
@@ -33,7 +26,7 @@ $LAST_VERSION = $LAST_VERSION -replace '-beta', ''
 $LAST_VERSION = $LAST_VERSION -replace '-rc', ''
 $LAST_VERSION = $LAST_VERSION -replace '-pre', ''
 
-Write-Host $LAST_VERSION
+Write-Host "Cleaned version: $LAST_VERSION"
 
 $LAST_VERSION_COMPONENTS = $LAST_VERSION -split '\.'
 $LAST_VERSION_MAJOR = [int]$LAST_VERSION_COMPONENTS[0]
@@ -44,99 +37,40 @@ if ($LAST_VERSION_COMPONENTS.Length -gt 3) {
     $LAST_VERSION_PRERELEASE = [int]$LAST_VERSION_COMPONENTS[3]
 }
 
-# calculate which increment is needed
-
-$EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
-$EXCLUDE_HIDDEN_FILES = ":(icase,exclude)*/.*"
-$EXCLUDE_MARKDOWN_FILES = ":(icase,exclude)*/*.md"
-$EXCLUDE_TEXT_FILES = ":(icase,exclude)*/*.txt"
-$EXCLUDE_SOLUTIONS_FILES = ":(icase,exclude)*/*.sln"
-$EXCLUDE_PROJECTS_FILES = ":(icase,exclude)*/*.*proj"
-$EXCLUDE_URL_FILES = ":(icase,exclude)*/*.url"
-$EXCLUDE_BUILD_FILES = ":(icase,exclude)*/Directory.Build.*"
-$EXCLUDE_CI_FILES = ":(icase,exclude).github/workflows/*"
-$EXCLUDE_PS_FILES = ":(icase,exclude)*/*.ps1"
-
-$EXCLUDE_PRS = @'
-^.*(Merge pull request|Merge branch 'main'|Updated packages in|Update.*package version).*$
-'@
-
-$INCLUDE_ALL_FILES = "*/*.*"
-
+# Calculate version increment
 $FIRST_COMMIT = (git rev-list HEAD)[-1]
 $LAST_COMMIT = $github_sha
-
 $COMMITS = "$FIRST_COMMIT...$LAST_COMMIT"
 
-# note: use date order for this one or else we will get the wrong commit when there are merges from main
-$LAST_NON_MERGE_COMMIT = git log -n 1 --date-order --perl-regexp --regexp-ignore-case --format=format:%H --grep="$EXCLUDE_PRS" --invert-grep $COMMITS
+$VERSION_INCREMENT = Get-VersionType -Range $COMMITS
 
-$COMMITS = "$FIRST_COMMIT...$LAST_NON_MERGE_COMMIT"
-
-#note: use topo order for the rest so that branched commits are grouped together
-$HAS_PATCH_COMMITS = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $COMMITS
-
-$HAS_MINOR_COMMITS = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $COMMITS `
-    -- `
-    $INCLUDE_ALL_FILES `
-    $EXCLUDE_HIDDEN_FILES `
-    $EXCLUDE_MARKDOWN_FILES `
-    $EXCLUDE_TEXT_FILES `
-    $EXCLUDE_SOLUTIONS_FILES `
-    $EXCLUDE_PROJECTS_FILES `
-    $EXCLUDE_URL_FILES `
-    $EXCLUDE_BUILD_FILES `
-    $EXCLUDE_PS_FILES `
-    $EXCLUDE_CI_FILES
-
-$VERSION_INCREMENT = 'prerelease'
-if ($HAS_PATCH_COMMITS) {
-    $VERSION_INCREMENT = 'patch'
-}
-
-if ($HAS_MINOR_COMMITS) {
-    $VERSION_INCREMENT = 'minor'
-}
-
-# Check all commits for [major], [minor], [patch], [pre] tags
-$COMMIT_MESSAGES = git log --format=format:%s $COMMITS
-
-foreach ($MESSAGE in $COMMIT_MESSAGES) {
-    if ($MESSAGE.Contains('[major]')) {
-        $VERSION_INCREMENT = 'major'
-        break
-    } elseif ($MESSAGE.Contains('[minor]') -and $VERSION_INCREMENT -ne 'major') {
-        $VERSION_INCREMENT = 'minor'
-    } elseif ($MESSAGE.Contains('[patch]') -and $VERSION_INCREMENT -notin @('major', 'minor')) {
-        $VERSION_INCREMENT = 'patch'
-    } elseif ($MESSAGE.Contains('[pre]') -and $VERSION_INCREMENT -notin @('major', 'minor', 'patch')) {
-        $VERSION_INCREMENT = 'prerelease'
-    }
-}
-
+# Calculate new version
 if ($IS_PRERELEASE) {
     if ($VERSION_INCREMENT -eq 'prerelease') {
-    $NEW_PRERELEASE = $LAST_VERSION_PRERELEASE + 1
-    $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$LAST_VERSION_PATCH-pre.$NEW_PRERELEASE"
+        $NEW_PRERELEASE = $LAST_VERSION_PRERELEASE + 1
+        $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$LAST_VERSION_PATCH-pre.$NEW_PRERELEASE"
     } elseif ($VERSION_INCREMENT -eq 'patch') {
-    $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$LAST_VERSION_PATCH"
+        $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$LAST_VERSION_PATCH"
     }
 } else {
     if ($VERSION_INCREMENT -eq 'prerelease') {
-    $NEW_PATCH = $LAST_VERSION_PATCH + 1
-    $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$NEW_PATCH-pre.1"
+        $NEW_PATCH = $LAST_VERSION_PATCH + 1
+        $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$NEW_PATCH-pre.1"
     } elseif ($VERSION_INCREMENT -eq 'patch') {
-    $NEW_PATCH = $LAST_VERSION_PATCH + 1
-    $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$NEW_PATCH"
+        $NEW_PATCH = $LAST_VERSION_PATCH + 1
+        $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$NEW_PATCH"
     }
 }
 
 if ($VERSION_INCREMENT -eq 'minor') {
     $NEW_MINOR = $LAST_VERSION_MINOR + 1
     $VERSION = "$LAST_VERSION_MAJOR.$NEW_MINOR.0"
+} elseif ($VERSION_INCREMENT -eq 'major') {
+    $NEW_MAJOR = $LAST_VERSION_MAJOR + 1
+    $VERSION = "$NEW_MAJOR.0.0"
 }
 
-# Output the version information
+# Output version information
 Write-Host "LAST_VERSION: $LAST_VERSION"
 Write-Host "LAST_VERSION_MAJOR: $LAST_VERSION_MAJOR"
 Write-Host "LAST_VERSION_MINOR: $LAST_VERSION_MINOR"
@@ -145,30 +79,22 @@ Write-Host "LAST_VERSION_PRERELEASE: $LAST_VERSION_PRERELEASE"
 Write-Host "IS_PRERELEASE: $IS_PRERELEASE"
 Write-Host "FIRST_COMMIT: $FIRST_COMMIT"
 Write-Host "LAST_COMMIT: $LAST_COMMIT"
-Write-Host "LAST_NON_MERGE_COMMIT: $LAST_NON_MERGE_COMMIT"
-Write-Host "LAST_NON_MERGE_COMMIT_MESSAGE: $LAST_NON_MERGE_COMMIT_MESSAGE"
-Write-Host "LAST_PATCH_COMMIT: $LAST_PATCH_COMMIT"
-Write-Host "LAST_MINOR_COMMIT: $LAST_MINOR_COMMIT"
 Write-Host "VERSION_INCREMENT: $VERSION_INCREMENT"
 Write-Host "VERSION: $VERSION"
 
-# set the environment variables
-"LAST_VERSION=$LAST_VERSION" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"LAST_VERSION_MAJOR=$LAST_VERSION_MAJOR" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"LAST_VERSION_MINOR=$LAST_VERSION_MINOR" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"LAST_VERSION_PATCH=$LAST_VERSION_PATCH" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"LAST_VERSION_PRERELEASE=$LAST_VERSION_PRERELEASE" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"IS_PRERELEASE=$IS_PRERELEASE" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"FIRST_COMMIT=$FIRST_COMMIT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"LAST_COMMIT=$LAST_COMMIT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"LAST_NON_MERGE_COMMIT=$LAST_NON_MERGE_COMMIT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"LAST_NON_MERGE_COMMIT_MESSAGE=$LAST_NON_MERGE_COMMIT_MESSAGE" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"LAST_PATCH_COMMIT=$LAST_PATCH_COMMIT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"LAST_MINOR_COMMIT=$LAST_MINOR_COMMIT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"VERSION_INCREMENT=$VERSION_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-"VERSION=$VERSION" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+# Set environment variables
+Set-GithubEnv -Name "LAST_VERSION" -Value $LAST_VERSION
+Set-GithubEnv -Name "LAST_VERSION_MAJOR" -Value $LAST_VERSION_MAJOR
+Set-GithubEnv -Name "LAST_VERSION_MINOR" -Value $LAST_VERSION_MINOR
+Set-GithubEnv -Name "LAST_VERSION_PATCH" -Value $LAST_VERSION_PATCH
+Set-GithubEnv -Name "LAST_VERSION_PRERELEASE" -Value $LAST_VERSION_PRERELEASE
+Set-GithubEnv -Name "IS_PRERELEASE" -Value $IS_PRERELEASE
+Set-GithubEnv -Name "FIRST_COMMIT" -Value $FIRST_COMMIT
+Set-GithubEnv -Name "LAST_COMMIT" -Value $LAST_COMMIT
+Set-GithubEnv -Name "VERSION_INCREMENT" -Value $VERSION_INCREMENT
+Set-GithubEnv -Name "VERSION" -Value $VERSION
 
-# output files
-$VERSION | Out-File -FilePath VERSION.md -Encoding utf8
+# Write version file
+Write-VersionFile -Version $VERSION
 
 $global:LASTEXITCODE = 0
