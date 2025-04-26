@@ -965,14 +965,9 @@ function Invoke-DotNetBuild {
 
     Write-StepHeader "Building Solution"
 
-    # Add explicit logger parameters for better CI output
-    $loggerParams = '-logger:console --consoleLoggerParameters:"Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal"'
-    $cmd = "dotnet build --configuration $Configuration $loggerParams --no-incremental $BuildArgs --no-restore"
-    Write-Host "Running: $cmd"
-
     try {
         # First attempt with normal verbosity - stream output directly
-        & dotnet build --configuration $Configuration -logger:console --consoleLoggerParameters:"Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-incremental $BuildArgs --no-restore | ForEach-Object {
+        & dotnet build --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-incremental $BuildArgs --no-restore | ForEach-Object {
             Write-Host $_
         }
 
@@ -980,7 +975,7 @@ function Invoke-DotNetBuild {
             Write-Warning "Build failed with exit code $LASTEXITCODE. Retrying with detailed verbosity..."
 
             # Retry with more detailed verbosity - stream output directly
-            & dotnet build --configuration $Configuration -logger:console --consoleLoggerParameters:"Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed" --no-incremental $BuildArgs --no-restore | ForEach-Object {
+            & dotnet build --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-incremental $BuildArgs --no-restore | ForEach-Object {
                 Write-Host $_
             }
 
@@ -1025,11 +1020,8 @@ function Invoke-DotNetTest {
 
     Write-StepHeader "Running Tests"
 
-    $cmd = "dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:""Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal"" --no-build --collect:""XPlat Code Coverage"" --results-directory $CoverageOutputPath"
-    Write-Host "Running: $cmd"
-
     # Execute command and stream output directly to console
-    & dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:"Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
+    & dotnet test -m:1 --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
         Write-Host $_
     }
     Assert-LastExitCode "Tests failed" -Command $cmd
@@ -1045,8 +1037,6 @@ function Invoke-DotNetPack {
         The build configuration (Debug/Release).
     .PARAMETER OutputPath
         The path to output packages to.
-    .PARAMETER Verbosity
-        The verbosity level for dotnet commands. Defaults to "normal".
     .PARAMETER Project
         Optional specific project to package. If not provided, all projects are packaged.
     #>
@@ -1055,7 +1045,6 @@ function Invoke-DotNetPack {
         [string]$Configuration = "Release",
         [Parameter(Mandatory=$true)]
         [string]$OutputPath,
-        [string]$Verbosity = "normal",
         [string]$Project = ""
     )
 
@@ -1075,12 +1064,12 @@ function Invoke-DotNetPack {
         # Build either a specific project or all projects
         if ([string]::IsNullOrWhiteSpace($Project)) {
             Write-Host "Packaging all projects in solution..."
-            & dotnet pack --configuration $Configuration /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=$Verbosity" --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
         } else {
             Write-Host "Packaging project: $Project"
-            & dotnet pack $Project --configuration $Configuration /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=$Verbosity" --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack $Project --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
         }
@@ -1088,7 +1077,7 @@ function Invoke-DotNetPack {
         if ($LASTEXITCODE -ne 0) {
             # Get more details about what might have failed
             Write-Error "Packaging failed with exit code $LASTEXITCODE, trying again with detailed verbosity..."
-            & dotnet pack --configuration $Configuration /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed" --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed" --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
             throw "Library packaging failed with exit code $LASTEXITCODE"
@@ -1552,7 +1541,7 @@ function Invoke-ReleaseWorkflow {
             # Create NuGet packages
             try {
                 Write-StepHeader "Packaging Libraries"
-                Invoke-DotNetPack -Configuration $Configuration -OutputPath $BuildConfig.StagingPath -Verbosity "detailed"
+                Invoke-DotNetPack -Configuration $Configuration -OutputPath $BuildConfig.StagingPath
 
                 # Add package paths if they exist
                 if (Test-Path $BuildConfig.PackagePattern) {
