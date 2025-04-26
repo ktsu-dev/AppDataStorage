@@ -1,0 +1,9 @@
+{
+  "msbuild-sdks": {
+    "ktsu.Sdk" : "1.7.0",
+    "ktsu.Sdk.Lib" : "1.7.0",
+    "ktsu.Sdk.Test" : "1.7.0",
+    "ktsu.Sdk.App" : "1.7.0",
+    "MSTest.Sdk": "3.8.3"
+  }
+}
