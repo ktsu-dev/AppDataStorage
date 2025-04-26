@@ -912,11 +912,11 @@ function Invoke-DotNetRestore {
 
     Write-StepHeader "Restoring Dependencies"
 
-    $cmd = "dotnet restore --locked-mode -logger:console --consoleLoggerParameters:Verbosity=normal;NoSummary=true;ShowCommandLine=true --no-logo"
+    $cmd = "dotnet restore --locked-mode --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=normal --no-logo"
     Write-Host "Running: $cmd"
 
     # Execute command and stream output directly to console
-    & dotnet restore --locked-mode -logger:console --consoleLoggerParameters:Verbosity=normal;NoSummary=true;ShowCommandLine=true --no-logo | ForEach-Object {
+    & dotnet restore --locked-mode --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=normal --no-logo | ForEach-Object {
         Write-Host $_
     }
     Assert-LastExitCode "Restore failed" -Command $cmd
@@ -1001,11 +1001,11 @@ function Invoke-DotNetTest {
 
     Write-StepHeader "Running Tests"
 
-    $cmd = "dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:Verbosity=normal;NoSummary=true;ShowCommandLine=true --nologo --no-build --collect:""XPlat Code Coverage"" --results-directory $CoverageOutputPath"
+    $cmd = "dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=normal --nologo --no-build --collect:""XPlat Code Coverage"" --results-directory $CoverageOutputPath"
     Write-Host "Running: $cmd"
 
     # Execute command and stream output directly to console
-    & dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:Verbosity=normal;NoSummary=true;ShowCommandLine=true --nologo --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
+    & dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=normal --nologo --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
         Write-Host $_
     }
     Assert-LastExitCode "Tests failed" -Command $cmd
@@ -1051,12 +1051,12 @@ function Invoke-DotNetPack {
         # Build either a specific project or all projects
         if ([string]::IsNullOrWhiteSpace($Project)) {
             Write-Host "Packaging all projects in solution..."
-            & dotnet pack --configuration $Configuration -logger:console --consoleLoggerParameters:Verbosity=$Verbosity;NoSummary=true;ShowCommandLine=true --nologo --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack --configuration $Configuration --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=$Verbosity --nologo --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
         } else {
             Write-Host "Packaging project: $Project"
-            & dotnet pack $Project --configuration $Configuration -logger:console --consoleLoggerParameters:Verbosity=$Verbosity;NoSummary=true;ShowCommandLine=true --nologo --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack $Project --configuration $Configuration --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=$Verbosity --nologo --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
         }
@@ -1064,7 +1064,7 @@ function Invoke-DotNetPack {
         if ($LASTEXITCODE -ne 0) {
             # Get more details about what might have failed
             Write-Error "Packaging failed with exit code $LASTEXITCODE, trying again with detailed verbosity..."
-            & dotnet pack --configuration $Configuration -logger:console --consoleLoggerParameters:Verbosity=detailed;NoSummary=true;ShowCommandLine=true --nologo --no-build --output $OutputPath | ForEach-Object {
+            & dotnet pack --configuration $Configuration --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=detailed --nologo --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
             throw "Library packaging failed with exit code $LASTEXITCODE"
@@ -1150,7 +1150,7 @@ function Invoke-DotNetPublish {
         New-Item -Path $outDir -ItemType Directory -Force | Out-Null
 
         # Publish application - stream output directly
-        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$DotnetVersion --output $outDir -logger:console --consoleLoggerParameters:Verbosity=normal;NoSummary=true;ShowCommandLine=true --nologo | ForEach-Object {
+        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$DotnetVersion --output $outDir --consoleLoggerParameters:NoSummary=true;ForceNoAlign=true;ShowTimestamp=true;ShowCommandLine=true;Verbosity=normal --nologo | ForEach-Object {
             Write-Host $_
         }
 
