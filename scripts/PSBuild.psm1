@@ -1520,10 +1520,6 @@ function Invoke-ReleaseWorkflow {
     try {
         Write-StepHeader "Starting Release Process"
 
-        # Update metadata (including version generation) before build
-        Write-StepHeader "Updating Project Metadata"
-        $metadata = Update-ProjectMetadata -GitSha $GitSha -ServerUrl $ServerUrl -GitHubOwner $Owner -GitHubRepo $Repository
-
         # Check if we have any project files before attempting to package
         $hasProjects = (Get-ChildItem -Path "*.csproj" -Recurse -ErrorAction SilentlyContinue).Count -gt 0
 
