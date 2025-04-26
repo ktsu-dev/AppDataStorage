@@ -1581,13 +1581,13 @@ function Invoke-ReleaseWorkflow {
         # Create GitHub release
         Write-StepHeader "Creating GitHub Release"
         Write-Host "Creating release for version $Version..."
-        New-GitHubRelease -Version $Version -CommitHash $metadata.ReleaseHash.ToString() -GithubToken $GithubToken -AssetPatterns $packagePaths
+        New-GitHubRelease -Version $Version -CommitHash $GitSha -GithubToken $GithubToken -AssetPatterns $packagePaths
 
         Write-StepHeader "Release Process Completed"
         Write-Host "Release process completed successfully!" -ForegroundColor Green
         return @{
             Version = $Version
-            ReleaseHash = $metadata.ReleaseHash
+            ReleaseHash = $GitSha
             Success = $true
         }
     }
