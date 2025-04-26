@@ -966,13 +966,13 @@ function Invoke-DotNetBuild {
     Write-StepHeader "Building Solution"
 
     # Add explicit logger parameters for better CI output
-    $loggerParams = '-logger:console --consoleLoggerParameters:Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal'
+    $loggerParams = '-logger:console --consoleLoggerParameters:"Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal"'
     $cmd = "dotnet build --configuration $Configuration $loggerParams --no-incremental $BuildArgs --no-restore"
     Write-Host "Running: $cmd"
 
     try {
         # First attempt with normal verbosity - stream output directly
-        & dotnet build --configuration $Configuration -logger:console --consoleLoggerParameters:Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal --no-incremental $BuildArgs --no-restore | ForEach-Object {
+        & dotnet build --configuration $Configuration -logger:console --consoleLoggerParameters:"Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-incremental $BuildArgs --no-restore | ForEach-Object {
             Write-Host $_
         }
 
@@ -980,7 +980,7 @@ function Invoke-DotNetBuild {
             Write-Warning "Build failed with exit code $LASTEXITCODE. Retrying with detailed verbosity..."
 
             # Retry with more detailed verbosity - stream output directly
-            & dotnet build --configuration $Configuration -logger:console --consoleLoggerParameters:Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed --no-incremental $BuildArgs --no-restore | ForEach-Object {
+            & dotnet build --configuration $Configuration -logger:console --consoleLoggerParameters:"Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed" --no-incremental $BuildArgs --no-restore | ForEach-Object {
                 Write-Host $_
             }
 
@@ -1025,11 +1025,11 @@ function Invoke-DotNetTest {
 
     Write-StepHeader "Running Tests"
 
-    $cmd = "dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal --no-build --collect:""XPlat Code Coverage"" --results-directory $CoverageOutputPath"
+    $cmd = "dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:""Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal"" --no-build --collect:""XPlat Code Coverage"" --results-directory $CoverageOutputPath"
     Write-Host "Running: $cmd"
 
     # Execute command and stream output directly to console
-    & dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
+    & dotnet test -m:1 --configuration $Configuration -logger:console --consoleLoggerParameters:"Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
         Write-Host $_
     }
     Assert-LastExitCode "Tests failed" -Command $cmd
