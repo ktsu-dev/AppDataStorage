@@ -761,7 +761,7 @@ function New-Changelog {
     # Add entry for current/new version
     $previousTag = if ($null -eq $tags -or
                       ($tags -is [string]) -or
-                      (($tags -is [array]) -and $tags.Length -eq 0)) {
+                      ((@($tags).Count -eq 0))) {
         'v0.0.0'
     } else {
         if ($tags -is [array]) {
@@ -779,7 +779,7 @@ function New-Changelog {
         foreach ($tag in $tags) {
             if ($tag -like "v*") {
                 $previousTag = "v0.0.0"
-                if ($tagIndex -lt $tags.Length - 1) {
+                if ($tagIndex -lt @($tags).Count - 1) {
                     $previousTag = $tags[$tagIndex + 1]
                 }
 
@@ -797,7 +797,7 @@ function New-Changelog {
     $filePath = if ($OutputPath) { Join-Path $OutputPath "CHANGELOG.md" } else { "CHANGELOG.md" }
     $changelog | Out-File -FilePath $filePath -Encoding utf8
 
-    Write-Host "Changelog generated with entries for $($tags.Length + 1) versions"
+    Write-Host "Changelog generated with entries for $(@($tags).Count + 1) versions"
     return $changelog
 }
 
