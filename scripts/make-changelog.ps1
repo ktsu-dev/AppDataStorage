@@ -5,7 +5,9 @@ param (
     [string]$COMMIT_SHA
 )
 
-# Set-PSDebug -Trace 1
+# Import common module
+$ErrorActionPreference = 'Stop'
+Import-Module $PSScriptRoot/ktsu-build-common.ps1
 
 function TranslateTagTo4ComponentVersion {
     param (
@@ -24,11 +26,11 @@ function TranslateTagTo4ComponentVersion {
     $TRANSLATE_VERSION_PATCH = [int]$TRANSLATE_VERSION_COMPONENTS[2]
     $TRANSLATE_VERSION_PRERELEASE = 0
     if ($TRANSLATE_VERSION_COMPONENTS.Length -gt 3) {
-      $TRANSLATE_VERSION_PRERELEASE = [int]$TRANSLATE_VERSION_COMPONENTS[3]
+        $TRANSLATE_VERSION_PRERELEASE = [int]$TRANSLATE_VERSION_COMPONENTS[3]
     }
 
     "$TRANSLATE_VERSION_MAJOR.$TRANSLATE_VERSION_MINOR.$TRANSLATE_VERSION_PATCH.$TRANSLATE_VERSION_PRERELEASE"
-  }
+}
 
 function MakeNotesForRange {
     param (
@@ -62,7 +64,6 @@ function MakeNotesForRange {
     $FROM_MINOR_VERSION_NUMBER = $TO_VERSION_MINOR - 1;
     $FROM_PATCH_VERSION_NUMBER = $TO_VERSION_PATCH - 1;
     $FROM_PRERELEASE_VERSION_NUMBER = $TO_VERSION_PRERELEASE - 1;
-
 
     $SEARCH_TAG = $FROM_TAG
     $VERSION_TYPE = "unknown"
@@ -115,11 +116,6 @@ function MakeNotesForRange {
         }
     }
 
-    $EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
-    $EXCLUDE_PRS = @'
-^.*(Merge pull request|Merge branch 'main'|Updated packages in|Update.*package version).*$
-'@
-
     $RANGE_FROM = $SEARCH_TAG
     if ($RANGE_FROM -eq "v0.0.0" -or $RANGE_FROM -eq "0.0.0.0" -or $RANGE_FROM -eq "1.0.0.0") {
         $RANGE_FROM = ""
@@ -135,59 +131,16 @@ function MakeNotesForRange {
         $RANGE = "$RANGE_FROM...$RANGE_TO"
     }
 
-    # First get all non-merge commits in the range
-    $ALL_COMMITS = git log --date-order --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $RANGE
-
-    if ($null -eq $ALL_COMMITS) {
-        return ""
+    # Get version type based on actual changes
+    if ($VERSION_TYPE -ne "prerelease") {
+        $VERSION_TYPE = Get-VersionType -Range $RANGE
     }
 
-    # Get all commit messages and authors
-    $COMMITS = git log --pretty=format:"%s ([@%aN](https://github.com/%aN))" --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $RANGE | Sort-Object | Get-Unique
+    # Get commit messages with authors
+    $COMMITS = git log --pretty=format:"%s ([@%aN](https://github.com/%aN))" --perl-regexp --regexp-ignore-case --grep="$script:EXCLUDE_PRS" --invert-grep --committer="$script:EXCLUDE_BOTS" --author="$script:EXCLUDE_BOTS" $RANGE | Sort-Object | Get-Unique
 
-    # Check if there are any code changes (same logic as make-version.ps1)
-    $HAS_CODE_CHANGES = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $RANGE `
-        -- `
-        $INCLUDE_ALL_FILES `
-        ":(icase,exclude)*/.*" `
-        ":(icase,exclude)*/*.md" `
-        ":(icase,exclude)*/*.txt" `
-        ":(icase,exclude)*/*.sln" `
-        ":(icase,exclude)*/*.*proj" `
-        ":(icase,exclude)*/*.url" `
-        ":(icase,exclude)*/Directory.Build.*" `
-        ":(icase,exclude).github/workflows/*" `
-        ":(icase,exclude)*/*.ps1"
-
-    # Determine version type based on commits and tags
-    $DETERMINED_VERSION_TYPE = "prerelease"
-
-    if ($ALL_COMMITS) {
-        $DETERMINED_VERSION_TYPE = "patch"
-    }
-
-    if ($HAS_CODE_CHANGES) {
-        $DETERMINED_VERSION_TYPE = "minor"
-    }
-
-    # Check all commits for version tags
-    $COMMIT_MESSAGES = git log --format=format:%s $RANGE
-    foreach ($MESSAGE in $COMMIT_MESSAGES) {
-        if ($MESSAGE.Contains('[major]')) {
-            $DETERMINED_VERSION_TYPE = 'major'
-            break
-        } elseif ($MESSAGE.Contains('[minor]') -and $DETERMINED_VERSION_TYPE -ne 'major') {
-            $DETERMINED_VERSION_TYPE = 'minor'
-        } elseif ($MESSAGE.Contains('[patch]') -and $DETERMINED_VERSION_TYPE -notin @('major', 'minor')) {
-            $DETERMINED_VERSION_TYPE = 'patch'
-        } elseif ($MESSAGE.Contains('[pre]') -and $DETERMINED_VERSION_TYPE -notin @('major', 'minor', 'patch')) {
-            $DETERMINED_VERSION_TYPE = 'prerelease'
-        }
-    }
-
-    # Only generate changelog for non-prerelease versions
-    if ($DETERMINED_VERSION_TYPE -ne "prerelease" -and $COMMITS.Length -gt 0) {
-        $VERSION_CHANGELOG = "## $TO_TAG ($DETERMINED_VERSION_TYPE)"
+    if ($VERSION_TYPE -ne "prerelease" -and $COMMITS.Length -gt 0) {
+        $VERSION_CHANGELOG = "## $TO_TAG ($VERSION_TYPE)"
         $VERSION_CHANGELOG += "`n"
         $VERSION_CHANGELOG += "`n"
         $VERSION_CHANGELOG += "Changes since ${SEARCH_TAG}:"
@@ -206,15 +159,12 @@ function MakeNotesForRange {
 }
 
 $CHANGELOG = ""
-
 $TAG_INDEX = 0
 
-git config versionsort.suffix "-alpha"
-git config versionsort.suffix "-beta"
-git config versionsort.suffix "-rc"
-git config versionsort.suffix "-pre"
+# Initialize git configuration
+Initialize-GitConfig
 
-$TAGS = git tag --list --sort=-v:refname
+$TAGS = Get-GitTags
 
 if ($null -eq $TAGS) {
     $PREVIOUS_TAG = 'v0.0.0'
@@ -247,6 +197,6 @@ $TAGS | ForEach-Object {
 }
 
 Write-Host "CHANGELOG: $CHANGELOG"
-$CHANGELOG | Out-File -FilePath CHANGELOG.md -Encoding utf8
+Write-ChangelogFile -Changelog $CHANGELOG
 
 $global:LASTEXITCODE = 0

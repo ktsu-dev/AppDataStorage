@@ -1,9 +1,16 @@
-git config --global user.name "Github Actions"
-git config --global user.email "actions@users.noreply.github.com"
+# Import common module
+$ErrorActionPreference = 'Stop'
+Import-Module $PSScriptRoot/ktsu-build-common.ps1
+
+# Configure git
+Set-GitUserConfig
+
+# Commit metadata files
 git add VERSION.md LICENSE.md AUTHORS.md COPYRIGHT.md CHANGELOG.md PROJECT_URL.url AUTHORS.url
 git commit -m "[bot][skip ci] Update Metadata"
 git push
 
+# Get and set release hash
 $RELEASE_HASH = (git rev-parse HEAD)
 Write-Host "RELEASE_HASH: $RELEASE_HASH"
-"RELEASE_HASH=$RELEASE_HASH" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+Set-GithubEnv -Name "RELEASE_HASH" -Value $RELEASE_HASH
