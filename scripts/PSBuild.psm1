@@ -879,10 +879,53 @@ function Invoke-DotNetBuild {
 
     Write-StepHeader "Building Solution"
 
-    $cmd = "dotnet build --configuration $Configuration --verbosity normal --no-incremental $BuildArgs --no-restore"
-    # Execute command and let output flow to console for GitHub logs
-    & dotnet build --configuration $Configuration --verbosity normal --no-incremental $BuildArgs --no-restore
-    Assert-LastExitCode "Build failed" -Command $cmd
+    # Add explicit logger parameters for better CI output
+    $loggerParams = "--consoleloggerparameters:NoSummary;ForceNoAlign=true;ShowTimestamp;Verbosity=normal"
+    $cmd = "dotnet build --configuration $Configuration $loggerParams --no-incremental $BuildArgs --no-restore"
+    Write-Host "Running: $cmd"
+
+    try {
+        # First attempt with normal verbosity
+        $output = & dotnet build --configuration $Configuration $loggerParams --no-incremental $BuildArgs --no-restore 2>&1
+
+        # Make sure output is displayed immediately (avoid buffering issues)
+        $output | ForEach-Object { Write-Host $_ }
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Build failed with exit code $LASTEXITCODE. Retrying with detailed verbosity..."
+
+            # Retry with more detailed verbosity to help diagnose the issue
+            $detailedLoggerParams = "--consoleloggerparameters:NoSummary;ForceNoAlign=true;ShowTimestamp;Verbosity=detailed"
+            $detailedOutput = & dotnet build --configuration $Configuration $detailedLoggerParams --no-incremental $BuildArgs --no-restore 2>&1
+
+            # Display detailed output
+            $detailedOutput | ForEach-Object { Write-Host $_ }
+
+            # Still failed, show diagnostic info and throw error
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "Checking for common build issues:" -ForegroundColor Yellow
+
+                # Check for project files
+                $projectFiles = @(Get-ChildItem -Recurse -Filter *.csproj)
+                Write-Host "Found $($projectFiles.Count) project files" -ForegroundColor Cyan
+
+                # List project files
+                foreach ($proj in $projectFiles) {
+                    Write-Host "  - $($proj.FullName)" -ForegroundColor Cyan
+                }
+
+                # Check for syntax errors in a more direct way
+                Write-Host "To see specific compiler errors, try:"
+                Write-Host "  dotnet build --configuration $Configuration $detailedLoggerParams"
+
+                Assert-LastExitCode "Build failed" -Command $cmd
+            }
+        }
+    }
+    catch {
+        Write-Error "Exception during build process: $_"
+        throw
+    }
 }
 
 function Invoke-DotNetTest {
