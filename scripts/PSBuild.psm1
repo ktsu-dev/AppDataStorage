@@ -844,7 +844,9 @@ function Invoke-DotNetRestore {
     param()
 
     Write-StepHeader "Restoring Dependencies"
-    dotnet restore --locked-mode
+
+    # Execute command and let output flow to console for GitHub logs
+    & dotnet restore --locked-mode
     Assert-LastExitCode "Restore failed"
 }
 
@@ -866,7 +868,9 @@ function Invoke-DotNetBuild {
     )
 
     Write-StepHeader "Building Solution"
-    dotnet build --configuration $Configuration --verbosity normal --no-incremental $BuildArgs --no-restore
+
+    # Execute command and let output flow to console for GitHub logs
+    & dotnet build --configuration $Configuration --verbosity normal --no-incremental $BuildArgs --no-restore
     Assert-LastExitCode "Build failed"
 }
 
@@ -888,7 +892,9 @@ function Invoke-DotNetTest {
     )
 
     Write-StepHeader "Running Tests"
-    dotnet test -m:1 --configuration $Configuration --verbosity normal --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath
+
+    # Execute command and let output flow to console for GitHub logs
+    & dotnet test -m:1 --configuration $Configuration --verbosity normal --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath
     Assert-LastExitCode "Tests failed"
 }
 
@@ -932,16 +938,16 @@ function Invoke-DotNetPack {
         # Build either a specific project or all projects
         if ([string]::IsNullOrWhiteSpace($Project)) {
             Write-Verbose "Packaging all projects in solution"
-            dotnet pack --configuration $Configuration --no-build --output $OutputPath --verbosity $Verbosity
+            & dotnet pack --configuration $Configuration --no-build --output $OutputPath --verbosity $Verbosity
         } else {
             Write-Verbose "Packaging project: $Project"
-            dotnet pack $Project --configuration $Configuration --no-build --output $OutputPath --verbosity $Verbosity
+            & dotnet pack $Project --configuration $Configuration --no-build --output $OutputPath --verbosity $Verbosity
         }
 
         if ($LASTEXITCODE -ne 0) {
             # Get more details about what might have failed
-            $packOutput = dotnet pack --configuration $Configuration --no-build --output $OutputPath --verbosity detailed 2>&1
-            Write-Error "Packaging failed with exit code $LASTEXITCODE. Details:`n$packOutput"
+            Write-Error "Packaging failed with exit code $LASTEXITCODE, trying again with detailed verbosity..."
+            & dotnet pack --configuration $Configuration --no-build --output $OutputPath --verbosity detailed
             throw "Library packaging failed with exit code $LASTEXITCODE"
         }
 
@@ -1007,8 +1013,13 @@ function Invoke-DotNetPublish {
     New-Item -Path $StagingPath -ItemType Directory -Force | Out-Null
 
     # Find all projects and publish them
-    Get-ChildItem -Recurse -Filter *.csproj | ForEach-Object {
-        $csproj = $_
+    $projectFiles = @(Get-ChildItem -Recurse -Filter *.csproj -ErrorAction SilentlyContinue)
+    if ($projectFiles.Count -eq 0) {
+        Write-Warning "No .csproj files found. Skipping application publishing step."
+        return
+    }
+
+    foreach ($csproj in $projectFiles) {
         $projName = [System.IO.Path]::GetFileNameWithoutExtension($csproj)
         $outDir = Join-Path $OutputPath $projName
         $stageFile = Join-Path $StagingPath "$projName-$Version.zip"
@@ -1019,7 +1030,7 @@ function Invoke-DotNetPublish {
         New-Item -Path $outDir -ItemType Directory -Force | Out-Null
 
         # Publish application
-        dotnet publish $csproj --no-build --configuration $Configuration --framework net$DotnetVersion --output $outDir
+        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$DotnetVersion --output $outDir --verbosity normal
         Assert-LastExitCode "Application publish failed for $projName"
 
         # Create zip archive
@@ -1072,14 +1083,24 @@ function Invoke-NuGetPublish {
     # Publish to GitHub Packages if enabled
     if (-not $SkipGithub) {
         Write-StepHeader "Publishing to GitHub Packages"
-        dotnet nuget push $PackagePattern --api-key $GithubToken --source "https://nuget.pkg.github.com/$GithubOwner/index.json" --skip-duplicate
+
+        # Display the command being run (without revealing the token)
+        Write-Host "Running: dotnet nuget push $PackagePattern --source https://nuget.pkg.github.com/$GithubOwner/index.json --skip-duplicate"
+
+        # Execute the command
+        & dotnet nuget push $PackagePattern --api-key $GithubToken --source "https://nuget.pkg.github.com/$GithubOwner/index.json" --skip-duplicate
         Assert-LastExitCode "GitHub package publish failed"
     }
 
     # Publish to NuGet.org if enabled and key provided
     if (-not $SkipNuGet -and $NuGetApiKey) {
         Write-StepHeader "Publishing to NuGet.org"
-        dotnet nuget push $PackagePattern --api-key $NuGetApiKey --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+
+        # Display the command being run (without revealing the API key)
+        Write-Host "Running: dotnet nuget push $PackagePattern --source https://api.nuget.org/v3/index.json --skip-duplicate"
+
+        # Execute the command
+        & dotnet nuget push $PackagePattern --api-key $NuGetApiKey --source "https://api.nuget.org/v3/index.json" --skip-duplicate
         Assert-LastExitCode "NuGet.org package publish failed"
     }
 }
