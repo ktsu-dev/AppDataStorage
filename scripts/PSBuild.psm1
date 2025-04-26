@@ -912,11 +912,11 @@ function Invoke-DotNetRestore {
 
     Write-StepHeader "Restoring Dependencies"
 
-    $cmd = "dotnet restore --locked-mode /p:ConsoleLoggerParameters=""NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal"" --no-logo"
+    $cmd = "dotnet restore --locked-mode /p:ConsoleLoggerParameters=""NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal"""
     Write-Host "Running: $cmd"
 
     # Execute command and stream output directly to console
-    & dotnet restore --locked-mode /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" --no-logo | ForEach-Object {
+    & dotnet restore --locked-mode /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=normal" | ForEach-Object {
         Write-Host $_
     }
     Assert-LastExitCode "Restore failed" -Command $cmd
