@@ -135,10 +135,59 @@ function MakeNotesForRange {
         $RANGE = "$RANGE_FROM...$RANGE_TO"
     }
 
+    # First get all non-merge commits in the range
+    $ALL_COMMITS = git log --date-order --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $RANGE
+
+    if ($null -eq $ALL_COMMITS) {
+        return ""
+    }
+
+    # Get all commit messages and authors
     $COMMITS = git log --pretty=format:"%s ([@%aN](https://github.com/%aN))" --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $RANGE | Sort-Object | Get-Unique
 
-    if ($VERSION_TYPE -ne "prerelease" -and $COMMITS.Length -gt 0) {
-        $VERSION_CHANGELOG = "## $TO_TAG ($VERSION_TYPE)"
+    # Check if there are any code changes (same logic as make-version.ps1)
+    $HAS_CODE_CHANGES = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $RANGE `
+        -- `
+        $INCLUDE_ALL_FILES `
+        ":(icase,exclude)*/.*" `
+        ":(icase,exclude)*/*.md" `
+        ":(icase,exclude)*/*.txt" `
+        ":(icase,exclude)*/*.sln" `
+        ":(icase,exclude)*/*.*proj" `
+        ":(icase,exclude)*/*.url" `
+        ":(icase,exclude)*/Directory.Build.*" `
+        ":(icase,exclude).github/workflows/*" `
+        ":(icase,exclude)*/*.ps1"
+
+    # Determine version type based on commits and tags
+    $DETERMINED_VERSION_TYPE = "prerelease"
+
+    if ($ALL_COMMITS) {
+        $DETERMINED_VERSION_TYPE = "patch"
+    }
+
+    if ($HAS_CODE_CHANGES) {
+        $DETERMINED_VERSION_TYPE = "minor"
+    }
+
+    # Check all commits for version tags
+    $COMMIT_MESSAGES = git log --format=format:%s $RANGE
+    foreach ($MESSAGE in $COMMIT_MESSAGES) {
+        if ($MESSAGE.Contains('[major]')) {
+            $DETERMINED_VERSION_TYPE = 'major'
+            break
+        } elseif ($MESSAGE.Contains('[minor]') -and $DETERMINED_VERSION_TYPE -ne 'major') {
+            $DETERMINED_VERSION_TYPE = 'minor'
+        } elseif ($MESSAGE.Contains('[patch]') -and $DETERMINED_VERSION_TYPE -notin @('major', 'minor')) {
+            $DETERMINED_VERSION_TYPE = 'patch'
+        } elseif ($MESSAGE.Contains('[pre]') -and $DETERMINED_VERSION_TYPE -notin @('major', 'minor', 'patch')) {
+            $DETERMINED_VERSION_TYPE = 'prerelease'
+        }
+    }
+
+    # Only generate changelog for non-prerelease versions
+    if ($DETERMINED_VERSION_TYPE -ne "prerelease" -and $COMMITS.Length -gt 0) {
+        $VERSION_CHANGELOG = "## $TO_TAG ($DETERMINED_VERSION_TYPE)"
         $VERSION_CHANGELOG += "`n"
         $VERSION_CHANGELOG += "`n"
         $VERSION_CHANGELOG += "Changes since ${SEARCH_TAG}:"
