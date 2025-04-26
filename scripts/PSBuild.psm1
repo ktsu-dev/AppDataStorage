@@ -816,10 +816,10 @@ function Update-ProjectMetadata {
         Updates VERSION.md, LICENSE.md, AUTHORS.md, COPYRIGHT.md, CHANGELOG.md and other
         metadata files, commits them to git, and optionally pushes the changes.
         Note: Existing AUTHORS.md file will always be preserved if it exists.
-    .PARAMETER Version
-        The version number for the release.
-    .PARAMETER CommitHash
-        The Git commit hash being released.
+    .PARAMETER GitSha
+        The Git commit SHA being released.
+    .PARAMETER ServerUrl
+        The GitHub server URL.
     .PARAMETER GitHubOwner
         The GitHub repository owner/organization.
     .PARAMETER GitHubRepo
@@ -832,16 +832,14 @@ function Update-ProjectMetadata {
         Whether to push the changes to the remote repository.
     .PARAMETER SetGitHubEnv
         Whether to set GitHub environment variables for the release hash.
-    .PARAMETER ServerUrl
-        The GitHub server URL. Defaults to "https://github.com".
     #>
     [CmdletBinding()]
-    [OutputType([string])]
+    [OutputType([hashtable])]
     param (
         [Parameter(Mandatory=$true)]
-        [string]$Version,
+        [string]$GitSha,
         [Parameter(Mandatory=$true)]
-        [string]$CommitHash,
+        [string]$ServerUrl = "https://github.com",
         [Parameter(Mandatory=$true)]
         [string]$GitHubOwner,
         [Parameter(Mandatory=$true)]
@@ -849,17 +847,17 @@ function Update-ProjectMetadata {
         [string[]]$Authors,
         [string]$CommitMessage = "[bot][skip ci] Update Metadata",
         [bool]$Push = $true,
-        [bool]$SetGitHubEnv = $true,
-        [string]$ServerUrl = "https://github.com"
+        [bool]$SetGitHubEnv = $true
     )
 
     # Configure git user for GitHub Actions
     git config --global user.name "Github Actions"
     git config --global user.email "actions@users.noreply.github.com"
 
-    # 1. Version file - always update
-    $Version | Out-File -FilePath "VERSION.md" -Encoding utf8 -NoNewline
-    Write-Host "Generated VERSION.md file"
+    # 1. Generate version information
+    Write-StepHeader "Generating Version Information"
+    $version = New-Version -CommitHash $GitSha -OutputPath "."
+    Write-Host "Generated version: $version"
 
     # 2. License file - always update
     New-License -ServerUrl $ServerUrl -Owner $GitHubOwner -Repository $GitHubRepo
@@ -885,7 +883,7 @@ function Update-ProjectMetadata {
     Write-Host "Generated AUTHORS.url file"
 
     # 5. Always generate CHANGELOG.md
-    New-Changelog -Version $Version -CommitHash $CommitHash
+    New-Changelog -Version $version -CommitHash $GitSha
     Write-Host "Generated CHANGELOG.md file"
 
     # Add all metadata files to git (will only add files that exist)
@@ -919,7 +917,10 @@ function Update-ProjectMetadata {
         "RELEASE_HASH=$releaseHash" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
     }
 
-    return $releaseHash
+    return @{
+        Version = $version
+        ReleaseHash = $releaseHash
+    }
 }
 
 #endregion
@@ -1348,13 +1349,6 @@ function New-GitHubRelease {
 
 #endregion
 
-#region Git Operations
-
-# Note: The Save-Metadata function has been removed as its functionality
-# is now handled by the more comprehensive Update-ProjectMetadata function
-
-#endregion
-
 #region Utility Functions
 
 function Assert-LastExitCode {
@@ -1516,6 +1510,8 @@ function Invoke-ReleaseWorkflow {
         Optional NuGet.org API key.
     .PARAMETER SkipPackages
         If set to true, skips NuGet package generation and publishing. Default is false.
+    .PARAMETER Version
+        The version number for the release.
     #>
     [CmdletBinding()]
     param (
@@ -1533,19 +1529,17 @@ function Invoke-ReleaseWorkflow {
         [Parameter(Mandatory=$true)]
         [string]$GithubToken,
         [string]$NuGetApiKey,
-        [switch]$SkipPackages = $false
+        [switch]$SkipPackages = $false,
+        [Parameter(Mandatory=$true)]
+        [string]$Version
     )
 
     try {
         Write-StepHeader "Starting Release Process"
 
-        # Generate Metadata
-        Write-StepHeader "Generating Version Information"
-        $versionInfo = Get-VersionInfoFromGit -CommitHash $GitSha.ToString()
-
-        # Update and commit all metadata files
-        Write-StepHeader "Updating Metadata Files"
-        $releaseHash = Update-ProjectMetadata -Version $versionInfo.Version -CommitHash $GitSha.ToString() -GitHubOwner $Owner -GitHubRepo $Repository
+        # Update metadata (including version generation) before build
+        Write-StepHeader "Updating Project Metadata"
+        $metadata = Update-ProjectMetadata -GitSha $GitSha -ServerUrl $ServerUrl -GitHubOwner $Owner -GitHubRepo $Repository
 
         # Check if we have any project files before attempting to package
         $hasProjects = (Get-ChildItem -Path "*.csproj" -Recurse -ErrorAction SilentlyContinue).Count -gt 0
@@ -1579,7 +1573,7 @@ function Invoke-ReleaseWorkflow {
             # Create application packages
             try {
                 Write-StepHeader "Publishing Applications"
-                Invoke-DotNetPublish -Configuration $Configuration -OutputPath $BuildConfig.OutputPath -StagingPath $BuildConfig.StagingPath -Version $versionInfo.Version -DotnetVersion $BuildConfig.DotnetVersion
+                Invoke-DotNetPublish -Configuration $Configuration -OutputPath $BuildConfig.OutputPath -StagingPath $BuildConfig.StagingPath -Version $Version -DotnetVersion $BuildConfig.DotnetVersion
 
                 # Add application paths if they exist
                 if (Test-Path $BuildConfig.ApplicationPattern) {
@@ -1607,14 +1601,14 @@ function Invoke-ReleaseWorkflow {
 
         # Create GitHub release
         Write-StepHeader "Creating GitHub Release"
-        Write-Host "Creating release for version $($versionInfo.Version)..."
-        New-GitHubRelease -Version $versionInfo.Version -CommitHash $releaseHash.ToString() -GithubToken $GithubToken -AssetPatterns $packagePaths
+        Write-Host "Creating release for version $Version..."
+        New-GitHubRelease -Version $Version -CommitHash $metadata.ReleaseHash.ToString() -GithubToken $GithubToken -AssetPatterns $packagePaths
 
         Write-StepHeader "Release Process Completed"
         Write-Host "Release process completed successfully!" -ForegroundColor Green
         return @{
-            Version = $versionInfo.Version
-            ReleaseHash = $releaseHash
+            Version = $Version
+            ReleaseHash = $metadata.ReleaseHash
             Success = $true
         }
     }
@@ -1708,6 +1702,10 @@ function Invoke-CIPipeline {
         Write-StepHeader "Configuring Build"
         $buildConfig = Get-BuildConfiguration -GitRef $GitRef -GitSha $GitSha -WorkspacePath $WorkspacePath -GithubToken $GithubToken -ExpectedOwner $ExpectedOwner
 
+        # Update metadata (including version generation) before build
+        Write-StepHeader "Updating Project Metadata"
+        $metadata = Update-ProjectMetadata -GitSha $GitSha -ServerUrl $ServerUrl -GitHubOwner $Owner -GitHubRepo $Repository
+
         # Run build workflow
         Write-StepHeader "Running Build Workflow"
         $buildResult = Invoke-BuildWorkflow -Configuration $Configuration -BuildArgs $buildConfig.BuildArgs -BuildConfig $buildConfig
@@ -1726,13 +1724,14 @@ function Invoke-CIPipeline {
         if ($buildConfig.ShouldRelease) {
             Write-StepHeader "Starting Release Workflow"
             $releaseResult = Invoke-ReleaseWorkflow -GitSha $GitSha -ServerUrl $ServerUrl -Owner $Owner -Repository $Repository `
-                             -Configuration $Configuration -BuildConfig $buildConfig -GithubToken $GithubToken -NuGetApiKey $NuGetApiKey
+                             -Configuration $Configuration -BuildConfig $buildConfig -GithubToken $GithubToken -NuGetApiKey $NuGetApiKey `
+                             -Version $metadata.Version
 
             return @{
                 BuildSuccess = $true
                 ReleaseSuccess = $releaseResult.Success
-                Version = $releaseResult.Version
-                ReleaseHash = $releaseResult.ReleaseHash
+                Version = $metadata.Version
+                ReleaseHash = $metadata.ReleaseHash
                 ShouldRelease = $true
             }
         }
@@ -1743,6 +1742,7 @@ function Invoke-CIPipeline {
                 BuildSuccess = $true
                 ReleaseSuccess = $false
                 ShouldRelease = $false
+                Version = $metadata.Version
             }
         }
     }
