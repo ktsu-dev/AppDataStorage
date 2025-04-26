@@ -1,10 +1,32 @@
+## v1.8.0 (minor)
+
+Changes since v1.7.0:
+
+- Add global.json for SDK configuration and update project files to use ktsu SDKs ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance changelog and versioning logic in PowerShell scripts. Added checks for non-merge commits, code changes, and commit message tags to determine version type (major, minor, patch, prerelease) for changelog generation. Updated `make-version.ps1` to streamline version increment logic based on commit presence and tags. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance Dependabot workflow by adding a timeout and improving logging for PR processing. Updated the step names for clarity and ensured proper handling of PR URLs during auto-merge operations. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance Invoke-DotNetBuild function with improved logging and error handling. Added explicit logger parameters for CI output, implemented a retry mechanism with detailed verbosity on build failures, and included checks for project files to assist in diagnosing build issues. This update aims to streamline the build process and provide clearer feedback during CI/CD operations. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance Invoke-DotNetPack and Invoke-ReleaseWorkflow functions to support project-specific packaging and improved error handling. Added parameters for verbosity and project selection, along with checks for project existence before packaging. Updated release workflow to conditionally skip packaging and improved logging for package creation and publishing steps. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Improved handling of .csx file detection and enhanced tag retrieval logic to ensure proper array handling. Updated changelog generation to accommodate various tag scenarios, ensuring robust versioning checks. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor .NET CI workflow and introduce PSBuild module for enhanced build automation. Updated GitHub Actions to streamline build, test, and release processes, including improved job naming, permissions, and environment variable management. Removed outdated PowerShell scripts for metadata handling and version management, replacing them with a comprehensive PSBuild module that supports semantic versioning, license generation, and CI/CD integration. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor .NET CI workflow to enhance build and release processes. Updated job names for clarity, improved error handling in PowerShell scripts, and added caching for NuGet packages. Introduced a new release job that packages and publishes libraries, applications, and generates release notes. Adjusted permissions and environment variables for better security and functionality. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor PowerShell scripts for version management and metadata handling. Introduced a common module for shared functions, streamlined git configuration, and improved commit metadata processing. Updated `make-changelog.ps1` and `make-version.ps1` to utilize new functions for determining version types and managing environment variables. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor PSBuild functions to execute .NET commands with output directed to the console for better logging in GitHub Actions. Updated Invoke-DotNetRestore, Invoke-DotNetBuild, Invoke-DotNetTest, Invoke-DotNetPack, Invoke-DotNetPublish, and Invoke-NuGetPublish functions to use the call operator for command execution, enhancing visibility of command outputs and error handling. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove Directory.Build.props and Directory.Build.targets files to streamline project configuration and eliminate unused properties. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update .editorconfig to include additional file types and formatting rules ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update AUTHORS.md handling in PSBuild module to preserve existing file and improve metadata generation logic. The script now ensures that the AUTHORS.md file is only generated if it does not already exist, while also enhancing documentation for metadata updates. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update GitHub Actions workflow to enhance project automation. Added permissions for managing repository contents and pull requests, introduced a timeout for the add-to-project job, and improved step naming for clarity. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update packages ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update PSBuild module with enhanced documentation, improved error handling, and refined function exports. Added detailed usage instructions and author information, updated command execution for better error reporting, and improved parameter descriptions for clarity. This refactor aims to streamline the CI/CD pipeline process for .NET applications. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update README with improved documentation and API reference ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.7.2 (patch)
 
 Changes since v1.7.1:
 
 - Update .editorconfig to include additional file types and formatting rules ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.7.1 (patch)
+## v1.7.1 (minor)
 
 Changes since v1.7.0:
 
@@ -35,37 +57,37 @@ Changes since v1.4.0:
 - Fix typo in variable name in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor version type checks in MakeNotesForRange function and add exclusion for PowerShell files in make-version.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.4.6 (patch)
+## v1.4.6 (minor)
 
 Changes since v1.4.5:
 
 - Fix typo in variable name in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.4.5 (patch)
+## v1.4.5 (minor)
 
 Changes since v1.4.4:
 
 - Fix typo in variable name and remove unnecessary logging in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.4.4 (patch)
+## v1.4.4 (minor)
 
 Changes since v1.4.3:
 
 - Enhance changelog formatting by adding additional line breaks for improved readability ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.4.3 (patch)
+## v1.4.3 (minor)
 
 Changes since v1.4.2:
 
 - Add logging for note generation in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.4.2 (patch)
+## v1.4.2 (minor)
 
 Changes since v1.4.1:
 
 - Add changelog entry for changes since the specified tag in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.4.1 (patch)
+## v1.4.1 (minor)
 
 Changes since v1.4.0:
 
@@ -96,7 +118,7 @@ Changes since v1.3.0:
 - Update .NET workflow to trigger on main and develop branches ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update exclusion pattern for hidden files in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.3.16 (patch)
+## v1.3.16 (minor)
 
 Changes since v1.3.15:
 
@@ -104,13 +126,13 @@ Changes since v1.3.15:
 - Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.3.15 (patch)
+## v1.3.15 (minor)
 
 Changes since v1.3.14:
 
 - Move IS_PRERELEASE assignment to where its actually gonna work ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.3.14 (patch)
+## v1.3.14 (minor)
 
 Changes since v1.3.13-pre.1:
 
@@ -128,7 +150,7 @@ Changes since v1.3.3:
 
 - Replace LICENSE file with LICENSE.md ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.3.1 (patch)
+## v1.3.1 (minor)
 
 Changes since v1.3.0:
 
@@ -168,7 +190,7 @@ Changes since 1.1.0:
 - Update README with Static Instance Access feature ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update VERSION ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.1.45 (patch)
+## v1.1.45 (minor)
 
 Changes since v1.1.44:
 
@@ -177,19 +199,19 @@ Changes since v1.1.44:
 - Enhance AppDataStorage docs and add new examples ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update README with Static Instance Access feature ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.1.43 (patch)
+## v1.1.43 (minor)
 
 Changes since v1.1.42:
 
 - Add GitHub Actions workflow to automate issue and PR management for ktsu.dev project ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.1.40 (patch)
+## v1.1.40 (minor)
 
 Changes since v1.1.39:
 
 - Update dependencies ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.1.34 (patch)
+## v1.1.34 (minor)
 
 Changes since v1.1.33:
 
@@ -206,7 +228,7 @@ Changes since v1.0.0:
 - Take latest StrongPaths ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update VERSION ([@matt-edmondson](https://github.com/matt-edmondson))
 
-## v1.0.0 (major)
+## v1.0.0 (minor)
 
 Changes since 0.0.0.0:
 
