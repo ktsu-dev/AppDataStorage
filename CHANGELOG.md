@@ -26,6 +26,7 @@ Changes since v1.7.0:
 - Refine console logger parameters in Invoke-DotNetRestore function of PSBuild module. Updated parameters to enhance output clarity by removing unnecessary options and standardizing verbosity settings for improved consistency in CI/CD processes. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Remove Directory.Build.props and Directory.Build.targets files to streamline project configuration and eliminate unused properties. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Remove icon to fix lfs ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove metadata update step from the release workflow in PSBuild module to streamline the process. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Remove unnecessary --no-logo option from dotnet restore command in PSBuild module for cleaner output. This change maintains consistency with previous updates to console logger parameters. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Replace Write-Output with Write-Host in PSBuild module for improved console logging consistency. This change enhances the clarity of output messages during build and versioning processes. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Standardize console logger parameters in Invoke-DotNetBuild and Invoke-DotNetTest functions of PSBuild module to use quotes for improved clarity and consistency in CI output. ([@matt-edmondson](https://github.com/matt-edmondson))
