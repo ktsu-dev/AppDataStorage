@@ -961,6 +961,8 @@ function Update-ProjectMetadata {
             [System.IO.File]::WriteAllText("AUTHORS.md", $authorsContent, [System.Text.UTF8Encoding]::new($false))
         }
 
+        Set-PSDebug -Trace 1
+
         # Create AUTHORS.url
         $authorsUrl = "[InternetShortcut]`nURL=${BuildConfiguration.ServerUrl}/${BuildConfiguration.GitHubOwner}"
         [System.IO.File]::WriteAllText("AUTHORS.url", $authorsUrl, [System.Text.UTF8Encoding]::new($false))
@@ -1797,8 +1799,6 @@ function Invoke-CIPipeline {
         Write-Host "Updating metadata..." -ForegroundColor Cyan
         $metadata = Update-ProjectMetadata `
             -BuildConfiguration $BuildConfiguration
-
-        Set-PSDebug -Trace 1
 
         if ($null -eq $metadata) {
             Write-Error "Metadata update returned null"
