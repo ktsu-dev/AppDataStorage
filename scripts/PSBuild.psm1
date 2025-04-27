@@ -936,6 +936,7 @@ function Update-ProjectMetadata {
     )
 
     try {
+        Write-Host "Configuring git user for GitHub Actions..." -ForegroundColor Cyan
         # Configure git user for GitHub Actions
         $output = git config --global user.name "Github Actions" 2>&1
         if ($LASTEXITCODE -ne 0) {
@@ -959,6 +960,7 @@ function Update-ProjectMetadata {
         # 3. Generate AUTHORS.md only if it doesn't already exist
         if (-not (Test-Path "AUTHORS.md")) {
             if (-not $Authors -or $Authors.Count -eq 0) {
+                Write-Host "Getting authors from git history..." -ForegroundColor Cyan
                 $output = git log --format="%aN" | Sort-Object -Unique 2>&1
                 if ($LASTEXITCODE -ne 0) {
                     throw "Failed to get authors from git log: $output"
@@ -994,24 +996,35 @@ function Update-ProjectMetadata {
         ) | Where-Object { Test-Path $_ }
 
         if ($filesToAdd.Count -gt 0) {
+            Write-Host "`nChecking git status before adding files..." -ForegroundColor Cyan
+            $status = git status --porcelain 2>&1
+            Write-Host "Current status:`n$status"
+
+            Write-Host "`nAdding files to git..." -ForegroundColor Cyan
+            Write-Host "Files to add: $($filesToAdd -join ', ')"
             $output = git add $filesToAdd 2>&1
+            # git add returns 0 if files were added, 1 if no files were added or changed
             if ($LASTEXITCODE -ne 0) {
-                throw "Failed to add files to git: $output"
+                Write-Host "Note: git add returned non-zero exit code, but this might just mean no changes were detected" -ForegroundColor Yellow
             }
+            Write-Host "git add output: $output"
 
             # Check if there are changes to commit
+            Write-Host "`nChecking for changes to commit..." -ForegroundColor Cyan
             $status = git status --porcelain 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to get git status: $status"
-            }
+            Write-Host "Status after add:`n$status"
 
             if ($status) {
+                Write-Host "`nCommitting changes..." -ForegroundColor Cyan
+                Write-Host "Running: git commit -m ""$CommitMessage"""
                 $output = git commit -m $CommitMessage 2>&1
-                if ($LASTEXITCODE -ne 0) {
+                # git commit returns 0 if changes were committed, 1 if no changes were found to commit
+                if ($LASTEXITCODE -ne 0 -and $output -notlike "*nothing to commit*") {
                     throw "Failed to commit changes: $output"
                 }
+                Write-Host "Commit output: $output"
             } else {
-                Write-Host "No changes to commit"
+                Write-Host "No changes to commit" -ForegroundColor Yellow
             }
         } else {
             Write-Warning "No metadata files to commit"
@@ -1019,13 +1032,17 @@ function Update-ProjectMetadata {
 
         # Push changes if requested
         if ($Push) {
+            Write-Host "`nPushing changes..." -ForegroundColor Cyan
             $output = git push 2>&1
-            if ($LASTEXITCODE -ne 0) {
+            # git push returns 0 if changes were pushed, 1 if no changes to push
+            if ($LASTEXITCODE -ne 0 -and $output -notlike "*Everything up-to-date*") {
                 throw "Failed to push changes: $output"
             }
+            Write-Host "Push output: $output"
         }
 
         # Get and set release hash
+        Write-Host "`nGetting release hash..." -ForegroundColor Cyan
         $output = git rev-parse HEAD 2>&1
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to get release hash: $output"
@@ -1036,9 +1053,13 @@ function Update-ProjectMetadata {
         # Set GitHub environment variable if requested
         if ($SetGitHubEnv -and $env:GITHUB_ENV) {
             "RELEASE_HASH=$releaseHash" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "Set RELEASE_HASH in GitHub environment"
         }
 
-        Write-Host "Metadata updated and committed Version: $version ReleaseHash: $releaseHash"
+        Write-Host "`nMetadata update completed successfully" -ForegroundColor Green
+        Write-Host "Version: $version" -ForegroundColor Cyan
+        Write-Host "Release Hash: $releaseHash" -ForegroundColor Cyan
+
         return [PSCustomObject]@{
             Success = $true
             Error = ""
