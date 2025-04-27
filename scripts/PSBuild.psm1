@@ -100,45 +100,49 @@ function Get-BuildConfiguration {
     # Set build arguments
     $BUILD_ARGS = $USE_DOTNET_SCRIPT ? "-maxCpuCount:1" : ""
 
-    # Create configuration object
+    # Create configuration object with standard format
     $config = [PSCustomObject]@{
-        IsOfficial = $IS_OFFICIAL
-        IsMain = $IS_MAIN
-        IsTagged = $IS_TAGGED
-        ShouldRelease = $SHOULD_RELEASE
-        UseDotnetScript = $USE_DOTNET_SCRIPT
-        OutputPath = $OUTPUT_PATH
-        StagingPath = $STAGING_PATH
-        PackagePattern = $PACKAGE_PATTERN
-        SymbolsPattern = $SYMBOLS_PATTERN
-        ApplicationPattern = $APPLICATION_PATTERN
-        BuildArgs = $BUILD_ARGS
-        WorkspacePath = $WorkspacePath
-        DotnetVersion = $script:DOTNET_VERSION
+        Success = $true
+        Error = ""
+        Data = @{
+            IsOfficial = $IS_OFFICIAL
+            IsMain = $IS_MAIN
+            IsTagged = $IS_TAGGED
+            ShouldRelease = $SHOULD_RELEASE
+            UseDotnetScript = $USE_DOTNET_SCRIPT
+            OutputPath = $OUTPUT_PATH
+            StagingPath = $STAGING_PATH
+            PackagePattern = $PACKAGE_PATTERN
+            SymbolsPattern = $SYMBOLS_PATTERN
+            ApplicationPattern = $APPLICATION_PATTERN
+            BuildArgs = $BUILD_ARGS
+            WorkspacePath = $WorkspacePath
+            DotnetVersion = $script:DOTNET_VERSION
+        }
     }
 
     # Display configuration details
     Write-Host "Build Configuration:" -ForegroundColor Cyan
     Write-Host "  Repository Status:" -ForegroundColor Yellow
-    Write-Host "    Is Official Repo: $($config.IsOfficial)"
-    Write-Host "    Is Main Branch:  $($config.IsMain)"
-    Write-Host "    Is Tagged:       $($config.IsTagged)"
-    Write-Host "    Should Release:  $($config.ShouldRelease)"
+    Write-Host "    Is Official Repo: $($config.Data.IsOfficial)"
+    Write-Host "    Is Main Branch:  $($config.Data.IsMain)"
+    Write-Host "    Is Tagged:       $($config.Data.IsTagged)"
+    Write-Host "    Should Release:  $($config.Data.ShouldRelease)"
     Write-Host ""
     Write-Host "  Build Settings:" -ForegroundColor Yellow
-    Write-Host "    .NET Version:    $($config.DotnetVersion)"
-    Write-Host "    Uses Script:     $($config.UseDotnetScript)"
-    Write-Host "    Build Args:      $($config.BuildArgs)"
+    Write-Host "    .NET Version:    $($config.Data.DotnetVersion)"
+    Write-Host "    Uses Script:     $($config.Data.UseDotnetScript)"
+    Write-Host "    Build Args:      $($config.Data.BuildArgs)"
     Write-Host ""
     Write-Host "  Paths:" -ForegroundColor Yellow
-    Write-Host "    Workspace:       $($config.WorkspacePath)"
-    Write-Host "    Output:          $($config.OutputPath)"
-    Write-Host "    Staging:         $($config.StagingPath)"
+    Write-Host "    Workspace:       $($config.Data.WorkspacePath)"
+    Write-Host "    Output:          $($config.Data.OutputPath)"
+    Write-Host "    Staging:         $($config.Data.StagingPath)"
     Write-Host ""
     Write-Host "  Artifact Patterns:" -ForegroundColor Yellow
-    Write-Host "    Packages:        $($config.PackagePattern)"
-    Write-Host "    Symbols:         $($config.SymbolsPattern)"
-    Write-Host "    Applications:    $($config.ApplicationPattern)"
+    Write-Host "    Packages:        $($config.Data.PackagePattern)"
+    Write-Host "    Symbols:         $($config.Data.SymbolsPattern)"
+    Write-Host "    Applications:    $($config.Data.ApplicationPattern)"
     Write-Host ""
 
     return $config
@@ -297,29 +301,33 @@ function Get-VersionInfoFromGit {
         Write-Host "No existing version tags found - using initial version: $InitialVersion" -ForegroundColor Yellow
 
         return [PSCustomObject]@{
-            # New version information
-            Version = $InitialVersion
-            Major = [int]($InitialVersion -split '\.')[0]
-            Minor = [int]($InitialVersion -split '\.')[1]
-            Patch = [int]($InitialVersion -split '\.')[2]
-            IsPrerelease = $false
-            PrereleaseNumber = 0
-            PrereleaseLabel = ""
+            Success = $true
+            Error = ""
+            Data = @{
+                # New version information
+                Version = $InitialVersion
+                Major = [int]($InitialVersion -split '\.')[0]
+                Minor = [int]($InitialVersion -split '\.')[1]
+                Patch = [int]($InitialVersion -split '\.')[2]
+                IsPrerelease = $false
+                PrereleaseNumber = 0
+                PrereleaseLabel = ""
 
-            # Previous version information
-            LastTag = ""
-            LastVersion = ""
-            LastVersionMajor = 0
-            LastVersionMinor = 0
-            LastVersionPatch = 0
-            WasPrerelease = $false
-            LastVersionPrereleaseNumber = 0
+                # Previous version information
+                LastTag = ""
+                LastVersion = ""
+                LastVersionMajor = 0
+                LastVersionMinor = 0
+                LastVersionPatch = 0
+                WasPrerelease = $false
+                LastVersionPrereleaseNumber = 0
 
-            # Git and version increment information
-            VersionIncrement = "initial"
-            IncrementReason = "First version"
-            FirstCommit = $CommitHash
-            LastCommit = $CommitHash
+                # Git and version increment information
+                VersionIncrement = "initial"
+                IncrementReason = "First version"
+                FirstCommit = $CommitHash
+                LastCommit = $CommitHash
+            }
         }
     }
 
@@ -407,31 +415,39 @@ function Get-VersionInfoFromGit {
     Write-Host "New version    : $newVersion" -ForegroundColor White
     Write-Host "Reason        : $incrementReason" -ForegroundColor Gray
 
-    # Return comprehensive object
-    return [PSCustomObject]@{
-        # New version information
-        Version = $newVersion
-        Major = $newMajor
-        Minor = $newMinor
-        Patch = $newPatch
-        IsPrerelease = $isPrerelease
-        PrereleaseNumber = $newPrereleaseNum
-        PrereleaseLabel = $prereleaseLabel
-
-        # Previous version information
-        LastTag = $lastTag
-        LastVersion = $lastVersion
-        LastVersionMajor = $lastMajor
-        LastVersionMinor = $lastMinor
-        LastVersionPatch = $lastPatch
-        WasPrerelease = $wasPrerelease
-        LastVersionPrereleaseNumber = $lastPrereleaseNum
-
-        # Git and version increment information
-        VersionIncrement = $incrementType
-        IncrementReason = $incrementReason
-        FirstCommit = $firstCommit
-        LastCommit = $CommitHash
+    try {
+        # Return comprehensive object with standard format
+        return [PSCustomObject]@{
+            Success = $true
+            Error = ""
+            Data = @{
+                Version = $newVersion
+                Major = $newMajor
+                Minor = $newMinor
+                Patch = $newPatch
+                IsPrerelease = $isPrerelease
+                PrereleaseNumber = $newPrereleaseNum
+                PrereleaseLabel = $prereleaseLabel
+                LastTag = $lastTag
+                LastVersion = $lastVersion
+                LastVersionMajor = $lastMajor
+                LastVersionMinor = $lastMinor
+                LastVersionPatch = $lastPatch
+                WasPrerelease = $wasPrerelease
+                LastVersionPrereleaseNumber = $lastPrereleaseNum
+                VersionIncrement = $incrementType
+                IncrementReason = $incrementReason
+                FirstCommit = $firstCommit
+                LastCommit = $CommitHash
+            }
+        }
+    }
+    catch {
+        return [PSCustomObject]@{
+            Success = $false
+            Error = $_.ToString()
+            Data = @{}
+        }
     }
 }
 
@@ -463,24 +479,24 @@ function New-Version {
 
     # Write version file
     $filePath = if ($OutputPath) { Join-Path $OutputPath "VERSION.md" } else { "VERSION.md" }
-    $versionInfo.Version | Out-File -FilePath $filePath -Encoding utf8 -NoNewline
+    $versionInfo.Data.Version | Out-File -FilePath $filePath -Encoding utf8 -NoNewline
 
     # Set GitHub environment variables if needed
     if ($SetGitHubEnv -and $env:GITHUB_ENV) {
-        "VERSION=$($versionInfo.Version)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_VERSION=$($versionInfo.LastVersion)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_VERSION_MAJOR=$($versionInfo.LastVersionMajor)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_VERSION_MINOR=$($versionInfo.LastVersionMinor)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_VERSION_PATCH=$($versionInfo.LastVersionPatch)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_VERSION_PRERELEASE=$($versionInfo.LastVersionPrereleaseNumber)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "IS_PRERELEASE=$($versionInfo.IsPrerelease)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "VERSION_INCREMENT=$($versionInfo.VersionIncrement)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "FIRST_COMMIT=$($versionInfo.FirstCommit)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_COMMIT=$($versionInfo.LastCommit)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "VERSION=$($versionInfo.Data.Version)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "LAST_VERSION=$($versionInfo.Data.LastVersion)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "LAST_VERSION_MAJOR=$($versionInfo.Data.LastVersionMajor)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "LAST_VERSION_MINOR=$($versionInfo.Data.LastVersionMinor)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "LAST_VERSION_PATCH=$($versionInfo.Data.LastVersionPatch)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "LAST_VERSION_PRERELEASE=$($versionInfo.Data.LastVersionPrereleaseNumber)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "IS_PRERELEASE=$($versionInfo.Data.IsPrerelease)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "VERSION_INCREMENT=$($versionInfo.Data.VersionIncrement)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "FIRST_COMMIT=$($versionInfo.Data.FirstCommit)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "LAST_COMMIT=$($versionInfo.Data.LastCommit)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
     }
 
-    Write-Verbose "Previous version: $($versionInfo.LastVersion), New version: $($versionInfo.Version)"
-    return $versionInfo.Version
+    Write-Verbose "Previous version: $($versionInfo.Data.LastVersion), New version: $($versionInfo.Data.Version)"
+    return $versionInfo.Data.Version
 }
 
 #endregion
@@ -916,8 +932,12 @@ function Update-ProjectMetadata {
 
     Write-Host "Metadata updated and committed Version: $version ReleaseHash: $releaseHash"
     return [PSCustomObject]@{
-        Version = $version
-        ReleaseHash = $releaseHash
+        Success = $true
+        Error = ""
+        Data = @{
+            Version = $version
+            ReleaseHash = $releaseHash
+        }
     }
 }
 
@@ -1451,7 +1471,7 @@ function Invoke-BuildWorkflow {
         Initialize-BuildEnvironment
 
         # Install dotnet-script if needed
-        if ($BuildConfig.UseDotnetScript) {
+        if ($BuildConfig.Data.UseDotnetScript) {
             Write-StepHeader "Installing dotnet-script"
             dotnet tool install -g dotnet-script
             Assert-LastExitCode "Failed to install dotnet-script"
@@ -1462,11 +1482,22 @@ function Invoke-BuildWorkflow {
         Invoke-DotNetBuild -Configuration $Configuration -BuildArgs $BuildArgs
         Invoke-DotNetTest -Configuration $Configuration -CoverageOutputPath "coverage"
 
-        return $true
+        return [PSCustomObject]@{
+            Success = $true
+            Error = ""
+            Data = @{
+                Configuration = $Configuration
+                BuildArgs = $BuildArgs
+            }
+        }
     }
     catch {
         Write-Error "Build workflow failed: $_"
-        return $false
+        return [PSCustomObject]@{
+            Success = $false
+            Error = $_.ToString()
+            Data = @{}
+        }
     }
 }
 
@@ -1535,14 +1566,14 @@ function Invoke-ReleaseWorkflow {
             # Create NuGet packages
             try {
                 Write-StepHeader "Packaging Libraries"
-                Invoke-DotNetPack -Configuration $Configuration -OutputPath $BuildConfig.StagingPath
+                Invoke-DotNetPack -Configuration $Configuration -OutputPath $BuildConfig.Data.StagingPath
 
                 # Add package paths if they exist
-                if (Test-Path $BuildConfig.PackagePattern) {
-                    $packagePaths += $BuildConfig.PackagePattern
+                if (Test-Path $BuildConfig.Data.PackagePattern) {
+                    $packagePaths += $BuildConfig.Data.PackagePattern
                 }
-                if (Test-Path $BuildConfig.SymbolsPattern) {
-                    $packagePaths += $BuildConfig.SymbolsPattern
+                if (Test-Path $BuildConfig.Data.SymbolsPattern) {
+                    $packagePaths += $BuildConfig.Data.SymbolsPattern
                 }
             }
             catch {
@@ -1553,11 +1584,11 @@ function Invoke-ReleaseWorkflow {
             # Create application packages
             try {
                 Write-StepHeader "Publishing Applications"
-                Invoke-DotNetPublish -Configuration $Configuration -OutputPath $BuildConfig.OutputPath -StagingPath $BuildConfig.StagingPath -Version $Version -DotnetVersion $BuildConfig.DotnetVersion
+                Invoke-DotNetPublish -Configuration $Configuration -OutputPath $BuildConfig.Data.OutputPath -StagingPath $BuildConfig.Data.StagingPath -Version $Version -DotnetVersion $BuildConfig.Data.DotnetVersion
 
                 # Add application paths if they exist
-                if (Test-Path $BuildConfig.ApplicationPattern) {
-                    $packagePaths += $BuildConfig.ApplicationPattern
+                if (Test-Path $BuildConfig.Data.ApplicationPattern) {
+                    $packagePaths += $BuildConfig.Data.ApplicationPattern
                 }
             }
             catch {
@@ -1566,11 +1597,11 @@ function Invoke-ReleaseWorkflow {
             }
 
             # Publish packages if we have any and NuGet key is provided
-            $packages = @(Get-Item -Path $BuildConfig.PackagePattern -ErrorAction SilentlyContinue)
+            $packages = @(Get-Item -Path $BuildConfig.Data.PackagePattern -ErrorAction SilentlyContinue)
             if ($packages.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($NuGetApiKey)) {
                 Write-StepHeader "Publishing NuGet Packages"
                 try {
-                    Invoke-NuGetPublish -PackagePattern $BuildConfig.PackagePattern -GithubToken $GithubToken -GithubOwner $Owner -NuGetApiKey $NuGetApiKey
+                    Invoke-NuGetPublish -PackagePattern $BuildConfig.Data.PackagePattern -GithubToken $GithubToken -GithubOwner $Owner -NuGetApiKey $NuGetApiKey
                 }
                 catch {
                     Write-Warning "NuGet package publishing failed: $_"
@@ -1587,9 +1618,13 @@ function Invoke-ReleaseWorkflow {
         Write-StepHeader "Release Process Completed"
         Write-Host "Release process completed successfully!" -ForegroundColor Green
         return [PSCustomObject]@{
-            Version = $Version
-            ReleaseHash = $GitSha
             Success = $true
+            Error = ""
+            Data = @{
+                Version = $Version
+                ReleaseHash = $GitSha
+                PackagePaths = $packagePaths
+            }
         }
     }
     catch {
@@ -1597,7 +1632,7 @@ function Invoke-ReleaseWorkflow {
         return [PSCustomObject]@{
             Success = $false
             Error = $_.ToString()
-            StackTrace = $_.ScriptStackTrace
+            Data = @{}
         }
     }
 }
@@ -1680,62 +1715,65 @@ function Invoke-CIPipeline {
 
     try {
         # Get build configuration
-        Write-StepHeader "Configuring Build"
         $buildConfig = Get-BuildConfiguration -GitRef $GitRef -GitSha $GitSha -WorkspacePath $WorkspacePath -GithubToken $GithubToken -ExpectedOwner $ExpectedOwner
+        if (-not $buildConfig.Success) {
+            return $buildConfig # Return the error result
+        }
 
-        # Update metadata (including version generation) before build
-        Write-StepHeader "Updating Project Metadata"
+        # Update metadata
         $metadata = Update-ProjectMetadata -GitSha $GitSha -ServerUrl $ServerUrl -GitHubOwner $Owner -GitHubRepo $Repository
+        if (-not $metadata.Success) {
+            return $metadata # Return the error result
+        }
 
         # Run build workflow
-        Write-StepHeader "Running Build Workflow"
-        $buildResult = Invoke-BuildWorkflow -Configuration $Configuration -BuildArgs $buildConfig.BuildArgs -BuildConfig $buildConfig
-
-        if (-not $buildResult) {
-            Write-Error "Build workflow failed"
-            return [PSCustomObject]@{
-                BuildSuccess = $false
-                ReleaseSuccess = $false
-                ShouldRelease = $false
-                Error = "Build workflow failed"
-            }
+        $buildResult = Invoke-BuildWorkflow -Configuration $Configuration -BuildArgs $buildConfig.Data.BuildArgs -BuildConfig $buildConfig
+        if (-not $buildResult.Success) {
+            return $buildResult # Return the error result
         }
 
         # If build succeeded and we should release, run release workflow
-        if ($buildConfig.ShouldRelease) {
-            Write-StepHeader "Starting Release Workflow"
+        if ($buildConfig.Data.ShouldRelease) {
             $releaseResult = Invoke-ReleaseWorkflow -GitSha $GitSha -ServerUrl $ServerUrl -Owner $Owner -Repository $Repository `
                              -Configuration $Configuration -BuildConfig $buildConfig -GithubToken $GithubToken -NuGetApiKey $NuGetApiKey `
-                             -Version $metadata.Version
+                             -Version $metadata.Data.Version
 
             return [PSCustomObject]@{
-                BuildSuccess = $true
-                ReleaseSuccess = $releaseResult.Success
-                Version = $metadata.Version
-                ReleaseHash = $releaseResult.ReleaseHash
-                ShouldRelease = $true
+                Success = $releaseResult.Success
+                Error = $releaseResult.Error
+                Data = @{
+                    BuildSuccess = $true
+                    ReleaseSuccess = $releaseResult.Success
+                    Version = $metadata.Data.Version
+                    ReleaseHash = $releaseResult.Data.ReleaseHash
+                    ShouldRelease = $true
+                }
             }
         }
         else {
-            Write-StepHeader "Build Completed"
-            Write-Host "Build successful! Release not required for this build."
             return [PSCustomObject]@{
-                BuildSuccess = $true
-                ReleaseSuccess = $false
-                ShouldRelease = $false
-                Version = $metadata.Version
+                Success = $true
+                Error = ""
+                Data = @{
+                    BuildSuccess = $true
+                    ReleaseSuccess = $false
+                    ShouldRelease = $false
+                    Version = $metadata.Data.Version
+                }
             }
         }
     }
     catch {
-        Write-Error "CI/CD pipeline failed: $_"
         return [PSCustomObject]@{
-            BuildSuccess = $false
-            ReleaseSuccess = $false
-            ShouldRelease = $false
-            Version = $metadata.Version
+            Success = $false
             Error = $_.ToString()
-            StackTrace = $_.ScriptStackTrace
+            Data = @{
+                BuildSuccess = $false
+                ReleaseSuccess = $false
+                ShouldRelease = $false
+                Version = $metadata?.Data.Version
+                StackTrace = $_.ScriptStackTrace
+            }
         }
     }
 }
