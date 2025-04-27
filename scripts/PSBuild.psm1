@@ -990,6 +990,10 @@ function Update-ProjectMetadata {
         Write-Host $postStatus
         Write-Host ""
 
+        # Get the current commit hash regardless of whether we make changes
+        $currentHash = git rev-parse HEAD
+        Write-Host "Current commit hash: $currentHash"
+
         if ($postStatus) {
             # Configure git user before committing
             Set-GitIdentity
@@ -1010,10 +1014,9 @@ function Update-ProjectMetadata {
             Write-Host "Getting release hash..."
             $releaseHash = git rev-parse HEAD
             Write-Host "Metadata committed as $releaseHash"
-
             Write-Host ""
 
-            Write-Host "Metadata update completed successfully"
+            Write-Host "Metadata update completed successfully with changes"
             Write-Host "Version: $version"
             Write-Host "Release Hash: $releaseHash"
 
@@ -1023,19 +1026,22 @@ function Update-ProjectMetadata {
                 Data = @{
                     Version = $version
                     ReleaseHash = $releaseHash
+                    HasChanges = $true
                 }
             }
         }
         else {
             Write-Host "No changes to commit"
             Write-Host "Version: $version"
+            Write-Host "Using current commit hash: $currentHash"
 
             return [PSCustomObject]@{
                 Success = $true
                 Error = ""
                 Data = @{
                     Version = $version
-                    ReleaseHash = $null
+                    ReleaseHash = $currentHash
+                    HasChanges = $false
                 }
             }
         }
@@ -1049,6 +1055,7 @@ function Update-ProjectMetadata {
             Data = @{
                 Version = $null
                 ReleaseHash = $null
+                HasChanges = $false
                 StackTrace = $_.ScriptStackTrace
             }
         }
