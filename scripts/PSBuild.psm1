@@ -51,6 +51,7 @@ function Get-BuildConfiguration {
         The expected owner/organization of the official repository.
     #>
     [CmdletBinding()]
+    [OutputType([PSCustomObject])]
     param (
         [Parameter(Mandatory=$true)]
         [string]$GitRef,
@@ -1857,7 +1858,7 @@ function Invoke-CIPipeline {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [BuildConfiguration]$BuildConfiguration,
+        [PSCustomObject]$BuildConfiguration,
         [Parameter()]
         [bool]$Push = $false,
         [Parameter()]
