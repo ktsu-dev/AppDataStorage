@@ -68,16 +68,22 @@ function Get-BuildConfiguration {
     # Determine if this is an official repo (verify owner and ensure it's not a fork)
     $IS_OFFICIAL = $false
     if ($GithubToken) {
-        $env:GH_TOKEN = $GithubToken
-        $repoInfo = gh repo view --json owner,nameWithOwner,isFork | ConvertFrom-Json
-        Assert-LastExitCode "Failed to retrieve repository information"
-
-        # Consider it official only if it's not a fork AND belongs to the expected owner
-        $IS_OFFICIAL = (-not $repoInfo.isFork) -and ($repoInfo.owner.login -eq $ExpectedOwner)
-
-        Write-Verbose "Repository: $($repoInfo.nameWithOwner), Is Fork: $($repoInfo.isFork), Owner: $($repoInfo.owner.login)"
-        Write-Verbose "Is Official: $IS_OFFICIAL"
+        try {
+            $env:GH_TOKEN = $GithubToken
+            $repoInfo = gh repo view --json owner,nameWithOwner,isFork 2>$null | ConvertFrom-Json
+            if ($repoInfo) {
+                # Consider it official only if it's not a fork AND belongs to the expected owner
+                $IS_OFFICIAL = (-not $repoInfo.isFork) -and ($repoInfo.owner.login -eq $ExpectedOwner)
+                Write-Verbose "Repository: $($repoInfo.nameWithOwner), Is Fork: $($repoInfo.isFork), Owner: $($repoInfo.owner.login)"
+            } else {
+                Write-Warning "Could not retrieve repository information. Assuming unofficial build."
+            }
+        }
+        catch {
+            Write-Warning "Failed to check repository status: $_. Assuming unofficial build."
+        }
     }
+    Write-Verbose "Is Official: $IS_OFFICIAL"
 
     # Determine if this is main branch and not tagged
     $IS_MAIN = $GitRef -eq "refs/heads/main"
@@ -1738,25 +1744,56 @@ function Invoke-CIPipeline {
 
     try {
         # Get build configuration
+        Write-StepHeader "Configuring Build"
         $buildConfig = Get-BuildConfiguration -GitRef $GitRef -GitSha $GitSha -WorkspacePath $WorkspacePath -GithubToken $GithubToken -ExpectedOwner $ExpectedOwner
         if (-not $buildConfig.Success) {
-            return $buildConfig # Return the error result
+            Write-Error "Build configuration failed: $($buildConfig.Error)"
+            return [PSCustomObject]@{
+                Success = $false
+                Error = $buildConfig.Error
+                Data = @{
+                    BuildSuccess = $false
+                    ReleaseSuccess = $false
+                    ShouldRelease = $false
+                }
+            }
         }
 
         # Update metadata
+        Write-StepHeader "Updating Project Metadata"
         $metadata = Update-ProjectMetadata -GitSha $GitSha -ServerUrl $ServerUrl -GitHubOwner $Owner -GitHubRepo $Repository
         if (-not $metadata.Success) {
-            return $metadata # Return the error result
+            Write-Error "Metadata update failed: $($metadata.Error)"
+            return [PSCustomObject]@{
+                Success = $false
+                Error = $metadata.Error
+                Data = @{
+                    BuildSuccess = $false
+                    ReleaseSuccess = $false
+                    ShouldRelease = $false
+                }
+            }
         }
 
         # Run build workflow
+        Write-StepHeader "Running Build Workflow"
         $buildResult = Invoke-BuildWorkflow -Configuration $Configuration -BuildArgs $buildConfig.Data.BuildArgs -BuildConfig $buildConfig
         if (-not $buildResult.Success) {
-            return $buildResult # Return the error result
+            Write-Error "Build workflow failed: $($buildResult.Error)"
+            return [PSCustomObject]@{
+                Success = $false
+                Error = $buildResult.Error
+                Data = @{
+                    BuildSuccess = $false
+                    ReleaseSuccess = $false
+                    ShouldRelease = $false
+                }
+            }
         }
 
         # If build succeeded and we should release, run release workflow
         if ($buildConfig.Data.ShouldRelease) {
+            Write-StepHeader "Starting Release Workflow"
             $releaseResult = Invoke-ReleaseWorkflow -GitSha $GitSha -ServerUrl $ServerUrl -Owner $Owner -Repository $Repository `
                              -Configuration $Configuration -BuildConfig $buildConfig -GithubToken $GithubToken -NuGetApiKey $NuGetApiKey `
                              -Version $metadata.Data.Version
@@ -1774,6 +1811,8 @@ function Invoke-CIPipeline {
             }
         }
         else {
+            Write-StepHeader "Build Completed"
+            Write-Host "Build successful! Release not required for this build."
             return [PSCustomObject]@{
                 Success = $true
                 Error = ""
@@ -1787,9 +1826,11 @@ function Invoke-CIPipeline {
         }
     }
     catch {
+        $errorMessage = $_.ToString()
+        Write-Error "CI/CD pipeline failed: $errorMessage"
         return [PSCustomObject]@{
             Success = $false
-            Error = $_.ToString()
+            Error = $errorMessage
             Data = @{
                 BuildSuccess = $false
                 ReleaseSuccess = $false
