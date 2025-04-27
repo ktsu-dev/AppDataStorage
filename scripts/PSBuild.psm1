@@ -911,101 +911,34 @@ function New-Changelog {
 #region Metadata Management
 
 function Update-ProjectMetadata {
-    <#
-    .SYNOPSIS
-        Updates and commits project metadata files.
-    .DESCRIPTION
-        Updates VERSION.md, LICENSE.md, AUTHORS.md, COPYRIGHT.md, CHANGELOG.md and other
-        metadata files, commits them to git, and optionally pushes the changes.
-        Note: Existing AUTHORS.md file will always be preserved if it exists.
-    .PARAMETER GitSha
-        The Git commit SHA being released.
-    .PARAMETER ServerUrl
-        The GitHub server URL.
-    .PARAMETER GitHubOwner
-        The GitHub repository owner/organization.
-    .PARAMETER GitHubRepo
-        The GitHub repository name.
-    .PARAMETER Authors
-        Optional list of authors. If not provided, will be pulled from git history.
-    .PARAMETER CommitMessage
-        Optional custom commit message for the metadata update.
-    .PARAMETER Push
-        Whether to push the changes to the remote repository.
-    .PARAMETER SetGitHubEnv
-        Whether to set GitHub environment variables for the release hash.
-    #>
     [CmdletBinding()]
-    [OutputType([PSCustomObject])]
-    param (
-        [Parameter(Mandatory=$true)]
+    param(
+        [Parameter(Mandatory = $true)]
         [string]$GitSha,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$ServerUrl,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$GitHubOwner,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$GitHubRepo,
-        [string[]]$Authors,
+        [Parameter(Mandatory = $false)]
+        [string[]]$Authors = @(),
+        [Parameter(Mandatory = $false)]
         [string]$CommitMessage = "[bot][skip ci] Update Metadata",
-        [bool]$Push = $true,
-        [bool]$SetGitHubEnv = $true
+        [Parameter(Mandatory = $false)]
+        [switch]$Push,
+        [Parameter(Mandatory = $false)]
+        [switch]$SetGitHubEnv
     )
 
     try {
-        Write-Host "Configuring git user for GitHub Actions..." -ForegroundColor Cyan
-        # Configure git user for GitHub Actions
-        $output = git config --global user.name "Github Actions" 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to configure git user name: $output"
-        }
+        Write-Host "Checking git status before adding files..."
+        $preStatus = git status --porcelain
+        Write-Host "Current status:"
+        Write-Host $preStatus
+        Write-Host ""
 
-        $output = git config --global user.email "actions@users.noreply.github.com" 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to configure git user email: $output"
-        }
-
-        # 1. Generate version information
-        Write-StepHeader "Generating Version Information"
-        $version = New-Version -CommitHash $GitSha -OutputPath "."
-        Write-Host "Generated version: $version"
-
-        # 2. License file - always update
-        New-License -ServerUrl $ServerUrl -Owner $GitHubOwner -Repository $GitHubRepo
-        Write-Host "Generated LICENSE.md file"
-
-        # Get the correct line ending
-        $lineEnding = Get-GitLineEnding
-
-        # 3. Generate AUTHORS.md only if it doesn't already exist
-        if (-not (Test-Path "AUTHORS.md")) {
-            if (-not $Authors -or $Authors.Count -eq 0) {
-                Write-Host "Getting authors from git history..." -ForegroundColor Cyan
-                $output = git log --format="%aN" | Sort-Object -Unique 2>&1
-                if ($LASTEXITCODE -ne 0) {
-                    throw "Failed to get authors from git log: $output"
-                }
-                $Authors = $output
-            }
-            $authorsList = $Authors -join $lineEnding
-            [System.IO.File]::WriteAllText("AUTHORS.md", $authorsList + $lineEnding, [System.Text.UTF8Encoding]::new($false))
-            Write-Host "Generated AUTHORS.md file"
-        } else {
-            Write-Host "Preserving existing AUTHORS.md file"
-        }
-
-        # 4. URL files - always generate
-        [System.IO.File]::WriteAllText("PROJECT_URL.url", "$ServerUrl/$GitHubOwner/$GitHubRepo" + $lineEnding, [System.Text.UTF8Encoding]::new($false))
-        Write-Host "Generated PROJECT_URL.url file"
-
-        [System.IO.File]::WriteAllText("AUTHORS.url", "$ServerUrl/$GitHubOwner" + $lineEnding, [System.Text.UTF8Encoding]::new($false))
-        Write-Host "Generated AUTHORS.url file"
-
-        # 5. Always generate CHANGELOG.md
-        New-Changelog -Version $version -CommitHash $GitSha
-        Write-Host "Generated CHANGELOG.md file"
-
-        # Add all metadata files to git (will only add files that exist)
+        Write-Host "Adding files to git..."
         $filesToAdd = @(
             "VERSION.md",
             "LICENSE.md",
@@ -1014,90 +947,82 @@ function Update-ProjectMetadata {
             "COPYRIGHT.md",
             "PROJECT_URL.url",
             "AUTHORS.url"
-        ) | Where-Object { Test-Path $_ }
+        )
+        Write-Host "Files to add: $($filesToAdd -join ", ")"
+        $addOutput = git add $filesToAdd 2>&1
+        Write-Host "git add output: "
+        Write-Host $addOutput
+        Write-Host ""
 
-        if ($filesToAdd.Count -gt 0) {
-            Write-Host "`nChecking git status before adding files..." -ForegroundColor Cyan
-            $status = git status --porcelain 2>&1
-            Write-Host "Current status:`n$status"
+        Write-Host "Checking for changes to commit..."
+        $postStatus = git status --porcelain
+        Write-Host "Status after add:"
+        Write-Host $postStatus
+        Write-Host ""
 
-            Write-Host "`nAdding files to git..." -ForegroundColor Cyan
-            Write-Host "Files to add: $($filesToAdd -join ', ')"
-            $output = git add $filesToAdd 2>&1
-            # git add returns 0 if files were added, 1 if no files were added or changed
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "Note: git add returned non-zero exit code, but this might just mean no changes were detected" -ForegroundColor Yellow
+        if ($postStatus) {
+            Write-Host "Committing changes..."
+            Write-Host "Running: git commit -m `"$CommitMessage`""
+            $commitOutput = git commit -m $CommitMessage 2>&1
+            Write-Host "Commit output: $commitOutput"
+            Write-Host ""
+
+            if ($Push) {
+                Write-Host "Pushing changes..."
+                $pushOutput = git push 2>&1
+                Write-Host "Push output: $pushOutput"
+                Write-Host ""
             }
-            Write-Host "git add output: $output"
 
-            # Check if there are changes to commit
-            Write-Host "`nChecking for changes to commit..." -ForegroundColor Cyan
-            $status = git status --porcelain 2>&1
-            Write-Host "Status after add:`n$status"
+            Write-Host "Getting release hash..."
+            $releaseHash = git rev-parse HEAD
+            Write-Host "Metadata committed as $releaseHash"
 
-            if ($status) {
-                Write-Host "`nCommitting changes..." -ForegroundColor Cyan
-                Write-Host "Running: git commit -m ""$CommitMessage"""
-                $output = git commit -m $CommitMessage 2>&1
-                # git commit returns 0 if changes were committed, 1 if no changes were found to commit
-                if ($LASTEXITCODE -ne 0 -and $output -notlike "*nothing to commit*") {
-                    throw "Failed to commit changes: $output"
+            if ($SetGitHubEnv) {
+                Write-Host "Set RELEASE_HASH in GitHub environment"
+                Set-GithubEnv -Name "RELEASE_HASH" -Value $releaseHash
+            }
+            Write-Host ""
+
+            Write-Host "Metadata update completed successfully"
+            $version = Get-Content "VERSION.md" -Raw
+            Write-Host "Version: $version"
+            Write-Host "Release Hash: $releaseHash"
+
+            return [PSCustomObject]@{
+                Success = $true
+                Error = ""
+                Data = @{
+                    Version = $version
+                    ReleaseHash = $releaseHash
                 }
-                Write-Host "Commit output: $output"
-            } else {
-                Write-Host "No changes to commit" -ForegroundColor Yellow
             }
-        } else {
-            Write-Warning "No metadata files to commit"
         }
+        else {
+            Write-Host "No changes to commit"
+            $version = Get-Content "VERSION.md" -Raw
+            Write-Host "Version: $version"
 
-        # Push changes if requested
-        if ($Push) {
-            Write-Host "`nPushing changes..." -ForegroundColor Cyan
-            $output = git push 2>&1
-            # git push returns 0 if changes were pushed, 1 if no changes to push
-            if ($LASTEXITCODE -ne 0 -and $output -notlike "*Everything up-to-date*") {
-                throw "Failed to push changes: $output"
-            }
-            Write-Host "Push output: $output"
-        }
-
-        # Get and set release hash
-        Write-Host "`nGetting release hash..." -ForegroundColor Cyan
-        $output = git rev-parse HEAD 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to get release hash: $output"
-        }
-        $releaseHash = $output
-        Write-Host "Metadata committed as $releaseHash"
-
-        # Set GitHub environment variable if requested
-        if ($SetGitHubEnv -and $env:GITHUB_ENV) {
-            "RELEASE_HASH=$releaseHash" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-            Write-Host "Set RELEASE_HASH in GitHub environment"
-        }
-
-        Write-Host "`nMetadata update completed successfully" -ForegroundColor Green
-        Write-Host "Version: $version" -ForegroundColor Cyan
-        Write-Host "Release Hash: $releaseHash" -ForegroundColor Cyan
-
-        return [PSCustomObject]@{
-            Success = $true
-            Error = ""
-            Data = @{
-                Version = $version
-                ReleaseHash = $releaseHash
+            return [PSCustomObject]@{
+                Success = $true
+                Error = ""
+                Data = @{
+                    Version = $version
+                    ReleaseHash = $null
+                }
             }
         }
     }
     catch {
-        Write-Error "Failed to update project metadata: $_"
+        $errorMessage = $_.ToString()
+        Write-Error "Failed to update metadata: $errorMessage"
         return [PSCustomObject]@{
             Success = $false
-            Error = $_.ToString()
+            Error = $errorMessage
             Data = @{
-                Version = $version
+                Version = $null
                 ReleaseHash = $null
+                StackTrace = $_.ScriptStackTrace
             }
         }
     }
@@ -1909,7 +1834,7 @@ function Invoke-CIPipeline {
         [string]$ExpectedOwner = "ktsu-dev"
     )
 
-    # Set-PSDebug -Trace 1
+    Set-PSDebug -Trace 0
     Write-StepHeader "Starting CI/CD Pipeline"
     Write-Host "Repository: $Owner/$Repository"
     Write-Host "Git Reference: $GitRef"
@@ -1935,7 +1860,7 @@ function Invoke-CIPipeline {
 
         # Update metadata
         Write-StepHeader "Updating Project Metadata"
-        $metadata = Update-ProjectMetadata -GitSha $GitSha -ServerUrl $ServerUrl -GitHubOwner $Owner -GitHubRepo $Repository
+        $metadata = Update-ProjectMetadata -GitSha $GitSha -ServerUrl $ServerUrl -GitHubOwner $Owner -GitHubRepo $Repository -Push -SetGitHubEnv
         if (-not $metadata.Success) {
             Write-Error "Metadata update failed: $($metadata.Error)"
             return [PSCustomObject]@{
@@ -1972,12 +1897,28 @@ function Invoke-CIPipeline {
                              -Configuration $Configuration -BuildConfig $buildConfig -GithubToken $GithubToken -NuGetApiKey $NuGetApiKey `
                              -Version $metadata.Data.Version
 
+            if (-not $releaseResult.Success) {
+                Write-Error "Release workflow failed: $($releaseResult.Error)"
+                return [PSCustomObject]@{
+                    Success = $false
+                    Error = $releaseResult.Error
+                    Data = @{
+                        BuildSuccess = $true
+                        ReleaseSuccess = $false
+                        Version = $metadata.Data.Version
+                        ReleaseHash = $null
+                        ShouldRelease = $true
+                    }
+                }
+            }
+
+            Write-Host "Pipeline completed successfully with release!" -ForegroundColor Green
             return [PSCustomObject]@{
-                Success = $releaseResult.Success
-                Error = $releaseResult.Error
+                Success = $true
+                Error = ""
                 Data = @{
                     BuildSuccess = $true
-                    ReleaseSuccess = $releaseResult.Success
+                    ReleaseSuccess = $true
                     Version = $metadata.Data.Version
                     ReleaseHash = $releaseResult.Data.ReleaseHash
                     ShouldRelease = $true
@@ -1986,7 +1927,7 @@ function Invoke-CIPipeline {
         }
         else {
             Write-StepHeader "Build Completed"
-            Write-Host "Build successful! Release not required for this build."
+            Write-Host "Build successful! Release not required for this build." -ForegroundColor Green
             return [PSCustomObject]@{
                 Success = $true
                 Error = ""
