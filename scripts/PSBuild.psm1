@@ -1365,22 +1365,6 @@ function Invoke-NuGetPublish {
 }
 
 function New-GitHubRelease {
-    <#
-    .SYNOPSIS
-        Creates a GitHub release.
-    .DESCRIPTION
-        Creates a GitHub release with assets and notes.
-    .PARAMETER Version
-        The version number for the release.
-    .PARAMETER CommitHash
-        The Git commit hash to tag.
-    .PARAMETER GithubToken
-        The GitHub token for authentication.
-    .PARAMETER ChangelogFile
-        The path to the changelog file.
-    .PARAMETER AssetPatterns
-        Array of glob patterns for assets to include.
-    #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
@@ -1396,6 +1380,14 @@ function New-GitHubRelease {
 
     # Set GitHub token for CLI
     $env:GH_TOKEN = $GithubToken
+
+    # Create and push the tag first
+    Write-Host "Creating and pushing tag v$Version..."
+    & git tag -a "v$Version" $CommitHash -m "Release v$Version"
+    Assert-LastExitCode "Failed to create git tag"
+
+    & git push origin "v$Version"
+    Assert-LastExitCode "Failed to push git tag"
 
     # Collect all assets
     $assets = @()
