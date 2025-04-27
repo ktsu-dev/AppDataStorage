@@ -122,6 +122,10 @@ function Get-BuildConfiguration {
             BuildArgs = $BUILD_ARGS
             WorkspacePath = $WorkspacePath
             DotnetVersion = $script:DOTNET_VERSION
+            GitSha = $GitSha
+            GitRef = $GitRef
+            GithubToken = $GithubToken
+            ExpectedOwner = $ExpectedOwner
         }
     }
 
