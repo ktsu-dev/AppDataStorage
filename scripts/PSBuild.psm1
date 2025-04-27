@@ -1634,6 +1634,7 @@ function Invoke-BuildWorkflow {
         The build configuration object from Get-BuildConfiguration.
     #>
     [CmdletBinding()]
+    [OutputType([PSCustomObject])]
     param (
         [string]$Configuration = "Release",
         [string]$BuildArgs = "",
@@ -1686,6 +1687,7 @@ function Invoke-ReleaseWorkflow {
         The build configuration object from Get-BuildConfiguration.
     #>
     [CmdletBinding()]
+    [OutputType([PSCustomObject])]
     param (
         [string]$Configuration = "Release",
         [Parameter(Mandatory=$true)]
@@ -1780,6 +1782,7 @@ function Invoke-CIPipeline {
         The build configuration to use.
     #>
     [CmdletBinding()]
+    [OutputType([PSCustomObject])]
     param (
         [Parameter(Mandatory=$true)]
         [PSCustomObject]$BuildConfiguration
