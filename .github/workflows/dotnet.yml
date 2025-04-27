@@ -68,7 +68,7 @@ jobs:
           -GitHubRepo "${{ github.repository }}" `
           -WorkspacePath "${{ github.workspace }}" `
           -GithubToken "${{ github.token }}" `
-          -NuGetApiKey "${{ secrets.NUGET_API_KEY }}" `
+          -NuGetApiKey "${{ secrets.NUGET_KEY }}" `
           -ExpectedOwner "ktsu-dev"
 
         if (-not $buildConfig.Success) {
