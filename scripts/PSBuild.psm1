@@ -1806,6 +1806,9 @@ function Invoke-CIPipeline {
             }
         }
 
+        $BuildConfiguration = $BuildConfiguration | Add-Member -MemberType NoteProperty -Name Version -Value $metadata.Version -PassThru
+        $BuildConfiguration = $BuildConfiguration | Add-Member -MemberType NoteProperty -Name ReleaseHash -Value $metadata.ReleaseHash -PassThru
+
         if (-not $metadata.Success) {
             Write-Error "Failed to update metadata: $($metadata.Error)"
             return [PSCustomObject]@{
