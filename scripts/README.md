@@ -20,16 +20,28 @@ A comprehensive PowerShell module for automating the build, test, package, and r
    Import-Module ./scripts/PSBuild.psm1
    ```
 
-## Quick Start
+## Usage
+
+The main entry point is `Invoke-CIPipeline`, which handles the complete build, test, package, and release process:
 
 ```powershell
-$result = Invoke-CIPipeline -GitRef "refs/heads/main" `
-                           -GitSha "abc123" `
-                           -WorkspacePath "." `
-                           -ServerUrl "https://github.com" `
-                           -Owner "myorg" `
-                           -Repository "myrepo" `
-                           -GithubToken $env:GITHUB_TOKEN
+$result = Invoke-CIPipeline `
+    -GitRef "refs/heads/main" `
+    -GitSha "abc123" `
+    -WorkspacePath "." `
+    -ServerUrl "https://github.com" `
+    -Owner "myorg" `
+    -Repository "myrepo" `
+    -GithubToken $env:GITHUB_TOKEN `
+    -NuGetApiKey $env:NUGET_API_KEY `
+    -Configuration "Release"
+
+if ($result.Success) {
+    Write-Host "Pipeline completed successfully!"
+    if ($result.Data.ShouldRelease) {
+        Write-Host "Released version: $($result.Data.Version)"
+    }
+}
 ```
 
 ## Managed Files
@@ -86,63 +98,13 @@ When running in GitHub Actions, the following environment variables are set:
 | LAST_COMMIT | Last commit in analyzed range |
 | RELEASE_HASH | Hash of the metadata commit |
 
-## Main Functions
+## Advanced Usage
 
-### Invoke-CIPipeline
+While `Invoke-CIPipeline` handles most use cases, these individual functions are available for advanced scenarios:
 
-The main entry point for CI/CD operations. Handles the complete build, test, package, and release process.
-
-```powershell
-Invoke-CIPipeline `
-    -GitRef "refs/heads/main" `
-    -GitSha "abc123" `
-    -WorkspacePath "." `
-    -ServerUrl "https://github.com" `
-    -Owner "myorg" `
-    -Repository "myrepo" `
-    -GithubToken $env:GITHUB_TOKEN `
-    -NuGetApiKey $env:NUGET_API_KEY `
-    -Configuration "Release"
-```
-
-### Update-ProjectMetadata
-
-Updates and commits project metadata files.
-
-```powershell
-Update-ProjectMetadata `
-    -GitSha "abc123" `
-    -ServerUrl "https://github.com" `
-    -GitHubOwner "myorg" `
-    -GitHubRepo "myrepo" `
-    -Push $true
-```
-
-### Invoke-BuildWorkflow
-
-Executes the build and test process.
-
-```powershell
-Invoke-BuildWorkflow `
-    -Configuration "Release" `
-    -BuildConfig $buildConfig
-```
-
-### Invoke-ReleaseWorkflow
-
-Handles the release process including package creation and publishing.
-
-```powershell
-Invoke-ReleaseWorkflow `
-    -GitSha "abc123" `
-    -ServerUrl "https://github.com" `
-    -Owner "myorg" `
-    -Repository "myrepo" `
-    -Configuration "Release" `
-    -BuildConfig $buildConfig `
-    -GithubToken $env:GITHUB_TOKEN `
-    -Version "1.0.0"
-```
+- `Update-ProjectMetadata`: Updates and commits metadata files
+- `Invoke-BuildWorkflow`: Runs the build and test process
+- `Invoke-ReleaseWorkflow`: Handles package creation and publishing
 
 ## Line Ending Handling
 
