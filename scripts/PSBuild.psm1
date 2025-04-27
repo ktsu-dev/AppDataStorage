@@ -528,12 +528,13 @@ function New-Version {
 
     # Write version file with correct line ending
     $filePath = if ($OutputPath) { Join-Path $OutputPath "VERSION.md" } else { "VERSION.md" }
-    [System.IO.File]::WriteAllText($filePath, $versionInfo.Data.Version + $lineEnding, [System.Text.UTF8Encoding]::new($false))
+    $version = $versionInfo.Data.Version.Trim()
+    [System.IO.File]::WriteAllText($filePath, $version + $lineEnding, [System.Text.UTF8Encoding]::new($false))
 
     # Set GitHub environment variables if needed
     if ($SetGitHubEnv -and $env:GITHUB_ENV) {
         $envContent = @(
-            "VERSION=$($versionInfo.Data.Version)",
+            "VERSION=$version",
             "LAST_VERSION=$($versionInfo.Data.LastVersion)",
             "LAST_VERSION_MAJOR=$($versionInfo.Data.LastVersionMajor)",
             "LAST_VERSION_MINOR=$($versionInfo.Data.LastVersionMinor)",
@@ -986,6 +987,7 @@ function Update-ProjectMetadata {
 
             Write-Host "Metadata update completed successfully"
             $version = Get-Content "VERSION.md" -Raw
+            $version = $version.Trim()
             Write-Host "Version: $version"
             Write-Host "Release Hash: $releaseHash"
 
@@ -1001,6 +1003,7 @@ function Update-ProjectMetadata {
         else {
             Write-Host "No changes to commit"
             $version = Get-Content "VERSION.md" -Raw
+            $version = $version.Trim()
             Write-Host "Version: $version"
 
             return [PSCustomObject]@{
@@ -1380,6 +1383,9 @@ function New-GitHubRelease {
 
     # Set GitHub token for CLI
     $env:GH_TOKEN = $GithubToken
+
+    # Ensure version is trimmed
+    $Version = $Version.Trim()
 
     # Create and push the tag first
     Write-Host "Creating and pushing tag v$Version..."
