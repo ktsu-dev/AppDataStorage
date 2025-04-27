@@ -1011,10 +1011,6 @@ function Update-ProjectMetadata {
             $releaseHash = git rev-parse HEAD
             Write-Host "Metadata committed as $releaseHash"
 
-            if ($SetGitHubEnv) {
-                Write-Host "Set RELEASE_HASH in GitHub environment"
-                Set-GithubEnv -Name "RELEASE_HASH" -Value $releaseHash
-            }
             Write-Host ""
 
             Write-Host "Metadata update completed successfully"
