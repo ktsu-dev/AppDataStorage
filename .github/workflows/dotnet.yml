@@ -59,30 +59,46 @@ jobs:
         # Import the PSBuild module
         Import-Module ${{ github.workspace }}/scripts/PSBuild.psm1
 
-        # Run the complete CI/CD pipeline
-        $result = Invoke-CIPipeline `
+        # Get build configuration
+        $buildConfig = Get-BuildConfiguration `
           -GitRef "${{ github.ref }}" `
           -GitSha "${{ github.sha }}" `
           -WorkspacePath "${{ github.workspace }}" `
-          -ServerUrl "${{ github.server_url }}" `
-          -Owner "${{ github.repository_owner }}" `
-          -Repository "${{ github.repository }}" `
-          -GithubToken "${{ github.token }}" `
-          -NuGetApiKey "${{ secrets.NUGET_KEY }}"
+          -GithubToken "${{ github.token }}"
+
+        if (-not $buildConfig.Success) {
+            throw $buildConfig.Error
+        }
+
+        # Run the complete CI/CD pipeline
+        $result = Invoke-CIPipeline `
+          -BuildConfiguration $buildConfig.Data `
+          -Push $true `
+          -SetGitHubEnv $true
 
         if (-not $result.Success) {
             throw $result.Error
         }
 
-        # Set outputs for GitHub Actions
-        "should_release=$($result.Data.ShouldRelease)" >> $env:GITHUB_OUTPUT
-        "version=$($result.Data.Version)" >> $env:GITHUB_OUTPUT
-        "release_hash=$($result.Data.ReleaseHash)" >> $env:GITHUB_OUTPUT
+        # Set outputs for GitHub Actions from build configuration
+        "version=$($buildConfig.Data.Version)" >> $env:GITHUB_OUTPUT
+        "release_hash=$($buildConfig.Data.ReleaseHash)" >> $env:GITHUB_OUTPUT
+        "should_release=$($buildConfig.Data.ShouldRelease)" >> $env:GITHUB_OUTPUT
 
-        if ($result.Data.ShouldRelease) {
+        if ($buildConfig.Data.ShouldRelease) {
             # Create artifacts directory
             New-Item -Path "artifacts" -ItemType Directory -Force | Out-Null
-            Copy-Item -Path "output", "staging" -Destination "artifacts" -Recurse -Force
+
+            # Copy build outputs if they exist
+            $outputPath = Join-Path $buildConfig.Data.OutputPath "*"
+            $stagingPath = Join-Path $buildConfig.Data.StagingPath "*"
+
+            if (Test-Path $outputPath) {
+                Copy-Item -Path $outputPath -Destination "artifacts/output" -Recurse -Force
+            }
+            if (Test-Path $stagingPath) {
+                Copy-Item -Path $stagingPath -Destination "artifacts/staging" -Recurse -Force
+            }
         }
 
     - name: Upload Coverage Report
@@ -95,7 +111,7 @@ jobs:
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
-      if: steps.pipeline.outputs.should_release == 'True'
+      if: steps.pipeline.outputs.should_release == 'true'
       with:
         name: build-artifacts
         path: ./artifacts
@@ -104,7 +120,7 @@ jobs:
   security:
     name: Security Scanning
     needs: build
-    if: needs.build.outputs.should_release == 'True'
+    if: needs.build.outputs.should_release == 'true'
     runs-on: windows-latest
     timeout-minutes: 10
     permissions:
