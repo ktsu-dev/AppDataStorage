@@ -78,7 +78,11 @@ function Get-BuildConfiguration {
         [Parameter(Mandatory=$true)]
         [string]$WorkspacePath,
         [Parameter(Mandatory=$true)]
-        [string]$ExpectedOwner
+        [string]$ExpectedOwner,
+        [Parameter(Mandatory=$true)]
+        [string]$ChangelogFile,
+        [Parameter(Mandatory=$true)]
+        [string[]]$AssetPatterns
     )
 
     # Determine if this is an official repo (verify owner and ensure it's not a fork)
@@ -150,6 +154,8 @@ function Get-BuildConfiguration {
             ExpectedOwner = $ExpectedOwner
             Version = "1.0.0-pre.0"
             ReleaseHash = $GitSha
+            ChangelogFile = $ChangelogFile
+            AssetPatterns = $AssetPatterns
         }
     }
 
@@ -185,6 +191,9 @@ function Get-BuildConfiguration {
     Write-Host "    Symbols:         $($config.Data.SymbolsPattern)"
     Write-Host "    Applications:    $($config.Data.ApplicationPattern)"
     Write-Host ""
+    Write-Host "  Changelog File:     $($config.Data.ChangelogFile)"
+    Write-Host "  Asset Patterns:     $($config.Data.AssetPatterns -join ', ')"
+
 
     return $config
 }
@@ -1265,17 +1274,8 @@ function Invoke-DotNetPublish {
     param (
         [string]$Configuration = "Release",
         [Parameter(Mandatory=$true)]
-        [string]$OutputPath,
-        [Parameter(Mandatory=$true)]
-        [string]$StagingPath,
-        [Parameter(Mandatory=$true)]
-        [string]$Version,
-        [string]$DotnetVersion = ""
+        [PSCustomObject]$BuildConfiguration
     )
-
-    if (-not $DotnetVersion) {
-        $DotnetVersion = $script:DOTNET_VERSION
-    }
 
     Write-StepHeader "Publishing Applications"
 
@@ -1287,18 +1287,18 @@ function Invoke-DotNetPublish {
     }
 
     # Clean output directory if it exists
-    if (Test-Path $OutputPath) {
-        Remove-Item -Recurse -Force $OutputPath
+    if (Test-Path $BuildConfiguration.OutputPath) {
+        Remove-Item -Recurse -Force $BuildConfiguration.OutputPath
     }
 
     # Ensure staging directory exists
-    New-Item -Path $StagingPath -ItemType Directory -Force | Out-Null
+    New-Item -Path $BuildConfiguration.StagingPath -ItemType Directory -Force | Out-Null
 
     $publishedCount = 0
     foreach ($csproj in $projectFiles) {
         $projName = [System.IO.Path]::GetFileNameWithoutExtension($csproj)
-        $outDir = Join-Path $OutputPath $projName
-        $stageFile = Join-Path $StagingPath "$projName-$Version.zip"
+        $outDir = Join-Path $BuildConfiguration.OutputPath $projName
+        $stageFile = Join-Path $BuildConfiguration.StagingPath "$projName-$($BuildConfiguration.Version).zip"
 
         Write-Host "Publishing $projName..."
 
@@ -1306,7 +1306,7 @@ function Invoke-DotNetPublish {
         New-Item -Path $outDir -ItemType Directory -Force | Out-Null
 
         # Publish application - stream output directly
-        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$DotnetVersion --output $outDir /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" | ForEach-Object {
+        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$($BuildConfiguration.DotnetVersion) --output $outDir /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" | ForEach-Object {
             Write-Host $_
         }
 
@@ -1354,18 +1354,11 @@ function Invoke-NuGetPublish {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [string]$PackagePattern,
-        [Parameter(Mandatory=$true)]
-        [string]$GithubToken,
-        [Parameter(Mandatory=$true)]
-        [string]$GithubOwner,
-        [string]$NuGetApiKey,
-        [switch]$SkipGithub,
-        [switch]$SkipNuGet
+        [PSCustomObject]$BuildConfiguration
     )
 
     # Check if there are any packages to publish
-    $packages = @(Get-Item -Path $PackagePattern -ErrorAction SilentlyContinue)
+    $packages = @(Get-Item -Path $BuildConfiguration.PackagePattern -ErrorAction SilentlyContinue)
     if ($packages.Count -eq 0) {
         Write-Host "No packages found to publish"
         return
@@ -1373,69 +1366,53 @@ function Invoke-NuGetPublish {
 
     Write-Host "Found $($packages.Count) package(s) to publish"
 
-    # Publish to GitHub Packages if enabled
-    if (-not $SkipGithub) {
-        Write-StepHeader "Publishing to GitHub Packages"
+    Write-StepHeader "Publishing to GitHub Packages"
 
-        # Display the command being run (without revealing the token)
-        Write-Host "Running: dotnet nuget push $PackagePattern --source https://nuget.pkg.github.com/$GithubOwner/index.json --skip-duplicate"
+    # Display the command being run (without revealing the token)
+    Write-Host "Running: dotnet nuget push $($BuildConfiguration.PackagePattern) --source https://nuget.pkg.github.com/$($BuildConfiguration.GithubOwner)/index.json --skip-duplicate"
 
-        # Execute the command and stream output
-        & dotnet nuget push $PackagePattern --api-key $GithubToken --source "https://nuget.pkg.github.com/$GithubOwner/index.json" --skip-duplicate | ForEach-Object {
-            Write-Host $_
-        }
-        Assert-LastExitCode "GitHub package publish failed"
+    # Execute the command and stream output
+    & dotnet nuget push $BuildConfiguration.PackagePattern --api-key $BuildConfiguration.GithubToken --source "https://nuget.pkg.github.com/$($BuildConfiguration.GithubOwner)/index.json" --skip-duplicate | ForEach-Object {
+        Write-Host $_
     }
+    Assert-LastExitCode "GitHub package publish failed"
 
-    # Publish to NuGet.org if enabled and key provided
-    if (-not $SkipNuGet -and $NuGetApiKey) {
-        Write-StepHeader "Publishing to NuGet.org"
+    Write-StepHeader "Publishing to NuGet.org"
 
-        # Display the command being run (without revealing the API key)
-        Write-Host "Running: dotnet nuget push $PackagePattern --source https://api.nuget.org/v3/index.json --skip-duplicate"
+    # Display the command being run (without revealing the API key)
+    Write-Host "Running: dotnet nuget push $($BuildConfiguration.PackagePattern) --source https://api.nuget.org/v3/index.json --skip-duplicate"
 
-        # Execute the command and stream output
-        & dotnet nuget push $PackagePattern --api-key $NuGetApiKey --source "https://api.nuget.org/v3/index.json" --skip-duplicate | ForEach-Object {
-            Write-Host $_
-        }
-        Assert-LastExitCode "NuGet.org package publish failed"
+    # Execute the command and stream output
+    & dotnet nuget push $BuildConfiguration.PackagePattern --api-key $BuildConfiguration.NuGetApiKey --source "https://api.nuget.org/v3/index.json" --skip-duplicate | ForEach-Object {
+        Write-Host $_
     }
+    Assert-LastExitCode "NuGet.org package publish failed"
 }
 
 function New-GitHubRelease {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [string]$Version,
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$CommitHash,
-        [Parameter(Mandatory=$true)]
-        [string]$GithubToken,
-        [string]$ChangelogFile = "CHANGELOG.md",
-        [string[]]$AssetPatterns = @()
+        [PSCustomObject]$BuildConfiguration
     )
 
     # Set GitHub token for CLI
-    $env:GH_TOKEN = $GithubToken
+    $env:GH_TOKEN = $BuildConfiguration.GithubToken
 
     # Configure git user
     Set-GitIdentity
 
-    # Ensure version is trimmed
-    $Version = $Version.Trim()
-
     # Create and push the tag first
-    Write-Host "Creating and pushing tag v$Version..."
-    & git tag -a "v$Version" $CommitHash -m "Release v$Version"
+    Write-Host "Creating and pushing tag v$($BuildConfiguration.Version)..."
+    & git tag -a "v$($BuildConfiguration.Version)" $BuildConfiguration.ReleaseHash -m "Release v$($BuildConfiguration.Version)"
     Assert-LastExitCode "Failed to create git tag"
 
-    & git push origin "v$Version"
+    & git push origin "v$($BuildConfiguration.Version)"
     Assert-LastExitCode "Failed to push git tag"
 
     # Collect all assets
     $assets = @()
-    foreach ($pattern in $AssetPatterns) {
+    foreach ($pattern in $BuildConfiguration.AssetPatterns) {
         $matched = Get-Item -Path $pattern -ErrorAction SilentlyContinue
         if ($matched) {
             $assets += $matched.FullName
@@ -1443,26 +1420,26 @@ function New-GitHubRelease {
     }
 
     # Create release
-    Write-StepHeader "Creating GitHub Release v$Version"
+    Write-StepHeader "Creating GitHub Release v$($BuildConfiguration.Version)"
 
     $releaseArgs = @(
         "release",
         "create",
-        "v$Version"
+        "v$($BuildConfiguration.Version)"
     )
 
     # Add target commit
     $releaseArgs += "--target"
-    $releaseArgs += $CommitHash.ToString()
+    $releaseArgs += $BuildConfiguration.ReleaseHash.ToString()
 
     # Add notes generation
     $releaseArgs += "--generate-notes"
 
     # Handle changelog content if file exists
-    if (Test-Path $ChangelogFile) {
-        Write-Host "Using changelog from $ChangelogFile"
+    if (Test-Path $BuildConfiguration.ChangelogFile) {
+        Write-Host "Using changelog from $($BuildConfiguration.ChangelogFile)"
         $releaseArgs += "--notes-file"
-        $releaseArgs += $ChangelogFile
+        $releaseArgs += $BuildConfiguration.ChangelogFile
     }
 
     # Add assets as positional arguments
@@ -1723,8 +1700,7 @@ function Invoke-ReleaseWorkflow {
 
         # Create application packages
         try {
-            Write-StepHeader "Publishing Applications"
-            Invoke-DotNetPublish -Configuration $Configuration -OutputPath $BuildConfiguration.OutputPath -StagingPath $BuildConfiguration.StagingPath -Version $Version -DotnetVersion $BuildConfiguration.DotnetVersion
+            Invoke-DotNetPublish -Configuration $Configuration -BuildConfiguration $BuildConfiguration
 
             # Add application paths if they exist
             if (Test-Path $BuildConfiguration.ApplicationPattern) {
