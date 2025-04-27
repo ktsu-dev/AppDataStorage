@@ -142,6 +142,8 @@ function Get-BuildConfiguration {
             GithubToken = $GithubToken
             NuGetApiKey = $NuGetApiKey
             ExpectedOwner = $ExpectedOwner
+            Version = "1.0.0-pre.0"
+            ReleaseHash = $GitSha
         }
     }
 
@@ -1806,8 +1808,8 @@ function Invoke-CIPipeline {
             }
         }
 
-        $BuildConfiguration = $BuildConfiguration | Add-Member -MemberType NoteProperty -Name Version -Value $metadata.Version -PassThru
-        $BuildConfiguration = $BuildConfiguration | Add-Member -MemberType NoteProperty -Name ReleaseHash -Value $metadata.ReleaseHash -PassThru
+        $BuildConfiguration.Version = $metadata.Version
+        $BuildConfiguration.ReleaseHash = $metadata.ReleaseHash
 
         if (-not $metadata.Success) {
             Write-Error "Failed to update metadata: $($metadata.Error)"
