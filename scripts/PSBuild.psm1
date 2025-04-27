@@ -682,17 +682,35 @@ function Get-VersionNotes {
     # Find matching tag in repository
     if ($FromTag -ne "v0.0.0") {
         $foundSearchTag = $false
+        $matchingTag = $null
+
+        # First try to find exact match
         foreach ($tag in $Tags) {
-            if (-not $foundSearchTag) {
+            $otherVersion = ConvertTo-FourComponentVersion -VersionTag $tag
+            if ($searchVersion -eq $otherVersion) {
+                $matchingTag = $tag
+                $foundSearchTag = $true
+                break
+            }
+        }
+
+        # If no exact match, find closest lower version
+        if (-not $foundSearchTag) {
+            $closestVersion = "0.0.0.0"
+            foreach ($tag in $Tags) {
                 $otherVersion = ConvertTo-FourComponentVersion -VersionTag $tag
-                if ($searchVersion -eq $otherVersion) {
+                if (([Version]$otherVersion) -lt ([Version]$searchVersion) -and
+                    ([Version]$otherVersion) -gt ([Version]$closestVersion)) {
+                    $closestVersion = $otherVersion
+                    $matchingTag = $tag
                     $foundSearchTag = $true
-                    $searchTag = $tag
                 }
             }
         }
 
-        if (-not $foundSearchTag) {
+        if ($foundSearchTag) {
+            $searchTag = $matchingTag
+        } else {
             $searchTag = $FromTag
         }
     }
@@ -772,7 +790,6 @@ function New-Changelog {
     # Get all tags
     $tags = Get-GitTags
     $changelog = ""
-    $tagIndex = 0
 
     # Add entry for current/new version
     $previousTag = if ($null -eq $tags -or
@@ -791,21 +808,27 @@ function New-Changelog {
     $changelog += Get-VersionNotes -Tags $tags -FromTag $previousTag -ToTag $currentTag -ToSha $CommitHash
 
     # Add entries for all previous versions if requested
-    if ($IncludeAllVersions) {
-        foreach ($tag in $tags) {
-            if ($tag -like "v*") {
-                $previousTag = "v0.0.0"
-                if ($tagIndex -lt @($tags).Count - 1) {
-                    $previousTag = $tags[$tagIndex + 1]
-                }
+    if ($IncludeAllVersions -and $tags -is [array] -and $tags.Count -gt 0) {
+        $processedTags = @{}
 
+        for ($i = 0; $i -lt $tags.Count; $i++) {
+            $tag = $tags[$i]
+
+            # Skip if we've already processed this tag or it's not a version tag
+            if ($processedTags.ContainsKey($tag) -or -not ($tag -like "v*")) {
+                continue
+            }
+
+            $previousTag = "v0.0.0"
+            if ($i -lt $tags.Count - 1) {
+                $previousTag = $tags[$i + 1]
                 if (-not ($previousTag -like "v*")) {
                     $previousTag = "v0.0.0"
                 }
-
-                $changelog += Get-VersionNotes -Tags $tags -FromTag $previousTag -ToTag $tag
             }
-            $tagIndex++
+
+            $changelog += Get-VersionNotes -Tags $tags -FromTag $previousTag -ToTag $tag
+            $processedTags[$tag] = $true
         }
     }
 
