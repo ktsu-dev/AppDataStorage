@@ -70,13 +70,16 @@ jobs:
           -GithubToken "${{ github.token }}" `
           -NuGetApiKey "${{ secrets.NUGET_KEY }}"
 
+        if (-not $result.Success) {
+            throw $result.Error
+        }
+
         # Set outputs for GitHub Actions
-        "should_release=$($result.ShouldRelease)" >> $env:GITHUB_OUTPUT
+        "should_release=$($result.Data.ShouldRelease)" >> $env:GITHUB_OUTPUT
+        "version=$($result.Data.Version)" >> $env:GITHUB_OUTPUT
+        "release_hash=$($result.Data.ReleaseHash)" >> $env:GITHUB_OUTPUT
 
-        if ($result.ShouldRelease) {
-            "version=$($result.Version)" >> $env:GITHUB_OUTPUT
-            "release_hash=$($result.ReleaseHash)" >> $env:GITHUB_OUTPUT
-
+        if ($result.Data.ShouldRelease) {
             # Create artifacts directory
             New-Item -Path "artifacts" -ItemType Directory -Force | Out-Null
             Copy-Item -Path "output", "staging" -Destination "artifacts" -Recurse -Force
