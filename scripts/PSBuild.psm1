@@ -54,6 +54,8 @@ function Get-BuildConfiguration {
     [OutputType([PSCustomObject])]
     param (
         [Parameter(Mandatory=$true)]
+        [string]$ServerUrl,
+        [Parameter(Mandatory=$true)]
         [string]$GitRef,
         [Parameter(Mandatory=$true)]
         [string]$GitSha,
@@ -122,8 +124,9 @@ function Get-BuildConfiguration {
             BuildArgs = $BUILD_ARGS
             WorkspacePath = $WorkspacePath
             DotnetVersion = $script:DOTNET_VERSION
-            GitSha = $GitSha
+            ServerUrl = $ServerUrl
             GitRef = $GitRef
+            GitSha = $GitSha
             GithubToken = $GithubToken
             ExpectedOwner = $ExpectedOwner
         }
@@ -132,6 +135,11 @@ function Get-BuildConfiguration {
     # Display configuration details
     Write-Host "Build Configuration:" -ForegroundColor Cyan
     Write-Host "  Repository Status:" -ForegroundColor Yellow
+    Write-Host "    Server URL:      $($config.Data.ServerUrl)"
+    Write-Host "    Git Ref:         $($config.Data.GitRef)"
+    Write-Host "    Git Sha:         $($config.Data.GitSha)"
+    Write-Host "    Github Token:    $($config.Data.GithubToken)"
+    Write-Host "    Expected Owner:  $($config.Data.ExpectedOwner)"
     Write-Host "    Is Official Repo: $($config.Data.IsOfficial)"
     Write-Host "    Is Main Branch:  $($config.Data.IsMain)"
     Write-Host "    Is Tagged:       $($config.Data.IsTagged)"
