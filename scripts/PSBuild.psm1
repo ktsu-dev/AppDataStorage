@@ -1601,34 +1601,6 @@ function Set-GitIdentity {
 
 #endregion
 
-#region Utility Functions
-
-function Set-GithubEnv {
-    <#
-    .SYNOPSIS
-        Sets a GitHub Actions environment variable.
-    .DESCRIPTION
-        Sets a variable in the GitHub Actions environment file for use in subsequent steps.
-    .PARAMETER Name
-        The name of the environment variable.
-    .PARAMETER Value
-        The value to set.
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]$Name,
-        [Parameter(Mandatory=$true)]
-        [string]$Value
-    )
-
-    if ($env:GITHUB_ENV) {
-        "$Name=$Value" >> $env:GITHUB_ENV
-    }
-}
-
-#endregion
-
 #region High-Level Workflows
 
 function Invoke-BuildWorkflow {
