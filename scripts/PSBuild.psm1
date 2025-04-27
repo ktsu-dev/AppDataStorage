@@ -214,9 +214,9 @@ function Get-VersionType {
         [string]$Range
     )
 
-    Write-StepHeader "Analyzing Version Changes"
-    Write-Host "Analyzing commits for version increment decision..."
-    Write-Host "Commit range: $Range" -ForegroundColor Cyan
+    # Write-StepHeader "Analyzing Version Changes"
+    # Write-Host "Analyzing commits for version increment decision..."
+    # Write-Host "Commit range: $Range" -ForegroundColor Cyan
 
     # Initialize to the most conservative version bump
     $versionType = "prerelease"
@@ -226,21 +226,21 @@ function Get-VersionType {
     $EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
     $EXCLUDE_PRS = '^.*(Merge pull request|Merge branch ''main''|Updated packages in|Update.*package version).*$'
 
-    Write-Host "`nChecking for non-merge commits..." -ForegroundColor Cyan
-    Write-Host "Running: git log --date-order --perl-regexp --regexp-ignore-case --grep=""$EXCLUDE_PRS"" --invert-grep --committer=""$EXCLUDE_BOTS"" --author=""$EXCLUDE_BOTS"" $Range"
+    # Write-Host "`nChecking for non-merge commits..." -ForegroundColor Cyan
+    # Write-Host "Running: git log --date-order --perl-regexp --regexp-ignore-case --grep=""$EXCLUDE_PRS"" --invert-grep --committer=""$EXCLUDE_BOTS"" --author=""$EXCLUDE_BOTS"" $Range"
 
     # Check for non-merge commits
     $allCommits = git log --date-order --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $Range 2>&1
-    Write-Host "Non-merge commits found:`n$allCommits"
+    # Write-Host "Non-merge commits found:`n$allCommits"
 
     if ($allCommits) {
         $versionType = "patch"
         $reason = "Found non-merge commits requiring at least a patch version"
-        Write-Host "Found non-merge commits - minimum patch version required" -ForegroundColor Yellow
+        # Write-Host "Found non-merge commits - minimum patch version required" -ForegroundColor Yellow
     }
 
     # Check for code changes (excluding documentation, config files, etc.)
-    Write-Host "`nChecking for code changes..." -ForegroundColor Cyan
+    # Write-Host "`nChecking for code changes..." -ForegroundColor Cyan
     $EXCLUDE_PATTERNS = @(
         ":(icase,exclude)*/*.*md"
         ":(icase,exclude)*/*.txt"
@@ -252,51 +252,51 @@ function Get-VersionType {
         ":(icase,exclude)*/*.ps1"
     )
     $excludeString = $EXCLUDE_PATTERNS -join ' '
-    Write-Host "Running: git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer=""$EXCLUDE_BOTS"" --author=""$EXCLUDE_BOTS"" --grep=""$EXCLUDE_PRS"" --invert-grep $Range -- '*/*.*' $excludeString"
+    # Write-Host "Running: git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer=""$EXCLUDE_BOTS"" --author=""$EXCLUDE_BOTS"" --grep=""$EXCLUDE_PRS"" --invert-grep $Range -- '*/*.*' $excludeString"
 
     $codeChanges = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $Range -- '*/*.*' $excludeString 2>&1
-    Write-Host "Code changes found:`n$codeChanges"
+    # Write-Host "Code changes found:`n$codeChanges"
 
     if ($codeChanges) {
         $versionType = "minor"
         $reason = "Found code changes requiring at least a minor version"
-        Write-Host "Found code changes - minimum minor version required" -ForegroundColor Yellow
+        # Write-Host "Found code changes - minimum minor version required" -ForegroundColor Yellow
     }
 
     # Look for explicit version bump annotations in commit messages
-    Write-Host "`nChecking for version bump annotations in commit messages..." -ForegroundColor Cyan
-    Write-Host "Running: git log --format=format:%s $Range"
+    # Write-Host "`nChecking for version bump annotations in commit messages..." -ForegroundColor Cyan
+    # Write-Host "Running: git log --format=format:%s $Range"
 
     $messages = git log --format=format:%s $Range 2>&1
-    Write-Host "Commit messages found:`n$messages"
+    # Write-Host "Commit messages found:`n$messages"
 
     foreach ($message in $messages) {
         if ($message.Contains('[major]')) {
-            Write-Host "Found [major] tag in commit: $message" -ForegroundColor Red
+            # Write-Host "Found [major] tag in commit: $message" -ForegroundColor Red
             return @{
                 Type = 'major'
                 Reason = "Explicit [major] tag found in commit message: $message"
             }
         }
         elseif ($message.Contains('[minor]') -and $versionType -ne 'major') {
-            Write-Host "Found [minor] tag in commit: $message" -ForegroundColor Yellow
+            # Write-Host "Found [minor] tag in commit: $message" -ForegroundColor Yellow
             $versionType = 'minor'
             $reason = "Explicit [minor] tag found in commit message: $message"
         }
         elseif ($message.Contains('[patch]') -and $versionType -notin @('major', 'minor')) {
-            Write-Host "Found [patch] tag in commit: $message" -ForegroundColor Green
+            # Write-Host "Found [patch] tag in commit: $message" -ForegroundColor Green
             $versionType = 'patch'
             $reason = "Explicit [patch] tag found in commit message: $message"
         }
         elseif ($message.Contains('[pre]') -and $versionType -notin @('major', 'minor', 'patch')) {
-            Write-Host "Found [pre] tag in commit: $message" -ForegroundColor Blue
+            # Write-Host "Found [pre] tag in commit: $message" -ForegroundColor Blue
             $versionType = 'prerelease'
             $reason = "Explicit [pre] tag found in commit message: $message"
         }
     }
 
-    Write-Host "`nVersion type decision: $versionType" -ForegroundColor Cyan
-    Write-Host "Reason: $reason" -ForegroundColor Cyan
+    # Write-Host "`nVersion type decision: $versionType" -ForegroundColor Cyan
+    # Write-Host "Reason: $reason" -ForegroundColor Cyan
 
     return @{
         Type = $versionType
@@ -1619,6 +1619,34 @@ function Set-GitIdentity {
 
 #endregion
 
+#region Utility Functions
+
+function Set-GithubEnv {
+    <#
+    .SYNOPSIS
+        Sets a GitHub Actions environment variable.
+    .DESCRIPTION
+        Sets a variable in the GitHub Actions environment file for use in subsequent steps.
+    .PARAMETER Name
+        The name of the environment variable.
+    .PARAMETER Value
+        The value to set.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Name,
+        [Parameter(Mandatory=$true)]
+        [string]$Value
+    )
+
+    if ($env:GITHUB_ENV) {
+        "$Name=$Value" >> $env:GITHUB_ENV
+    }
+}
+
+#endregion
+
 #region High-Level Workflows
 
 function Invoke-BuildWorkflow {
@@ -1816,195 +1844,108 @@ function Invoke-ReleaseWorkflow {
 function Invoke-CIPipeline {
     <#
     .SYNOPSIS
-        Executes the complete CI/CD pipeline.
+        Executes the CI/CD pipeline.
     .DESCRIPTION
-        Runs the entire build, test, package, and release process as a single pipeline.
-        This is the main entry point for CI systems like GitHub Actions.
-    .PARAMETER GitRef
-        The Git reference (branch/tag) being built (e.g., "refs/heads/main").
-    .PARAMETER GitSha
-        The Git commit SHA being built.
-    .PARAMETER WorkspacePath
-        The path to the workspace/repository root.
-    .PARAMETER ServerUrl
-        The GitHub server URL (e.g., "https://github.com").
-    .PARAMETER Owner
-        The repository owner/organization name.
-    .PARAMETER Repository
-        The repository name.
-    .PARAMETER GithubToken
-        The GitHub token for authentication and API operations.
-    .PARAMETER NuGetApiKey
-        Optional NuGet.org API key for publishing packages.
-    .PARAMETER Configuration
-        The build configuration (Debug/Release). Defaults to "Release".
-    .PARAMETER ExpectedOwner
-        The expected owner for official builds. Defaults to "ktsu-dev".
-    .EXAMPLE
-        $result = Invoke-CIPipeline -GitRef "refs/heads/main" -GitSha "abc123" -WorkspacePath "." -ServerUrl "https://github.com" -Owner "myorg" -Repository "myrepo" -GithubToken $env:GITHUB_TOKEN
-    .NOTES
-        Author: ktsu.dev
+        Executes the CI/CD pipeline, including metadata updates and build workflow.
+    .PARAMETER BuildConfiguration
+        The build configuration to use.
+    .PARAMETER Push
+        Whether to push changes to the remote repository.
+    .PARAMETER SetGitHubEnv
+        Whether to set GitHub environment variables.
     #>
     [CmdletBinding()]
-    [OutputType([PSCustomObject])]
     param (
-        [Parameter(Mandatory = $true, Position = 0, HelpMessage = "Git reference (branch/tag) being built")]
-        [string]$GitRef,
-
-        [Parameter(Mandatory = $true, Position = 1, HelpMessage = "Git commit SHA being built")]
-        [ValidateNotNullOrEmpty()]
-        [string]$GitSha,
-
-        [Parameter(Mandatory = $true, Position = 2, HelpMessage = "Path to workspace/repository root")]
-        [ValidateNotNullOrEmpty()]
-        [string]$WorkspacePath,
-
-        [Parameter(Mandatory = $true, Position = 3, HelpMessage = "GitHub server URL")]
-        [string]$ServerUrl,
-
-        [Parameter(Mandatory = $true, Position = 4, HelpMessage = "Repository owner/organization")]
-        [string]$Owner,
-
-        [Parameter(Mandatory = $true, Position = 5, HelpMessage = "Repository name")]
-        [string]$Repository,
-
-        [Parameter(Mandatory = $true, Position = 6, HelpMessage = "GitHub token for authentication")]
-        [string]$GithubToken,
-
-        [Parameter(Position = 7, HelpMessage = "NuGet.org API key for publishing packages")]
-        [string]$NuGetApiKey,
-
-        [Parameter(Position = 8, HelpMessage = "Build configuration (Debug/Release)")]
-        [ValidateSet("Debug", "Release")]
-        [string]$Configuration = "Release",
-
-        [Parameter(HelpMessage = "Expected owner for official builds")]
-        [string]$ExpectedOwner = "ktsu-dev"
+        [Parameter(Mandatory=$true)]
+        [BuildConfiguration]$BuildConfiguration,
+        [Parameter()]
+        [bool]$Push = $false,
+        [Parameter()]
+        [bool]$SetGitHubEnv = $false
     )
 
-    Set-PSDebug -Trace 0
-    Write-StepHeader "Starting CI/CD Pipeline"
-    Write-Host "Repository: $Owner/$Repository"
-    Write-Host "Git Reference: $GitRef"
-    Write-Host "Git SHA: $GitSha"
-    Write-Host "Configuration: $Configuration"
-
     try {
-        # Get build configuration
-        Write-StepHeader "Configuring Build"
-        $buildConfig = Get-BuildConfiguration -GitRef $GitRef -GitSha $GitSha -WorkspacePath $WorkspacePath -GithubToken $GithubToken -ExpectedOwner $ExpectedOwner
-        if (-not $buildConfig.Success) {
-            Write-Error "Build configuration failed: $($buildConfig.Error)"
+        Write-Host "Configuring build..." -ForegroundColor Cyan
+        $config = $BuildConfiguration
+        if (-not $config) {
+            Write-Error "Failed to configure build"
             return [PSCustomObject]@{
                 Success = $false
-                Error = $buildConfig.Error
-                Data = @{
-                    BuildSuccess = $false
-                    ReleaseSuccess = $false
-                    ShouldRelease = $false
-                }
+                Error = "Failed to configure build"
             }
         }
 
-        # Update metadata
-        Write-StepHeader "Updating Project Metadata"
-        $metadata = Update-ProjectMetadata -GitSha $GitSha -ServerUrl $ServerUrl -GitHubOwner $Owner -GitHubRepo $Repository -Push -SetGitHubEnv
-        if (-not $metadata -or -not $metadata.Success) {
-            $errorMsg = if ($metadata) { $metadata.Error } else { "Metadata update returned null" }
-            Write-Error "Metadata update failed: $errorMsg"
+        Write-Host "Updating metadata..." -ForegroundColor Cyan
+        $metadata = Update-ProjectMetadata `
+            -GitSha $config.GitSha `
+            -ServerUrl $config.ServerUrl `
+            -GitHubOwner $config.GitHubOwner `
+            -GitHubRepo $config.GitHubRepo `
+            -Authors $config.Authors `
+            -CommitMessage $config.CommitMessage `
+            -Push $Push `
+            -SetGitHubEnv $SetGitHubEnv
+
+        if ($null -eq $metadata) {
+            Write-Error "Metadata update returned null"
             return [PSCustomObject]@{
                 Success = $false
-                Error = $errorMsg
-                Data = @{
-                    BuildSuccess = $false
-                    ReleaseSuccess = $false
-                    ShouldRelease = $false
-                }
+                Error = "Metadata update returned null"
             }
         }
 
-        # Run build workflow
-        Write-StepHeader "Running Build Workflow"
-        $buildResult = Invoke-BuildWorkflow -Configuration $Configuration -BuildArgs $buildConfig.Data.BuildArgs -BuildConfig $buildConfig
-        if (-not $buildResult.Success) {
-            Write-Error "Build workflow failed: $($buildResult.Error)"
+        if (-not $metadata.Success) {
+            Write-Error "Failed to update metadata: $($metadata.Error)"
             return [PSCustomObject]@{
                 Success = $false
-                Error = $buildResult.Error
-                Data = @{
-                    BuildSuccess = $false
-                    ReleaseSuccess = $false
-                    ShouldRelease = $false
-                    Version = $metadata.Data.Version
-                }
+                Error = "Failed to update metadata: $($metadata.Error)"
             }
         }
 
-        # If build succeeded and we should release, run release workflow
-        if ($buildConfig.Data.ShouldRelease) {
-            Write-StepHeader "Starting Release Workflow"
-            $releaseResult = Invoke-ReleaseWorkflow -GitSha $metadata.Data.ReleaseHash -ServerUrl $ServerUrl -Owner $Owner -Repository $Repository `
-                             -Configuration $Configuration -BuildConfig $buildConfig -GithubToken $GithubToken -NuGetApiKey $NuGetApiKey `
-                             -Version $metadata.Data.Version
-
-            if (-not $releaseResult.Success) {
-                Write-Error "Release workflow failed: $($releaseResult.Error)"
-                return [PSCustomObject]@{
-                    Success = $false
-                    Error = $releaseResult.Error
-                    Data = @{
-                        BuildSuccess = $true
-                        ReleaseSuccess = $false
-                        Version = $metadata.Data.Version
-                        ReleaseHash = $metadata.Data.ReleaseHash
-                        ShouldRelease = $true
-                    }
-                }
+        # If there are no changes to commit, that's okay - we'll just continue with the build
+        if ($metadata.NoChanges) {
+            Write-Host "No metadata changes to commit" -ForegroundColor Yellow
+            if ($SetGitHubEnv) {
+                Set-GithubEnv -Name "should_release" -Value "false"
+                Set-GithubEnv -Name "version" -Value $metadata.Version
+                Set-GithubEnv -Name "release_hash" -Value $metadata.ReleaseHash
             }
-
-            Write-Host "Pipeline completed successfully with release!" -ForegroundColor Green
             return [PSCustomObject]@{
                 Success = $true
-                Error = ""
-                Data = @{
-                    BuildSuccess = $true
-                    ReleaseSuccess = $true
-                    Version = $metadata.Data.Version
-                    ReleaseHash = $metadata.Data.ReleaseHash
-                    ShouldRelease = $true
-                }
+                Version = $metadata.Version
+                ReleaseHash = $metadata.ReleaseHash
+                NoChanges = $true
             }
         }
-        else {
-            Write-StepHeader "Build Completed"
-            Write-Host "Build successful! Release not required for this build." -ForegroundColor Green
+
+        Write-Host "Running build workflow..." -ForegroundColor Cyan
+        $result = Invoke-BuildWorkflow -BuildConfiguration $config
+        if (-not $result.Success) {
+            Write-Error "Build workflow failed: $($result.Error)"
             return [PSCustomObject]@{
-                Success = $true
-                Error = ""
-                Data = @{
-                    BuildSuccess = $true
-                    ReleaseSuccess = $false
-                    ShouldRelease = $false
-                    Version = $metadata.Data.Version
-                    ReleaseHash = $metadata.Data.ReleaseHash
-                }
+                Success = $false
+                Error = "Build workflow failed: $($result.Error)"
             }
+        }
+
+        Write-Host "CI/CD pipeline completed successfully" -ForegroundColor Green
+        if ($SetGitHubEnv) {
+            Set-GithubEnv -Name "should_release" -Value "true"
+            Set-GithubEnv -Name "version" -Value $metadata.Version
+            Set-GithubEnv -Name "release_hash" -Value $metadata.ReleaseHash
+        }
+
+        return [PSCustomObject]@{
+            Success = $true
+            Version = $metadata.Version
+            ReleaseHash = $metadata.ReleaseHash
         }
     }
     catch {
-        $errorMessage = $_.ToString()
-        Write-Error "CI/CD pipeline failed: $errorMessage"
+        Write-Error "CI/CD pipeline failed: $_"
         return [PSCustomObject]@{
             Success = $false
-            Error = $errorMessage
-            Data = @{
-                BuildSuccess = $false
-                ReleaseSuccess = $false
-                ShouldRelease = $false
-                Version = if ($metadata -and $metadata.Data) { $metadata.Data.Version } else { $null }
-                ReleaseHash = if ($metadata -and $metadata.Data) { $metadata.Data.ReleaseHash } else { $null }
-                StackTrace = $_.ScriptStackTrace
-            }
+            Error = "CI/CD pipeline failed: $_"
         }
     }
 }
