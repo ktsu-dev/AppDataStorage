@@ -35,6 +35,7 @@
         'Write-StepHeader',
         'Test-AnyFiles',
         'Get-GitLineEnding',
+        'Set-GitIdentity',
         'Invoke-BuildWorkflow',
         'Invoke-ReleaseWorkflow',
         'Invoke-CIPipeline'

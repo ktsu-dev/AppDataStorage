@@ -962,6 +962,9 @@ function Update-ProjectMetadata {
         Write-Host ""
 
         if ($postStatus) {
+            # Configure git user before committing
+            Set-GitIdentity
+
             Write-Host "Committing changes..."
             Write-Host "Running: git commit -m `"$CommitMessage`""
             $commitOutput = git commit -m $CommitMessage 2>&1
@@ -1384,6 +1387,9 @@ function New-GitHubRelease {
     # Set GitHub token for CLI
     $env:GH_TOKEN = $GithubToken
 
+    # Configure git user
+    Set-GitIdentity
+
     # Ensure version is trimmed
     $Version = $Version.Trim()
 
@@ -1564,6 +1570,23 @@ function Get-GitLineEnding {
 
     # If git config fails or no setting found, use OS default
     return [System.Environment]::NewLine
+}
+
+function Set-GitIdentity {
+    <#
+    .SYNOPSIS
+        Configures git user identity for automated operations.
+    .DESCRIPTION
+        Sets up git user name and email globally for GitHub Actions or other automated processes.
+    #>
+    [CmdletBinding()]
+    param()
+
+    Write-Host "Configuring git user for GitHub Actions..."
+    & git config --global user.name "Github Actions"
+    Assert-LastExitCode "Failed to configure git user name"
+    & git config --global user.email "actions@users.noreply.github.com"
+    Assert-LastExitCode "Failed to configure git user email"
 }
 
 #endregion
