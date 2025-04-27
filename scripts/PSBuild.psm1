@@ -854,7 +854,6 @@ function New-Changelog {
         Whether to include all previous versions in the changelog. Defaults to $true.
     #>
     [CmdletBinding()]
-    [OutputType([string])]
     param (
         [Parameter(Mandatory=$true)]
         [string]$Version,
@@ -922,7 +921,6 @@ function New-Changelog {
     [System.IO.File]::WriteAllText($filePath, $changelog, [System.Text.UTF8Encoding]::new($false))
 
     Write-Host "Changelog generated with entries for $(@($tags).Count + 1) versions"
-    return $changelog
 }
 
 #endregion
@@ -931,6 +929,7 @@ function New-Changelog {
 
 function Update-ProjectMetadata {
     [CmdletBinding()]
+    [OutputType([PSCustomObject])]
     param(
         [Parameter(Mandatory = $true)]
         [PSCustomObject]$BuildConfiguration,
@@ -960,8 +959,6 @@ function Update-ProjectMetadata {
             }
             [System.IO.File]::WriteAllText("AUTHORS.md", $authorsContent, [System.Text.UTF8Encoding]::new($false))
         }
-
-        Set-PSDebug -Trace 1
 
         # Create AUTHORS.url
         $authorsUrl = "[InternetShortcut]`nURL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)"
