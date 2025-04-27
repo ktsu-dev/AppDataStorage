@@ -925,13 +925,7 @@ function Update-ProjectMetadata {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$GitSha,
-        [Parameter(Mandatory = $true)]
-        [string]$ServerUrl,
-        [Parameter(Mandatory = $true)]
-        [string]$GitHubOwner,
-        [Parameter(Mandatory = $true)]
-        [string]$GitHubRepo,
+        [PSCustomObject]$BuildConfiguration,
         [Parameter(Mandatory = $false)]
         [string[]]$Authors = @(),
         [Parameter(Mandatory = $false)]
@@ -940,14 +934,14 @@ function Update-ProjectMetadata {
 
     try {
         Write-Host "Generating version information..."
-        $version = New-Version -CommitHash $GitSha
+        $version = New-Version -CommitHash $BuildConfiguration.ReleaseHash
         Write-Host "Version: $version"
 
         Write-Host "Generating license..."
-        New-License -ServerUrl $ServerUrl -Owner $GitHubOwner -Repository $GitHubRepo
+        New-License -ServerUrl $BuildConfiguration.ServerUrl -Owner $BuildConfiguration.GitHubOwner -Repository $BuildConfiguration.GitHubRepo
 
         Write-Host "Generating changelog..."
-        New-Changelog -Version $version -CommitHash $GitSha
+        New-Changelog -Version $version -CommitHash $BuildConfiguration.ReleaseHash
 
         # Create AUTHORS.md if authors are provided
         if ($Authors.Count -gt 0) {
@@ -960,11 +954,11 @@ function Update-ProjectMetadata {
         }
 
         # Create AUTHORS.url
-        $authorsUrl = "[InternetShortcut]`nURL=$ServerUrl/$GitHubOwner"
+        $authorsUrl = "[InternetShortcut]`nURL=${BuildConfiguration.ServerUrl}/${BuildConfiguration.GitHubOwner}"
         [System.IO.File]::WriteAllText("AUTHORS.url", $authorsUrl, [System.Text.UTF8Encoding]::new($false))
 
         # Create PROJECT_URL.url
-        $projectUrl = "[InternetShortcut]`nURL=$ServerUrl/$GitHubOwner/$GitHubRepo"
+        $projectUrl = "[InternetShortcut]`nURL=${BuildConfiguration.ServerUrl}/${BuildConfiguration.GitHubOwner}/${BuildConfiguration.GitHubRepo}"
         [System.IO.File]::WriteAllText("PROJECT_URL.url", $projectUrl, [System.Text.UTF8Encoding]::new($false))
 
         Write-Host "Checking git status before adding files..."
