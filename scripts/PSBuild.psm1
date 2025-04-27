@@ -1808,8 +1808,8 @@ function Invoke-CIPipeline {
 
         Write-Host "Metadata: $($metadata | ConvertTo-Json -Depth 10)"
 
-        $BuildConfiguration.Version = $metadata.Version
-        $BuildConfiguration.ReleaseHash = $metadata.ReleaseHash
+        $BuildConfiguration.Version = $metadata.Data.Version
+        $BuildConfiguration.ReleaseHash = $metadata.Data.ReleaseHash
 
         if (-not $metadata.Success) {
             Write-Host "Failed to update metadata: $($metadata.Error)"
@@ -1842,8 +1842,8 @@ function Invoke-CIPipeline {
         Write-Host "CI/CD pipeline completed successfully" -ForegroundColor Green
         return [PSCustomObject]@{
             Success = $true
-            Version = $metadata.Version
-            ReleaseHash = $metadata.ReleaseHash
+            Version = $metadata.Data.Version
+            ReleaseHash = $metadata.Data.ReleaseHash
         }
     }
     catch {
