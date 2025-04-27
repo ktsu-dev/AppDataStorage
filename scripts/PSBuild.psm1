@@ -1732,7 +1732,7 @@ function Invoke-ReleaseWorkflow {
 
         # Publish packages if we have any and NuGet key is provided
         $packages = @(Get-Item -Path $BuildConfiguration.PackagePattern -ErrorAction SilentlyContinue)
-        if ($packages.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($NuGetApiKey)) {
+        if ($packages.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($BuildConfiguration.NuGetApiKey)) {
             Write-StepHeader "Publishing NuGet Packages"
             try {
                 Invoke-NuGetPublish -BuildConfiguration $BuildConfiguration
