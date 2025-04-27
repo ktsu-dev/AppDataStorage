@@ -792,7 +792,8 @@ function Get-VersionNotes {
 
     # Determine actual version type based on commit content
     if ($versionType -ne "prerelease") {
-        $versionType = Get-VersionType -Range $range
+        $versionTypeInfo = Get-VersionType -Range $range
+        $versionType = $versionTypeInfo.Type
     }
 
     # Exclude patterns for commit authors and messages
@@ -933,6 +934,34 @@ function Update-ProjectMetadata {
     )
 
     try {
+        Write-Host "Generating version information..."
+        $version = New-Version -CommitHash $GitSha -SetGitHubEnv:$SetGitHubEnv
+        Write-Host "Version: $version"
+
+        Write-Host "Generating license..."
+        New-License -ServerUrl $ServerUrl -Owner $GitHubOwner -Repository $GitHubRepo
+
+        Write-Host "Generating changelog..."
+        New-Changelog -Version $version -CommitHash $GitSha
+
+        # Create AUTHORS.md if authors are provided
+        if ($Authors.Count -gt 0) {
+            Write-Host "Generating authors file..."
+            $authorsContent = "# Project Authors`n`n"
+            foreach ($author in $Authors) {
+                $authorsContent += "* $author`n"
+            }
+            [System.IO.File]::WriteAllText("AUTHORS.md", $authorsContent, [System.Text.UTF8Encoding]::new($false))
+        }
+
+        # Create AUTHORS.url
+        $authorsUrl = "[InternetShortcut]`nURL=$ServerUrl/$GitHubOwner"
+        [System.IO.File]::WriteAllText("AUTHORS.url", $authorsUrl, [System.Text.UTF8Encoding]::new($false))
+
+        # Create PROJECT_URL.url
+        $projectUrl = "[InternetShortcut]`nURL=$ServerUrl/$GitHubOwner/$GitHubRepo"
+        [System.IO.File]::WriteAllText("PROJECT_URL.url", $projectUrl, [System.Text.UTF8Encoding]::new($false))
+
         Write-Host "Checking git status before adding files..."
         $preStatus = git status --porcelain
         Write-Host "Current status:"
@@ -989,8 +1018,6 @@ function Update-ProjectMetadata {
             Write-Host ""
 
             Write-Host "Metadata update completed successfully"
-            $version = Get-Content "VERSION.md" -Raw
-            $version = $version.Trim()
             Write-Host "Version: $version"
             Write-Host "Release Hash: $releaseHash"
 
@@ -1005,8 +1032,6 @@ function Update-ProjectMetadata {
         }
         else {
             Write-Host "No changes to commit"
-            $version = Get-Content "VERSION.md" -Raw
-            $version = $version.Trim()
             Write-Host "Version: $version"
 
             return [PSCustomObject]@{
