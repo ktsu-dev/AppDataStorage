@@ -39,16 +39,22 @@ function Get-BuildConfiguration {
         Gets the build configuration based on Git status and environment.
     .DESCRIPTION
         Determines if this is a release build, checks Git status, and sets up build paths.
+    .PARAMETER ServerUrl
+        The server URL to use for the build.
     .PARAMETER GitRef
         The Git reference (branch/tag) being built.
     .PARAMETER GitSha
         The Git commit SHA being built.
-    .PARAMETER WorkspacePath
-        The path to the workspace/repository root.
+    .PARAMETER GitHubOwner
+        The GitHub owner of the repository.
+    .PARAMETER GitHubRepo
+        The GitHub repository name.
     .PARAMETER GithubToken
         Optional GitHub token for API operations.
     .PARAMETER NuGetApiKey
         Optional NuGet API key for package publishing.
+    .PARAMETER WorkspacePath
+        The path to the workspace/repository root.
     .PARAMETER ExpectedOwner
         The expected owner/organization of the official repository.
     #>
