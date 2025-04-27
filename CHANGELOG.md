@@ -304,4 +304,3 @@ Changes since 0.0.0.0:
 - Update nuget.config ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update ToStringJsonConverter to 1.0.0 ([@matt-edmondson](https://github.com/matt-edmondson))
 
-
