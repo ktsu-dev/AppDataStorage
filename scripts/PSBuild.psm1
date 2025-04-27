@@ -1889,9 +1889,6 @@ function Invoke-CIPipeline {
     Write-Host "Git SHA: $GitSha"
     Write-Host "Configuration: $Configuration"
 
-    # Initialize metadata variable
-    $metadata = $null
-
     try {
         # Get build configuration
         Write-StepHeader "Configuring Build"
@@ -1946,7 +1943,7 @@ function Invoke-CIPipeline {
         # If build succeeded and we should release, run release workflow
         if ($buildConfig.Data.ShouldRelease) {
             Write-StepHeader "Starting Release Workflow"
-            $releaseResult = Invoke-ReleaseWorkflow -GitSha $GitSha -ServerUrl $ServerUrl -Owner $Owner -Repository $Repository `
+            $releaseResult = Invoke-ReleaseWorkflow -GitSha $metadata.Data.ReleaseHash -ServerUrl $ServerUrl -Owner $Owner -Repository $Repository `
                              -Configuration $Configuration -BuildConfig $buildConfig -GithubToken $GithubToken -NuGetApiKey $NuGetApiKey `
                              -Version $metadata.Data.Version
 
@@ -1959,7 +1956,7 @@ function Invoke-CIPipeline {
                         BuildSuccess = $true
                         ReleaseSuccess = $false
                         Version = $metadata.Data.Version
-                        ReleaseHash = $null
+                        ReleaseHash = $metadata.Data.ReleaseHash
                         ShouldRelease = $true
                     }
                 }
@@ -1973,7 +1970,7 @@ function Invoke-CIPipeline {
                     BuildSuccess = $true
                     ReleaseSuccess = $true
                     Version = $metadata.Data.Version
-                    ReleaseHash = $releaseResult.Data.ReleaseHash
+                    ReleaseHash = $metadata.Data.ReleaseHash
                     ShouldRelease = $true
                 }
             }
@@ -1989,6 +1986,7 @@ function Invoke-CIPipeline {
                     ReleaseSuccess = $false
                     ShouldRelease = $false
                     Version = $metadata.Data.Version
+                    ReleaseHash = $metadata.Data.ReleaseHash
                 }
             }
         }
@@ -2004,6 +2002,7 @@ function Invoke-CIPipeline {
                 ReleaseSuccess = $false
                 ShouldRelease = $false
                 Version = if ($metadata -and $metadata.Data) { $metadata.Data.Version } else { $null }
+                ReleaseHash = if ($metadata -and $metadata.Data) { $metadata.Data.ReleaseHash } else { $null }
                 StackTrace = $_.ScriptStackTrace
             }
         }
