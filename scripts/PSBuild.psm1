@@ -513,16 +513,13 @@ function New-Version {
         The Git commit hash being built.
     .PARAMETER OutputPath
         Optional path to write the version file to. Defaults to workspace root.
-    .PARAMETER SetGitHubEnv
-        Whether to set GitHub environment variables. Defaults to $true.
     #>
     [CmdletBinding()]
     [OutputType([string])]
     param (
         [Parameter(Mandatory=$true)]
         [string]$CommitHash,
-        [string]$OutputPath = "",
-        [bool]$SetGitHubEnv = $true
+        [string]$OutputPath = ""
     )
 
     # Get complete version information object
@@ -535,24 +532,6 @@ function New-Version {
     $filePath = if ($OutputPath) { Join-Path $OutputPath "VERSION.md" } else { "VERSION.md" }
     $version = $versionInfo.Data.Version.Trim()
     [System.IO.File]::WriteAllText($filePath, $version + $lineEnding, [System.Text.UTF8Encoding]::new($false))
-
-    # Set GitHub environment variables if needed
-    if ($SetGitHubEnv -and $env:GITHUB_ENV) {
-        $envContent = @(
-            "VERSION=$version",
-            "LAST_VERSION=$($versionInfo.Data.LastVersion)",
-            "LAST_VERSION_MAJOR=$($versionInfo.Data.LastVersionMajor)",
-            "LAST_VERSION_MINOR=$($versionInfo.Data.LastVersionMinor)",
-            "LAST_VERSION_PATCH=$($versionInfo.Data.LastVersionPatch)",
-            "LAST_VERSION_PRERELEASE=$($versionInfo.Data.LastVersionPrereleaseNumber)",
-            "IS_PRERELEASE=$($versionInfo.Data.IsPrerelease)",
-            "VERSION_INCREMENT=$($versionInfo.Data.VersionIncrement)",
-            "FIRST_COMMIT=$($versionInfo.Data.FirstCommit)",
-            "LAST_COMMIT=$($versionInfo.Data.LastCommit)"
-        ) -join $lineEnding
-
-        [System.IO.File]::WriteAllText($Env:GITHUB_ENV, $envContent + $lineEnding, [System.Text.UTF8Encoding]::new($false))
-    }
 
     Write-Verbose "Previous version: $($versionInfo.Data.LastVersion), New version: $($versionInfo.Data.Version)"
     return $versionInfo.Data.Version
@@ -933,14 +912,12 @@ function Update-ProjectMetadata {
         [Parameter(Mandatory = $false)]
         [string]$CommitMessage = "[bot][skip ci] Update Metadata",
         [Parameter(Mandatory = $false)]
-        [switch]$Push,
-        [Parameter(Mandatory = $false)]
-        [switch]$SetGitHubEnv
+        [switch]$Push
     )
 
     try {
         Write-Host "Generating version information..."
-        $version = New-Version -CommitHash $GitSha -SetGitHubEnv:$SetGitHubEnv
+        $version = New-Version -CommitHash $GitSha
         Write-Host "Version: $version"
 
         Write-Host "Generating license..."
@@ -1856,17 +1833,13 @@ function Invoke-CIPipeline {
         The build configuration to use.
     .PARAMETER Push
         Whether to push changes to the remote repository.
-    .PARAMETER SetGitHubEnv
-        Whether to set GitHub environment variables.
     #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
         [PSCustomObject]$BuildConfiguration,
         [Parameter()]
-        [bool]$Push = $false,
-        [Parameter()]
-        [bool]$SetGitHubEnv = $false
+        [bool]$Push = $false
     )
 
     try {
@@ -1888,8 +1861,7 @@ function Invoke-CIPipeline {
             -GitHubRepo $config.GitHubRepo `
             -Authors $config.Authors `
             -CommitMessage $config.CommitMessage `
-            -Push $Push `
-            -SetGitHubEnv $SetGitHubEnv
+            -Push $Push
 
         if ($null -eq $metadata) {
             Write-Error "Metadata update returned null"
@@ -1910,11 +1882,6 @@ function Invoke-CIPipeline {
         # If there are no changes to commit, that's okay - we'll just continue with the build
         if ($metadata.NoChanges) {
             Write-Host "No metadata changes to commit" -ForegroundColor Yellow
-            if ($SetGitHubEnv) {
-                Set-GithubEnv -Name "should_release" -Value "false"
-                Set-GithubEnv -Name "version" -Value $metadata.Version
-                Set-GithubEnv -Name "release_hash" -Value $metadata.ReleaseHash
-            }
             return [PSCustomObject]@{
                 Success = $true
                 Version = $metadata.Version
@@ -1934,12 +1901,6 @@ function Invoke-CIPipeline {
         }
 
         Write-Host "CI/CD pipeline completed successfully" -ForegroundColor Green
-        if ($SetGitHubEnv) {
-            Set-GithubEnv -Name "should_release" -Value "true"
-            Set-GithubEnv -Name "version" -Value $metadata.Version
-            Set-GithubEnv -Name "release_hash" -Value $metadata.ReleaseHash
-        }
-
         return [PSCustomObject]@{
             Success = $true
             Version = $metadata.Version
