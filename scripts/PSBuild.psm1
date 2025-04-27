@@ -836,7 +836,7 @@ function Update-ProjectMetadata {
         [Parameter(Mandatory=$true)]
         [string]$GitSha,
         [Parameter(Mandatory=$true)]
-        [string]$ServerUrl = "https://github.com",
+        [string]$ServerUrl,
         [Parameter(Mandatory=$true)]
         [string]$GitHubOwner,
         [Parameter(Mandatory=$true)]
@@ -1671,6 +1671,7 @@ function Invoke-CIPipeline {
         [string]$ExpectedOwner = "ktsu-dev"
     )
 
+    Set-PSDebug -Trace 1
     Write-StepHeader "Starting CI/CD Pipeline"
     Write-Host "Repository: $Owner/$Repository"
     Write-Host "Git Reference: $GitRef"
