@@ -1311,7 +1311,7 @@ function Invoke-DotNetPublish {
         New-Item -Path $outDir -ItemType Directory -Force | Out-Null
 
         # Publish application - stream output directly
-        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$($BuildConfiguration.DotnetVersion) --output $outDir /p:ConsoleLoggerParameters="NoSummary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" | ForEach-Object {
+        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$($BuildConfiguration.DotnetVersion) --output $outDir  -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" | ForEach-Object {
             Write-Host $_
         }
 
