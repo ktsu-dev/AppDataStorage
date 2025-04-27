@@ -113,6 +113,7 @@ While `Invoke-CIPipeline` handles most use cases, these individual functions are
 - `Write-StepHeader`: Creates formatted step headers in logs
 - `Test-AnyFiles`: Tests for existence of files matching a pattern
 - `Get-GitLineEnding`: Determines correct line endings based on git config
+- `Set-GitIdentity`: Configures git user identity for automated operations
 
 ## Line Ending Handling
 
