@@ -526,22 +526,29 @@ function New-Version {
     # Get complete version information object
     $versionInfo = Get-VersionInfoFromGit -CommitHash $CommitHash
 
-    # Write version file
+    # Get the correct line ending
+    $lineEnding = Get-GitLineEnding
+
+    # Write version file with correct line ending
     $filePath = if ($OutputPath) { Join-Path $OutputPath "VERSION.md" } else { "VERSION.md" }
-    $versionInfo.Data.Version | Out-File -FilePath $filePath -Encoding utf8 -NoNewline
+    [System.IO.File]::WriteAllText($filePath, $versionInfo.Data.Version + $lineEnding, [System.Text.UTF8Encoding]::new($false))
 
     # Set GitHub environment variables if needed
     if ($SetGitHubEnv -and $env:GITHUB_ENV) {
-        "VERSION=$($versionInfo.Data.Version)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_VERSION=$($versionInfo.Data.LastVersion)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_VERSION_MAJOR=$($versionInfo.Data.LastVersionMajor)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_VERSION_MINOR=$($versionInfo.Data.LastVersionMinor)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_VERSION_PATCH=$($versionInfo.Data.LastVersionPatch)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_VERSION_PRERELEASE=$($versionInfo.Data.LastVersionPrereleaseNumber)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "IS_PRERELEASE=$($versionInfo.Data.IsPrerelease)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "VERSION_INCREMENT=$($versionInfo.Data.VersionIncrement)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "FIRST_COMMIT=$($versionInfo.Data.FirstCommit)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        "LAST_COMMIT=$($versionInfo.Data.LastCommit)" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        $envContent = @(
+            "VERSION=$($versionInfo.Data.Version)",
+            "LAST_VERSION=$($versionInfo.Data.LastVersion)",
+            "LAST_VERSION_MAJOR=$($versionInfo.Data.LastVersionMajor)",
+            "LAST_VERSION_MINOR=$($versionInfo.Data.LastVersionMinor)",
+            "LAST_VERSION_PATCH=$($versionInfo.Data.LastVersionPatch)",
+            "LAST_VERSION_PRERELEASE=$($versionInfo.Data.LastVersionPrereleaseNumber)",
+            "IS_PRERELEASE=$($versionInfo.Data.IsPrerelease)",
+            "VERSION_INCREMENT=$($versionInfo.Data.VersionIncrement)",
+            "FIRST_COMMIT=$($versionInfo.Data.FirstCommit)",
+            "LAST_COMMIT=$($versionInfo.Data.LastCommit)"
+        ) -join $lineEnding
+
+        [System.IO.File]::WriteAllText($Env:GITHUB_ENV, $envContent + $lineEnding, [System.Text.UTF8Encoding]::new($false))
     }
 
     Write-Verbose "Previous version: $($versionInfo.Data.LastVersion), New version: $($versionInfo.Data.Version)"
@@ -584,6 +591,7 @@ function New-License {
 
     $year = (Get-Date).Year
     $content = Get-Content $script:LICENSE_TEMPLATE -Raw
+    $lineEnding = Get-GitLineEnding
 
     # Project URL
     $projectUrl = "$ServerUrl/$Owner/$Repository"
@@ -593,11 +601,15 @@ function New-License {
     $copyright = "Copyright (c) 2023-$year $Owner"
     $content = $content.Replace('{COPYRIGHT}', $copyright)
 
+    # Normalize line endings
+    $content = $content.Replace("`r`n", "`n").Replace("`r", "`n")
+    $content = $content.Replace("`n", $lineEnding)
+
     $copyrightFilePath = if ($OutputPath) { Join-Path $OutputPath "COPYRIGHT.md" } else { "COPYRIGHT.md" }
-    $copyright | Out-File -FilePath $copyrightFilePath -Encoding utf8
+    [System.IO.File]::WriteAllText($copyrightFilePath, $copyright + $lineEnding, [System.Text.UTF8Encoding]::new($false))
 
     $filePath = if ($OutputPath) { Join-Path $OutputPath "LICENSE.md" } else { "LICENSE.md" }
-    $content | Out-File -FilePath $filePath -Encoding utf8
+    [System.IO.File]::WriteAllText($filePath, $content, [System.Text.UTF8Encoding]::new($false))
 }
 
 #endregion
@@ -881,9 +893,17 @@ function New-Changelog {
         }
     }
 
+    # Get the correct line ending
+    $lineEnding = Get-GitLineEnding
+
     # Write changelog to file
     $filePath = if ($OutputPath) { Join-Path $OutputPath "CHANGELOG.md" } else { "CHANGELOG.md" }
-    $changelog | Out-File -FilePath $filePath -Encoding utf8
+
+    # Normalize line endings in changelog content
+    $changelog = $changelog.Replace("`r`n", "`n").Replace("`r", "`n")
+    $changelog = $changelog.Replace("`n", $lineEnding)
+
+    [System.IO.File]::WriteAllText($filePath, $changelog, [System.Text.UTF8Encoding]::new($false))
 
     Write-Host "Changelog generated with entries for $(@($tags).Count + 1) versions"
     return $changelog
@@ -957,6 +977,9 @@ function Update-ProjectMetadata {
         New-License -ServerUrl $ServerUrl -Owner $GitHubOwner -Repository $GitHubRepo
         Write-Host "Generated LICENSE.md file"
 
+        # Get the correct line ending
+        $lineEnding = Get-GitLineEnding
+
         # 3. Generate AUTHORS.md only if it doesn't already exist
         if (-not (Test-Path "AUTHORS.md")) {
             if (-not $Authors -or $Authors.Count -eq 0) {
@@ -967,18 +990,18 @@ function Update-ProjectMetadata {
                 }
                 $Authors = $output
             }
-            $authorsList = $Authors -join "`n"
-            $authorsList | Out-File -FilePath "AUTHORS.md" -Encoding utf8
+            $authorsList = $Authors -join $lineEnding
+            [System.IO.File]::WriteAllText("AUTHORS.md", $authorsList + $lineEnding, [System.Text.UTF8Encoding]::new($false))
             Write-Host "Generated AUTHORS.md file"
         } else {
             Write-Host "Preserving existing AUTHORS.md file"
         }
 
         # 4. URL files - always generate
-        "$ServerUrl/$GitHubOwner/$GitHubRepo" | Out-File -FilePath "PROJECT_URL.url" -Encoding utf8
+        [System.IO.File]::WriteAllText("PROJECT_URL.url", "$ServerUrl/$GitHubOwner/$GitHubRepo" + $lineEnding, [System.Text.UTF8Encoding]::new($false))
         Write-Host "Generated PROJECT_URL.url file"
 
-        "$ServerUrl/$GitHubOwner" | Out-File -FilePath "AUTHORS.url" -Encoding utf8
+        [System.IO.File]::WriteAllText("AUTHORS.url", "$ServerUrl/$GitHubOwner" + $lineEnding, [System.Text.UTF8Encoding]::new($false))
         Write-Host "Generated AUTHORS.url file"
 
         # 5. Always generate CHANGELOG.md
@@ -991,6 +1014,7 @@ function Update-ProjectMetadata {
             "LICENSE.md",
             "AUTHORS.md",
             "CHANGELOG.md",
+            "COPYRIGHT.md",
             "PROJECT_URL.url",
             "AUTHORS.url"
         ) | Where-Object { Test-Path $_ }
@@ -1580,6 +1604,47 @@ function Test-AnyFiles {
     # Use array subexpression to ensure consistent collection handling
     $matchingFiles = @(Get-Item -Path $Pattern -ErrorAction SilentlyContinue)
     return $matchingFiles.Count -gt 0
+}
+
+# Add this helper function in the Utility Functions region
+function Get-GitLineEnding {
+    <#
+    .SYNOPSIS
+        Gets the correct line ending based on git config.
+    .DESCRIPTION
+        Determines whether to use LF or CRLF based on the git core.autocrlf setting
+        and the current operating system.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param()
+
+    $autocrlf = git config --get core.autocrlf 2>&1
+    $eol = git config --get core.eol 2>&1
+
+    # If core.eol is set, use that
+    if ($LASTEXITCODE -eq 0 -and $eol -in @('lf', 'crlf')) {
+        return if ($eol -eq 'lf') { "`n" } else { "`r`n" }
+    }
+
+    # Otherwise use autocrlf setting
+    if ($LASTEXITCODE -eq 0) {
+        switch ($autocrlf.ToLower()) {
+            'true' { return "`n" }  # Git will convert to CRLF on checkout
+            'input' { return "`n" } # Always use LF
+            'false' {
+                # Use OS default
+                return [System.Environment]::NewLine
+            }
+            default {
+                # Default to OS line ending if setting is not recognized
+                return [System.Environment]::NewLine
+            }
+        }
+    }
+
+    # If git config fails or no setting found, use OS default
+    return [System.Environment]::NewLine
 }
 
 #endregion
