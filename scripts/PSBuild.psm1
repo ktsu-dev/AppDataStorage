@@ -1406,13 +1406,6 @@ function New-GitHubRelease {
         }
     }
 
-    # Build asset arguments
-    $assetArgs = @()
-    foreach ($asset in $assets) {
-        $assetArgs += "--assets"
-        $assetArgs += $asset
-    }
-
     # Create release
     Write-StepHeader "Creating GitHub Release v$Version"
 
@@ -1431,7 +1424,11 @@ function New-GitHubRelease {
         $releaseArgs += $ChangelogFile
     }
 
-    $releaseArgs += $assetArgs
+    # Add each asset individually
+    foreach ($asset in $assets) {
+        $releaseArgs += "-a"
+        $releaseArgs += $asset
+    }
 
     Write-Host "Running: gh $($releaseArgs -join ' ')"
     & gh @releaseArgs
