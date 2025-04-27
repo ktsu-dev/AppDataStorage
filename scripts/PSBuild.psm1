@@ -39,6 +39,7 @@ function Get-BuildConfiguration {
         Gets the build configuration based on Git status and environment.
     .DESCRIPTION
         Determines if this is a release build, checks Git status, and sets up build paths.
+        Returns a configuration object containing all necessary build settings and paths.
     .PARAMETER ServerUrl
         The server URL to use for the build.
     .PARAMETER GitRef
@@ -50,13 +51,19 @@ function Get-BuildConfiguration {
     .PARAMETER GitHubRepo
         The GitHub repository name.
     .PARAMETER GithubToken
-        Optional GitHub token for API operations.
+        The GitHub token for API operations.
     .PARAMETER NuGetApiKey
-        Optional NuGet API key for package publishing.
+        The NuGet API key for package publishing.
     .PARAMETER WorkspacePath
         The path to the workspace/repository root.
     .PARAMETER ExpectedOwner
         The expected owner/organization of the official repository.
+    .PARAMETER ChangelogFile
+        The path to the changelog file.
+    .PARAMETER AssetPatterns
+        Array of glob patterns for release assets.
+    .OUTPUTS
+        PSCustomObject containing build configuration data with Success, Error, and Data properties.
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -1259,16 +1266,14 @@ function Invoke-DotNetPublish {
         Publishes .NET applications.
     .DESCRIPTION
         Runs dotnet publish and creates zip archives for applications.
+        Uses the build configuration to determine output paths and version information.
     .PARAMETER Configuration
-        The build configuration (Debug/Release).
-    .PARAMETER OutputPath
-        The path to output applications to.
-    .PARAMETER StagingPath
-        The path to stage zip files in.
-    .PARAMETER Version
-        The version number for the zip files.
-    .PARAMETER DotnetVersion
-        The .NET version to target.
+        The build configuration (Debug/Release). Defaults to "Release".
+    .PARAMETER BuildConfiguration
+        The build configuration object containing output paths, version, and other settings.
+        This object should be obtained from Get-BuildConfiguration.
+    .OUTPUTS
+        None. Creates published applications and zip archives in the specified output paths.
     #>
     [CmdletBinding()]
     param (
@@ -1337,19 +1342,13 @@ function Invoke-NuGetPublish {
     .SYNOPSIS
         Publishes NuGet packages.
     .DESCRIPTION
-        Publishes packages to GitHub Packages and/or NuGet.org.
-    .PARAMETER PackagePattern
-        The glob pattern to find packages.
-    .PARAMETER GithubToken
-        The GitHub token for authentication.
-    .PARAMETER GithubOwner
-        The GitHub owner/organization.
-    .PARAMETER NuGetApiKey
-        Optional NuGet.org API key.
-    .PARAMETER SkipGithub
-        Skip publishing to GitHub Packages.
-    .PARAMETER SkipNuGet
-        Skip publishing to NuGet.org.
+        Publishes packages to GitHub Packages and NuGet.org.
+        Uses the build configuration to determine package paths and authentication details.
+    .PARAMETER BuildConfiguration
+        The build configuration object containing package patterns, GitHub token, and NuGet API key.
+        This object should be obtained from Get-BuildConfiguration.
+    .OUTPUTS
+        None. Publishes packages to the configured package repositories.
     #>
     [CmdletBinding()]
     param (
@@ -1390,6 +1389,18 @@ function Invoke-NuGetPublish {
 }
 
 function New-GitHubRelease {
+    <#
+    .SYNOPSIS
+        Creates a new GitHub release.
+    .DESCRIPTION
+        Creates a new GitHub release with the specified version, creates and pushes a git tag,
+        and uploads release assets. Uses the GitHub CLI (gh) for release creation.
+    .PARAMETER BuildConfiguration
+        The build configuration object containing version, commit hash, GitHub token, and asset patterns.
+        This object should be obtained from Get-BuildConfiguration.
+    .OUTPUTS
+        None. Creates a GitHub release and uploads specified assets.
+    #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
@@ -1546,8 +1557,15 @@ function Get-GitLineEnding {
     .SYNOPSIS
         Gets the correct line ending based on git config.
     .DESCRIPTION
-        Determines whether to use LF or CRLF based on the git core.autocrlf setting
-        and the current operating system.
+        Determines whether to use LF or CRLF based on the git core.autocrlf and core.eol settings.
+        Falls back to system default line ending if no git settings are found.
+    .OUTPUTS
+        String. Returns either "`n" for LF or "`r`n" for CRLF line endings.
+    .NOTES
+        The function checks git settings in the following order:
+        1. core.eol setting (if set to 'lf' or 'crlf')
+        2. core.autocrlf setting ('true', 'input', or 'false')
+        3. System default line ending
     #>
     [CmdletBinding()]
     [OutputType([string])]
@@ -1717,7 +1735,7 @@ function Invoke-ReleaseWorkflow {
         if ($packages.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($NuGetApiKey)) {
             Write-StepHeader "Publishing NuGet Packages"
             try {
-                Invoke-NuGetPublish -PackagePattern $BuildConfiguration.PackagePattern -GithubToken $BuildConfiguration.GithubToken -GithubOwner $BuildConfiguration.GitHubOwner -NuGetApiKey $NuGetApiKey
+                Invoke-NuGetPublish -BuildConfiguration $BuildConfiguration
             }
             catch {
                 Write-Host "NuGet package publishing failed: $_"
@@ -1728,7 +1746,7 @@ function Invoke-ReleaseWorkflow {
         # Create GitHub release
         Write-StepHeader "Creating GitHub Release"
         Write-Host "Creating release for version $($BuildConfiguration.Version)..."
-        New-GitHubRelease -Version $BuildConfiguration.Version -CommitHash $BuildConfiguration.ReleaseHash -GithubToken $BuildConfiguration.GithubToken -AssetPatterns $packagePaths
+        New-GitHubRelease -BuildConfiguration $BuildConfiguration
 
         Write-StepHeader "Release Process Completed"
         Write-Host "Release process completed successfully!" -ForegroundColor Green
