@@ -9,6 +9,7 @@ Changes since v1.7.0:
 - Enhance Invoke-DotNetBuild function with improved logging and error handling. Added explicit logger parameters for CI output, implemented a retry mechanism with detailed verbosity on build failures, and included checks for project files to assist in diagnosing build issues. This update aims to streamline the build process and provide clearer feedback during CI/CD operations. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Enhance Invoke-DotNetPack and Invoke-ReleaseWorkflow functions to support project-specific packaging and improved error handling. Added parameters for verbosity and project selection, along with checks for project existence before packaging. Updated release workflow to conditionally skip packaging and improved logging for package creation and publishing steps. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Enhance PSBuild module with improved version analysis and logging. Updated Get-VersionType function to provide detailed reasoning for version increments based on commit analysis. Enhanced output for version information retrieval and streamlined command execution in various functions for better visibility during CI/CD processes. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance version tag retrieval in PSBuild module by adding logic to find the closest lower version if an exact match is not found. Improve changelog generation to skip already processed tags and ensure only valid version tags are included. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Improved handling of .csx file detection and enhanced tag retrieval logic to ensure proper array handling. Updated changelog generation to accommodate various tag scenarios, ensuring robust versioning checks. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Readd icon ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor .NET CI workflow and introduce PSBuild module for enhanced build automation. Updated GitHub Actions to streamline build, test, and release processes, including improved job naming, permissions, and environment variable management. Removed outdated PowerShell scripts for metadata handling and version management, replacing them with a comprehensive PSBuild module that supports semantic versioning, license generation, and CI/CD integration. ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -163,8 +164,10 @@ Changes since v1.3.14:
 
 ## v1.3.14 (System.Collections.Hashtable)
 
-Changes since v1.3.13-pre.1:
+Changes since v1.3.12-pre.1:
 
+- Fix regex for bot commit exclusion patterns in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor bot commit exclusion patterns in dotnet workflow for case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor bot commit exclusion patterns in dotnet workflow for improved clarity and case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v1.3.5 (System.Collections.Hashtable)
