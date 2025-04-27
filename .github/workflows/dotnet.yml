@@ -61,6 +61,7 @@ jobs:
 
         # Get build configuration
         $buildConfig = Get-BuildConfiguration `
+          -ServerUrl "${{ github.server_url }}" `
           -GitRef "${{ github.ref }}" `
           -GitSha "${{ github.sha }}" `
           -WorkspacePath "${{ github.workspace }}" `
