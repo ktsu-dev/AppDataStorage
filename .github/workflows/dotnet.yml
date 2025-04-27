@@ -69,7 +69,9 @@ jobs:
           -WorkspacePath "${{ github.workspace }}" `
           -GithubToken "${{ github.token }}" `
           -NuGetApiKey "${{ secrets.NUGET_KEY }}" `
-          -ExpectedOwner "ktsu-dev"
+          -ExpectedOwner "ktsu-dev" `
+          -ChangelogFile "CHANGELOG.md" `
+          -AssetPatterns "*.nupkg"
 
         if (-not $buildConfig.Success) {
             throw $buildConfig.Error
