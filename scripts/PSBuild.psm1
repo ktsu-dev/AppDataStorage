@@ -47,6 +47,8 @@ function Get-BuildConfiguration {
         The path to the workspace/repository root.
     .PARAMETER GithubToken
         Optional GitHub token for API operations.
+    .PARAMETER NuGetApiKey
+        Optional NuGet API key for package publishing.
     .PARAMETER ExpectedOwner
         The expected owner/organization of the official repository.
     #>
@@ -60,9 +62,17 @@ function Get-BuildConfiguration {
         [Parameter(Mandatory=$true)]
         [string]$GitSha,
         [Parameter(Mandatory=$true)]
-        [string]$WorkspacePath,
+        [string]$GitHubOwner,
+        [Parameter(Mandatory=$true)]
+        [string]$GitHubRepo,
+        [Parameter(Mandatory=$true)]
         [string]$GithubToken,
-        [string]$ExpectedOwner = "ktsu-dev"
+        [Parameter(Mandatory=$true)]
+        [string]$NuGetApiKey,
+        [Parameter(Mandatory=$true)]
+        [string]$WorkspacePath,
+        [Parameter(Mandatory=$true)]
+        [string]$ExpectedOwner
     )
 
     # Determine if this is an official repo (verify owner and ensure it's not a fork)
@@ -127,7 +137,10 @@ function Get-BuildConfiguration {
             ServerUrl = $ServerUrl
             GitRef = $GitRef
             GitSha = $GitSha
+            GitHubOwner = $GitHubOwner
+            GitHubRepo = $GitHubRepo
             GithubToken = $GithubToken
+            NuGetApiKey = $NuGetApiKey
             ExpectedOwner = $ExpectedOwner
         }
     }
@@ -138,7 +151,11 @@ function Get-BuildConfiguration {
     Write-Host "    Server URL:      $($config.Data.ServerUrl)"
     Write-Host "    Git Ref:         $($config.Data.GitRef)"
     Write-Host "    Git Sha:         $($config.Data.GitSha)"
+    Write-Host "    GitHub Owner:    $($config.Data.GitHubOwner)"
+    Write-Host "    GitHub Repo:     $($config.Data.GitHubRepo)"
     Write-Host "    Github Token:    $($config.Data.GithubToken)"
+    Write-Host "    NuGet Api Key:   $($config.Data.NuGetApiKey)"
+    Write-Host "    Workspace Path:  $($config.Data.WorkspacePath)"
     Write-Host "    Expected Owner:  $($config.Data.ExpectedOwner)"
     Write-Host "    Is Official Repo: $($config.Data.IsOfficial)"
     Write-Host "    Is Main Branch:  $($config.Data.IsMain)"
@@ -918,9 +935,7 @@ function Update-ProjectMetadata {
         [Parameter(Mandatory = $false)]
         [string[]]$Authors = @(),
         [Parameter(Mandatory = $false)]
-        [string]$CommitMessage = "[bot][skip ci] Update Metadata",
-        [Parameter(Mandatory = $false)]
-        [switch]$Push
+        [string]$CommitMessage = "[bot][skip ci] Update Metadata"
     )
 
     try {
@@ -994,12 +1009,10 @@ function Update-ProjectMetadata {
             Write-Host "Commit output: $commitOutput"
             Write-Host ""
 
-            if ($Push) {
-                Write-Host "Pushing changes..."
-                $pushOutput = git push 2>&1
-                Write-Host "Push output: $pushOutput"
-                Write-Host ""
-            }
+            Write-Host "Pushing changes..."
+            $pushOutput = git push 2>&1
+            Write-Host "Push output: $pushOutput"
+            Write-Host ""
 
             Write-Host "Getting release hash..."
             $releaseHash = git rev-parse HEAD
@@ -1621,7 +1634,7 @@ function Invoke-BuildWorkflow {
         The build configuration (Debug/Release).
     .PARAMETER BuildArgs
         Additional build arguments.
-    .PARAMETER BuildConfig
+    .PARAMETER BuildConfiguration
         The build configuration object from Get-BuildConfiguration.
     #>
     [CmdletBinding()]
@@ -1629,7 +1642,7 @@ function Invoke-BuildWorkflow {
         [string]$Configuration = "Release",
         [string]$BuildArgs = "",
         [Parameter(Mandatory=$true)]
-        [PSCustomObject]$BuildConfig
+        [PSCustomObject]$BuildConfiguration
     )
 
     try {
@@ -1637,7 +1650,7 @@ function Invoke-BuildWorkflow {
         Initialize-BuildEnvironment
 
         # Install dotnet-script if needed
-        if ($BuildConfig.Data.UseDotnetScript) {
+        if ($BuildConfiguration.UseDotnetScript) {
             Write-StepHeader "Installing dotnet-script"
             dotnet tool install -g dotnet-script
             Assert-LastExitCode "Failed to install dotnet-script"
@@ -1673,113 +1686,72 @@ function Invoke-ReleaseWorkflow {
         Executes the release workflow.
     .DESCRIPTION
         Generates metadata, packages, and creates a release.
-    .PARAMETER GitSha
-        The Git commit SHA being released.
-    .PARAMETER ServerUrl
-        The GitHub server URL.
-    .PARAMETER Owner
-        The repository owner/organization.
-    .PARAMETER Repository
-        The repository name.
-    .PARAMETER Configuration
-        The build configuration (Debug/Release).
-    .PARAMETER BuildConfig
+    .PARAMETER BuildConfiguration
         The build configuration object from Get-BuildConfiguration.
-    .PARAMETER GithubToken
-        The GitHub token for authentication.
-    .PARAMETER NuGetApiKey
-        Optional NuGet.org API key.
-    .PARAMETER SkipPackages
-        If set to true, skips NuGet package generation and publishing. Default is false.
-    .PARAMETER Version
-        The version number for the release.
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
-        [string]$GitSha,
-        [Parameter(Mandatory=$true)]
-        [string]$ServerUrl,
-        [Parameter(Mandatory=$true)]
-        [string]$Owner,
-        [Parameter(Mandatory=$true)]
-        [string]$Repository,
         [string]$Configuration = "Release",
         [Parameter(Mandatory=$true)]
-        [PSCustomObject]$BuildConfig,
-        [Parameter(Mandatory=$true)]
-        [string]$GithubToken,
-        [string]$NuGetApiKey,
-        [switch]$SkipPackages = $false,
-        [Parameter(Mandatory=$true)]
-        [string]$Version
+        [PSCustomObject]$BuildConfiguration
     )
 
     try {
         Write-StepHeader "Starting Release Process"
 
-        # Check if we have any project files before attempting to package
-        $hasProjects = (Get-ChildItem -Path "*.csproj" -Recurse -ErrorAction SilentlyContinue).Count -gt 0
-
-        if (-not $hasProjects) {
-            Write-Warning "No .NET projects found in repository. Skipping packaging steps."
-            $SkipPackages = $true
-        }
-
         # Package and publish if not skipped
         $packagePaths = @()
-        if (-not $SkipPackages) {
-            # Create NuGet packages
-            try {
+
+        # Create NuGet packages
+        try {
                 Write-StepHeader "Packaging Libraries"
-                Invoke-DotNetPack -Configuration $Configuration -OutputPath $BuildConfig.Data.StagingPath
+                Invoke-DotNetPack -Configuration $Configuration -OutputPath $BuildConfiguration.StagingPath
 
-                # Add package paths if they exist
-                if (Test-Path $BuildConfig.Data.PackagePattern) {
-                    $packagePaths += $BuildConfig.Data.PackagePattern
-                }
-                if (Test-Path $BuildConfig.Data.SymbolsPattern) {
-                    $packagePaths += $BuildConfig.Data.SymbolsPattern
-                }
+            # Add package paths if they exist
+            if (Test-Path $BuildConfiguration.PackagePattern) {
+                $packagePaths += $BuildConfiguration.PackagePattern
             }
-            catch {
-                Write-Warning "Library packaging failed: $_"
-                Write-Warning "Continuing with release process without NuGet packages."
+            if (Test-Path $BuildConfiguration.SymbolsPattern) {
+                $packagePaths += $BuildConfiguration.SymbolsPattern
             }
+        }
+        catch {
+            Write-Warning "Library packaging failed: $_"
+            Write-Warning "Continuing with release process without NuGet packages."
+        }
 
-            # Create application packages
+        # Create application packages
+        try {
+            Write-StepHeader "Publishing Applications"
+            Invoke-DotNetPublish -Configuration $Configuration -OutputPath $BuildConfiguration.OutputPath -StagingPath $BuildConfiguration.StagingPath -Version $Version -DotnetVersion $BuildConfiguration.DotnetVersion
+
+            # Add application paths if they exist
+            if (Test-Path $BuildConfiguration.ApplicationPattern) {
+                $packagePaths += $BuildConfiguration.ApplicationPattern
+            }
+        }
+        catch {
+            Write-Warning "Application publishing failed: $_"
+            Write-Warning "Continuing with release process without application packages."
+        }
+
+        # Publish packages if we have any and NuGet key is provided
+        $packages = @(Get-Item -Path $BuildConfiguration.PackagePattern -ErrorAction SilentlyContinue)
+        if ($packages.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($NuGetApiKey)) {
+            Write-StepHeader "Publishing NuGet Packages"
             try {
-                Write-StepHeader "Publishing Applications"
-                Invoke-DotNetPublish -Configuration $Configuration -OutputPath $BuildConfig.Data.OutputPath -StagingPath $BuildConfig.Data.StagingPath -Version $Version -DotnetVersion $BuildConfig.Data.DotnetVersion
-
-                # Add application paths if they exist
-                if (Test-Path $BuildConfig.Data.ApplicationPattern) {
-                    $packagePaths += $BuildConfig.Data.ApplicationPattern
-                }
+                Invoke-NuGetPublish -PackagePattern $BuildConfiguration.PackagePattern -GithubToken $BuildConfiguration.GithubToken -GithubOwner $BuildConfiguration.GitHubOwner -NuGetApiKey $NuGetApiKey
             }
             catch {
-                Write-Warning "Application publishing failed: $_"
-                Write-Warning "Continuing with release process without application packages."
-            }
-
-            # Publish packages if we have any and NuGet key is provided
-            $packages = @(Get-Item -Path $BuildConfig.Data.PackagePattern -ErrorAction SilentlyContinue)
-            if ($packages.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($NuGetApiKey)) {
-                Write-StepHeader "Publishing NuGet Packages"
-                try {
-                    Invoke-NuGetPublish -PackagePattern $BuildConfig.Data.PackagePattern -GithubToken $GithubToken -GithubOwner $Owner -NuGetApiKey $NuGetApiKey
-                }
-                catch {
-                    Write-Warning "NuGet package publishing failed: $_"
-                    Write-Warning "Continuing with release process."
-                }
+                Write-Warning "NuGet package publishing failed: $_"
+                Write-Warning "Continuing with release process."
             }
         }
 
         # Create GitHub release
         Write-StepHeader "Creating GitHub Release"
-        Write-Host "Creating release for version $Version..."
-        New-GitHubRelease -Version $Version -CommitHash $GitSha -GithubToken $GithubToken -AssetPatterns $packagePaths
+        Write-Host "Creating release for version ${BuildConfiguration.Version}..."
+        New-GitHubRelease -Version $BuildConfiguration.Version -CommitHash $BuildConfiguration.ReleaseHash -GithubToken $BuildConfiguration.GithubToken -AssetPatterns $packagePaths
 
         Write-StepHeader "Release Process Completed"
         Write-Host "Release process completed successfully!" -ForegroundColor Green
@@ -1787,8 +1759,8 @@ function Invoke-ReleaseWorkflow {
             Success = $true
             Error = ""
             Data = @{
-                Version = $Version
-                ReleaseHash = $GitSha
+                Version = $BuildConfiguration.Version
+                ReleaseHash = $BuildConfiguration.ReleaseHash
                 PackagePaths = $packagePaths
             }
         }
@@ -1811,21 +1783,16 @@ function Invoke-CIPipeline {
         Executes the CI/CD pipeline, including metadata updates and build workflow.
     .PARAMETER BuildConfiguration
         The build configuration to use.
-    .PARAMETER Push
-        Whether to push changes to the remote repository.
     #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [PSCustomObject]$BuildConfiguration,
-        [Parameter()]
-        [bool]$Push = $false
+        [PSCustomObject]$BuildConfiguration
     )
 
     try {
         Write-Host "Configuring build..." -ForegroundColor Cyan
-        $config = $BuildConfiguration
-        if (-not $config) {
+        if (-not $BuildConfiguration) {
             Write-Error "Failed to configure build"
             return [PSCustomObject]@{
                 Success = $false
@@ -1835,13 +1802,7 @@ function Invoke-CIPipeline {
 
         Write-Host "Updating metadata..." -ForegroundColor Cyan
         $metadata = Update-ProjectMetadata `
-            -GitSha $config.GitSha `
-            -ServerUrl $config.ServerUrl `
-            -GitHubOwner $config.GitHubOwner `
-            -GitHubRepo $config.GitHubRepo `
-            -Authors $config.Authors `
-            -CommitMessage $config.CommitMessage `
-            -Push $Push
+            -BuildConfiguration $BuildConfiguration
 
         if ($null -eq $metadata) {
             Write-Error "Metadata update returned null"
@@ -1859,24 +1820,23 @@ function Invoke-CIPipeline {
             }
         }
 
-        # If there are no changes to commit, that's okay - we'll just continue with the build
-        if ($metadata.NoChanges) {
-            Write-Host "No metadata changes to commit" -ForegroundColor Yellow
-            return [PSCustomObject]@{
-                Success = $true
-                Version = $metadata.Version
-                ReleaseHash = $metadata.ReleaseHash
-                NoChanges = $true
-            }
-        }
-
         Write-Host "Running build workflow..." -ForegroundColor Cyan
-        $result = Invoke-BuildWorkflow -BuildConfiguration $config
+        $result = Invoke-BuildWorkflow -BuildConfiguration $BuildConfiguration
         if (-not $result.Success) {
             Write-Error "Build workflow failed: $($result.Error)"
             return [PSCustomObject]@{
                 Success = $false
                 Error = "Build workflow failed: $($result.Error)"
+            }
+        }
+
+        Write-Host "Running release workflow..." -ForegroundColor Cyan
+        $result = Invoke-ReleaseWorkflow -BuildConfiguration $BuildConfiguration
+        if (-not $result.Success) {
+            Write-Error "Release workflow failed: $($result.Error)"
+            return [PSCustomObject]@{
+                Success = $false
+                Error = "Release workflow failed: $($result.Error)"
             }
         }
 
