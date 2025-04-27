@@ -5,10 +5,7 @@
 #
 # A comprehensive PowerShell module for automating the build, test, package,
 # and release process for .NET applications using Git-based versioning.
-#
-# Usage:
-#   Import-Module ./PSBuild.psm1
-#   $result = Invoke-CIPipeline -GitRef "refs/heads/main" -GitSha "abc123" -WorkspacePath "." -ServerUrl "https://github.com" -Owner "myorg" -Repository "myrepo" -GithubToken $env:GITHUB_TOKEN
+# See README.md for detailed documentation and usage examples.
 
 #region Module Variables
 $script:DOTNET_VERSION = '9.0'

@@ -1,146 +1,164 @@
-# PSBuild PowerShell Module
+# PSBuild Module
 
-A comprehensive PowerShell module for building, testing, packaging, and releasing .NET applications.
+A comprehensive PowerShell module for automating the build, test, package, and release process for .NET applications using Git-based versioning.
 
 ## Features
 
-- Environment setup and configuration
-- Semantic versioning with Git history analysis
-- License and changelog generation
-- Automated metadata management
-- Build, test, and package .NET applications
-- NuGet package publishing
-- GitHub release creation
-- Complete CI/CD pipeline
+- Semantic versioning based on git history and commit messages
+- Automatic version calculation from commit analysis
+- Metadata file generation and management
+- Comprehensive build, test, and package pipeline
+- NuGet package creation and publishing
+- GitHub release creation with assets
+- Proper line ending handling based on git config
 
-## Usage
+## Installation
 
-### Basic Usage
+1. Copy the `PSBuild.psm1` file to your project's `scripts` directory
+2. Import the module in your PowerShell session:
+   ```powershell
+   Import-Module ./scripts/PSBuild.psm1
+   ```
 
-```powershell
-# Import the module
-Import-Module ./PSBuild.psm1
-
-# Initialize the build environment
-Initialize-BuildEnvironment
-
-# Get the build configuration
-$config = Get-BuildConfiguration -GitRef "refs/heads/main" -GitSha "abc123" -WorkspacePath "C:/projects/myapp" -GithubToken $env:GITHUB_TOKEN
-
-# Run the build workflow
-Invoke-BuildWorkflow -BuildConfig $config
-```
-
-### Version Management
+## Quick Start
 
 ```powershell
-# Get comprehensive version information from Git history
-$versionInfo = Get-VersionInfoFromGit -CommitHash "abc123"
-
-# Access version information
-Write-Host "New version: $($versionInfo.Version)"
-Write-Host "Previous version: $($versionInfo.LastVersion)"
-Write-Host "Version increment type: $($versionInfo.VersionIncrement)"
-
-# Generate version file and set environment variables
-$version = New-Version -CommitHash "abc123"
+$result = Invoke-CIPipeline -GitRef "refs/heads/main" `
+                           -GitSha "abc123" `
+                           -WorkspacePath "." `
+                           -ServerUrl "https://github.com" `
+                           -Owner "myorg" `
+                           -Repository "myrepo" `
+                           -GithubToken $env:GITHUB_TOKEN
 ```
 
-### Metadata Management
+## Managed Files
+
+The module manages several metadata files in your repository:
+
+| File | Description |
+|------|-------------|
+| VERSION.md | Contains the current semantic version |
+| LICENSE.md | MIT license with project URL and copyright |
+| COPYRIGHT.md | Copyright notice with year range and owner |
+| AUTHORS.md | List of contributors from git history |
+| CHANGELOG.md | Auto-generated changelog from git history |
+| PROJECT_URL.url | Link to project repository |
+| AUTHORS.url | Link to organization/owner |
+
+## Version Control
+
+### Version Tags
+
+Commits can include the following tags to control version increments:
+
+| Tag | Description | Example |
+|-----|-------------|---------|
+| [major] | Triggers a major version increment | 2.0.0 |
+| [minor] | Triggers a minor version increment | 1.2.0 |
+| [patch] | Triggers a patch version increment | 1.1.2 |
+| [pre] | Creates/increments pre-release version | 1.1.2-pre.1 |
+
+### Automatic Version Calculation
+
+The module analyzes commit history to determine appropriate version increments:
+
+1. Checks for explicit version tags in commit messages
+2. Analyzes code changes vs. documentation changes
+3. Considers the scope and impact of changes
+4. Maintains semantic versioning principles
+
+## Environment Variables
+
+When running in GitHub Actions, the following environment variables are set:
+
+| Variable | Description |
+|----------|-------------|
+| VERSION | The current version number |
+| LAST_VERSION | The previous version number |
+| LAST_VERSION_MAJOR | Previous major version number |
+| LAST_VERSION_MINOR | Previous minor version number |
+| LAST_VERSION_PATCH | Previous patch version number |
+| LAST_VERSION_PRERELEASE | Previous pre-release number |
+| IS_PRERELEASE | Whether current version is pre-release |
+| VERSION_INCREMENT | Type of version increment performed |
+| FIRST_COMMIT | First commit in analyzed range |
+| LAST_COMMIT | Last commit in analyzed range |
+| RELEASE_HASH | Hash of the metadata commit |
+
+## Main Functions
+
+### Invoke-CIPipeline
+
+The main entry point for CI/CD operations. Handles the complete build, test, package, and release process.
 
 ```powershell
-# Update and commit all metadata files (comprehensive approach)
-$releaseHash = Update-ProjectMetadata `
-  -Version "1.2.3" `
-  -CommitHash "abc123" `
-  -GitHubOwner "myorg" `
-  -GitHubRepo "myrepo" `
-  -ServerUrl "https://github.com"
-
-# Individual metadata operations
-# Create just a license file
-New-License -ServerUrl "https://github.com" -Owner "myorg" -Repository "myrepo"
-
-# Create just a changelog
-New-Changelog -Version "1.2.3" -CommitHash "abc123"
+Invoke-CIPipeline `
+    -GitRef "refs/heads/main" `
+    -GitSha "abc123" `
+    -WorkspacePath "." `
+    -ServerUrl "https://github.com" `
+    -Owner "myorg" `
+    -Repository "myrepo" `
+    -GithubToken $env:GITHUB_TOKEN `
+    -NuGetApiKey $env:NUGET_API_KEY `
+    -Configuration "Release"
 ```
 
-### Complete CI/CD Pipeline
+### Update-ProjectMetadata
+
+Updates and commits project metadata files.
 
 ```powershell
-# Run the entire CI/CD pipeline
-$result = Invoke-CIPipeline `
-  -GitRef "refs/heads/main" `
-  -GitSha "abc123" `
-  -WorkspacePath "C:/projects/myapp" `
-  -ServerUrl "https://github.com" `
-  -Owner "myorg" `
-  -Repository "myrepo" `
-  -GithubToken $env:GITHUB_TOKEN `
-  -NuGetApiKey $env:NUGET_API_KEY
-
-# Check the result
-if ($result.BuildSuccess) {
-    Write-Host "Build successful!"
-    if ($result.ReleaseSuccess) {
-        Write-Host "Release successful! Version: $($result.Version)"
-    }
-}
+Update-ProjectMetadata `
+    -GitSha "abc123" `
+    -ServerUrl "https://github.com" `
+    -GitHubOwner "myorg" `
+    -GitHubRepo "myrepo" `
+    -Push $true
 ```
 
-### Key Functions
+### Invoke-BuildWorkflow
 
-The module provides many individual functions that can be used separately:
+Executes the build and test process.
 
-- **Version Management**
-  - `Get-VersionInfoFromGit` - Gets comprehensive version information based on Git history
-  - `Get-VersionType` - Determines the type of version increment based on commit history
-  - `New-Version` - Generates a version file and sets environment variables
-
-- **Metadata Management**
-  - `Update-ProjectMetadata` - Updates and commits all metadata files
-  - `New-License` - Creates a license file
-  - `New-Changelog` - Generates a changelog from Git commits
-
-- **.NET Operations**
-  - `Invoke-DotNetRestore` - Restores NuGet packages
-  - `Invoke-DotNetBuild` - Builds the .NET solution
-  - `Invoke-DotNetTest` - Runs unit tests with coverage
-  - `Invoke-DotNetPack` - Creates NuGet packages
-  - `Invoke-DotNetPublish` - Publishes applications and creates zip archives
-
-- **Publishing and Release**
-  - `Invoke-NuGetPublish` - Publishes packages to NuGet feeds
-  - `New-GitHubRelease` - Creates a GitHub release
-
-## Workflow Integration
-
-This module can be used in any CI/CD system, including GitHub Actions, by importing it in your PowerShell scripts.
-
-For GitHub Actions, you can use it like this:
-
-```yaml
-- name: Run Build
-  shell: pwsh
-  run: |
-    Import-Module ./scripts/PSBuild.psm1
-
-    # Get build configuration
-    $config = Get-BuildConfiguration -GitRef "${{ github.ref }}" -GitSha "${{ github.sha }}" -WorkspacePath "${{ github.workspace }}" -GithubToken "${{ github.token }}"
-
-    # Run build workflow
-    $buildResult = Invoke-BuildWorkflow -BuildConfig $config
-
-    # Generate version and metadata if releasing
-    if ($config.ShouldRelease) {
-        $versionInfo = Get-VersionInfoFromGit -CommitHash "${{ github.sha }}"
-        $releaseHash = Update-ProjectMetadata -Version $versionInfo.Version -CommitHash "${{ github.sha }}" -GitHubOwner "${{ github.repository_owner }}" -GitHubRepo "${{ github.repository }}"
-    }
+```powershell
+Invoke-BuildWorkflow `
+    -Configuration "Release" `
+    -BuildConfig $buildConfig
 ```
 
-## Requirements
+### Invoke-ReleaseWorkflow
 
-- PowerShell 5.1 or higher
-- .NET SDK
-- Git
-- GitHub CLI (for release creation)
+Handles the release process including package creation and publishing.
+
+```powershell
+Invoke-ReleaseWorkflow `
+    -GitSha "abc123" `
+    -ServerUrl "https://github.com" `
+    -Owner "myorg" `
+    -Repository "myrepo" `
+    -Configuration "Release" `
+    -BuildConfig $buildConfig `
+    -GithubToken $env:GITHUB_TOKEN `
+    -Version "1.0.0"
+```
+
+## Line Ending Handling
+
+The module respects git's line ending settings when generating files:
+
+- Uses git's `core.eol` setting if defined
+- Falls back to `core.autocrlf` setting
+- Defaults to OS-specific line endings if no git settings are found
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes with appropriate version tags
+4. Create a pull request
+
+## License
+
+MIT License - See LICENSE.md for details
