@@ -1412,10 +1412,15 @@ function New-GitHubRelease {
     $releaseArgs = @(
         "release",
         "create",
-        "v$Version",
-        "--target", $CommitHash.ToString(),
-        "--generate-notes"
+        "v$Version"
     )
+
+    # Add target commit
+    $releaseArgs += "--target"
+    $releaseArgs += $CommitHash.ToString()
+
+    # Add notes generation
+    $releaseArgs += "--generate-notes"
 
     # Handle changelog content if file exists
     if (Test-Path $ChangelogFile) {
@@ -1424,11 +1429,8 @@ function New-GitHubRelease {
         $releaseArgs += $ChangelogFile
     }
 
-    # Add each asset individually
-    foreach ($asset in $assets) {
-        $releaseArgs += "-a"
-        $releaseArgs += $asset
-    }
+    # Add assets as positional arguments
+    $releaseArgs += $assets
 
     Write-Host "Running: gh $($releaseArgs -join ' ')"
     & gh @releaseArgs
