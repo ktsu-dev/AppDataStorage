@@ -1861,6 +1861,9 @@ function Invoke-CIPipeline {
     Write-Host "Git SHA: $GitSha"
     Write-Host "Configuration: $Configuration"
 
+    # Initialize metadata variable
+    $metadata = $null
+
     try {
         # Get build configuration
         Write-StepHeader "Configuring Build"
@@ -1881,11 +1884,12 @@ function Invoke-CIPipeline {
         # Update metadata
         Write-StepHeader "Updating Project Metadata"
         $metadata = Update-ProjectMetadata -GitSha $GitSha -ServerUrl $ServerUrl -GitHubOwner $Owner -GitHubRepo $Repository -Push -SetGitHubEnv
-        if (-not $metadata.Success) {
-            Write-Error "Metadata update failed: $($metadata.Error)"
+        if (-not $metadata -or -not $metadata.Success) {
+            $errorMsg = if ($metadata) { $metadata.Error } else { "Metadata update returned null" }
+            Write-Error "Metadata update failed: $errorMsg"
             return [PSCustomObject]@{
                 Success = $false
-                Error = $metadata.Error
+                Error = $errorMsg
                 Data = @{
                     BuildSuccess = $false
                     ReleaseSuccess = $false
@@ -1906,6 +1910,7 @@ function Invoke-CIPipeline {
                     BuildSuccess = $false
                     ReleaseSuccess = $false
                     ShouldRelease = $false
+                    Version = $metadata.Data.Version
                 }
             }
         }
@@ -1970,7 +1975,7 @@ function Invoke-CIPipeline {
                 BuildSuccess = $false
                 ReleaseSuccess = $false
                 ShouldRelease = $false
-                Version = $metadata?.Data.Version
+                Version = if ($metadata -and $metadata.Data) { $metadata.Data.Version } else { $null }
                 StackTrace = $_.ScriptStackTrace
             }
         }
