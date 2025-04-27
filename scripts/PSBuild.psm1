@@ -92,11 +92,11 @@ function Get-BuildConfiguration {
                 $IS_OFFICIAL = (-not $repoInfo.isFork) -and ($repoInfo.owner.login -eq $ExpectedOwner)
                 Write-Verbose "Repository: $($repoInfo.nameWithOwner), Is Fork: $($repoInfo.isFork), Owner: $($repoInfo.owner.login)"
             } else {
-                Write-Warning "Could not retrieve repository information. Assuming unofficial build."
+                Write-Host "Could not retrieve repository information. Assuming unofficial build."
             }
         }
         catch {
-            Write-Warning "Failed to check repository status: $_. Assuming unofficial build."
+            Write-Host "Failed to check repository status: $_. Assuming unofficial build."
         }
     }
     Write-Verbose "Is Official: $IS_OFFICIAL"
@@ -964,11 +964,11 @@ function Update-ProjectMetadata {
         Set-PSDebug -Trace 1
 
         # Create AUTHORS.url
-        $authorsUrl = "[InternetShortcut]`nURL=${BuildConfiguration.ServerUrl}/${BuildConfiguration.GitHubOwner}"
+        $authorsUrl = "[InternetShortcut]`nURL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)"
         [System.IO.File]::WriteAllText("AUTHORS.url", $authorsUrl, [System.Text.UTF8Encoding]::new($false))
 
         # Create PROJECT_URL.url
-        $projectUrl = "[InternetShortcut]`nURL=${BuildConfiguration.ServerUrl}/${BuildConfiguration.GitHubOwner}/${BuildConfiguration.GitHubRepo}"
+        $projectUrl = "[InternetShortcut]`nURL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)/$($BuildConfiguration.GitHubRepo)"
         [System.IO.File]::WriteAllText("PROJECT_URL.url", $projectUrl, [System.Text.UTF8Encoding]::new($false))
 
         Write-Host "Checking git status before adding files..."
@@ -1055,7 +1055,7 @@ function Update-ProjectMetadata {
     }
     catch {
         $errorMessage = $_.ToString()
-        Write-Error "Failed to update metadata: $errorMessage"
+        Write-Host "Failed to update metadata: $errorMessage"
         return [PSCustomObject]@{
             Success = $false
             Error = $errorMessage
@@ -1118,7 +1118,7 @@ function Invoke-DotNetBuild {
         }
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Build failed with exit code $LASTEXITCODE. Retrying with detailed verbosity..."
+            Write-Host "Build failed with exit code $LASTEXITCODE. Retrying with detailed verbosity..."
 
             # Retry with more detailed verbosity - stream output directly
             & dotnet build --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-incremental $BuildArgs --no-restore | ForEach-Object {
@@ -1142,7 +1142,7 @@ function Invoke-DotNetBuild {
         }
     }
     catch {
-        Write-Error "Exception during build process: $_"
+        Write-Host "Exception during build process: $_"
         throw
     }
 }
@@ -1222,7 +1222,7 @@ function Invoke-DotNetPack {
 
         if ($LASTEXITCODE -ne 0) {
             # Get more details about what might have failed
-            Write-Error "Packaging failed with exit code $LASTEXITCODE, trying again with detailed verbosity..."
+            Write-Host "Packaging failed with exit code $LASTEXITCODE, trying again with detailed verbosity..."
             & dotnet pack --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed" --no-build --output $OutputPath | ForEach-Object {
                 Write-Host $_
             }
@@ -1242,7 +1242,7 @@ function Invoke-DotNetPack {
     }
     catch {
         $originalException = $_.Exception
-        Write-Error "Package creation failed: $originalException"
+        Write-Host "Package creation failed: $originalException"
         throw "Library packaging failed: $originalException"
     }
 }
@@ -1510,7 +1510,7 @@ function Assert-LastExitCode {
         }
 
         $fullMessage = "$Message`n$errorDetails"
-        Write-Error $fullMessage
+        Write-Host $fullMessage
         throw $fullMessage
     }
 }
@@ -1675,7 +1675,7 @@ function Invoke-BuildWorkflow {
         }
     }
     catch {
-        Write-Error "Build workflow failed: $_"
+        Write-Host "Build workflow failed: $_"
         return [PSCustomObject]@{
             Success = $false
             Error = $_.ToString()
@@ -1720,8 +1720,8 @@ function Invoke-ReleaseWorkflow {
             }
         }
         catch {
-            Write-Warning "Library packaging failed: $_"
-            Write-Warning "Continuing with release process without NuGet packages."
+            Write-Host "Library packaging failed: $_"
+            Write-Host "Continuing with release process without NuGet packages."
         }
 
         # Create application packages
@@ -1735,8 +1735,8 @@ function Invoke-ReleaseWorkflow {
             }
         }
         catch {
-            Write-Warning "Application publishing failed: $_"
-            Write-Warning "Continuing with release process without application packages."
+            Write-Host "Application publishing failed: $_"
+            Write-Host "Continuing with release process without application packages."
         }
 
         # Publish packages if we have any and NuGet key is provided
@@ -1747,14 +1747,14 @@ function Invoke-ReleaseWorkflow {
                 Invoke-NuGetPublish -PackagePattern $BuildConfiguration.PackagePattern -GithubToken $BuildConfiguration.GithubToken -GithubOwner $BuildConfiguration.GitHubOwner -NuGetApiKey $NuGetApiKey
             }
             catch {
-                Write-Warning "NuGet package publishing failed: $_"
-                Write-Warning "Continuing with release process."
+                Write-Host "NuGet package publishing failed: $_"
+                Write-Host "Continuing with release process."
             }
         }
 
         # Create GitHub release
         Write-StepHeader "Creating GitHub Release"
-        Write-Host "Creating release for version ${BuildConfiguration.Version}..."
+        Write-Host "Creating release for version $($BuildConfiguration.Version)..."
         New-GitHubRelease -Version $BuildConfiguration.Version -CommitHash $BuildConfiguration.ReleaseHash -GithubToken $BuildConfiguration.GithubToken -AssetPatterns $packagePaths
 
         Write-StepHeader "Release Process Completed"
@@ -1770,7 +1770,7 @@ function Invoke-ReleaseWorkflow {
         }
     }
     catch {
-        Write-Error "Release workflow failed: $_"
+        Write-Host "Release workflow failed: $_"
         return [PSCustomObject]@{
             Success = $false
             Error = $_.ToString()
@@ -1801,7 +1801,7 @@ function Invoke-CIPipeline {
             -BuildConfiguration $BuildConfiguration
 
         if ($null -eq $metadata) {
-            Write-Error "Metadata update returned null"
+            Write-Host "Metadata update returned null"
             return [PSCustomObject]@{
                 Success = $false
                 Error = "Metadata update returned null"
@@ -1812,7 +1812,7 @@ function Invoke-CIPipeline {
         $BuildConfiguration.ReleaseHash = $metadata.ReleaseHash
 
         if (-not $metadata.Success) {
-            Write-Error "Failed to update metadata: $($metadata.Error)"
+            Write-Host "Failed to update metadata: $($metadata.Error)"
             return [PSCustomObject]@{
                 Success = $false
                 Error = "Failed to update metadata: $($metadata.Error)"
@@ -1822,7 +1822,7 @@ function Invoke-CIPipeline {
         Write-Host "Running build workflow..." -ForegroundColor Cyan
         $result = Invoke-BuildWorkflow -BuildConfiguration $BuildConfiguration
         if (-not $result.Success) {
-            Write-Error "Build workflow failed: $($result.Error)"
+            Write-Host "Build workflow failed: $($result.Error)"
             return [PSCustomObject]@{
                 Success = $false
                 Error = "Build workflow failed: $($result.Error)"
@@ -1832,7 +1832,7 @@ function Invoke-CIPipeline {
         Write-Host "Running release workflow..." -ForegroundColor Cyan
         $result = Invoke-ReleaseWorkflow -BuildConfiguration $BuildConfiguration
         if (-not $result.Success) {
-            Write-Error "Release workflow failed: $($result.Error)"
+            Write-Host "Release workflow failed: $($result.Error)"
             return [PSCustomObject]@{
                 Success = $false
                 Error = "Release workflow failed: $($result.Error)"
@@ -1847,7 +1847,7 @@ function Invoke-CIPipeline {
         }
     }
     catch {
-        Write-Error "CI/CD pipeline failed: $_"
+        Write-Host "CI/CD pipeline failed: $_"
         return [PSCustomObject]@{
             Success = $false
             Error = "CI/CD pipeline failed: $_"
