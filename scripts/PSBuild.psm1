@@ -1792,19 +1792,13 @@ function Invoke-CIPipeline {
         [PSCustomObject]$BuildConfiguration
     )
 
-    try {
-        Write-Host "Configuring build..." -ForegroundColor Cyan
-        if (-not $BuildConfiguration) {
-            Write-Error "Failed to configure build"
-            return [PSCustomObject]@{
-                Success = $false
-                Error = "Failed to configure build"
-            }
-        }
 
+    try {
         Write-Host "Updating metadata..." -ForegroundColor Cyan
         $metadata = Update-ProjectMetadata `
             -BuildConfiguration $BuildConfiguration
+
+        Set-PSDebug -Trace 1
 
         if ($null -eq $metadata) {
             Write-Error "Metadata update returned null"
