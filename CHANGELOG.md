@@ -42,6 +42,7 @@ Changes since v1.7.0:
 - Update GitHub release function in PSBuild module to use GitSha instead of metadata.ReleaseHash for improved accuracy in release tracking. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update packages ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update PSBuild module to enhance logging verbosity for dotnet commands. Added console logger parameters for improved output during restore, build, test, pack, and publish operations, ensuring better visibility in CI/CD processes. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update PSBuild module to make ServerUrl parameter mandatory and enable debugging in CI/CD pipeline function for enhanced traceability. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update PSBuild module to use PSCustomObject for output types and adjust verbosity levels in dotnet commands for improved logging clarity. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update PSBuild module with enhanced documentation, improved error handling, and refined function exports. Added detailed usage instructions and author information, updated command execution for better error reporting, and improved parameter descriptions for clarity. This refactor aims to streamline the CI/CD pipeline process for .NET applications. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update README with improved documentation and API reference ([@matt-edmondson](https://github.com/matt-edmondson))
