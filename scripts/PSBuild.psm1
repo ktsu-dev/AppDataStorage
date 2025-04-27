@@ -1794,6 +1794,7 @@ function Invoke-CIPipeline {
         [PSCustomObject]$BuildConfiguration
     )
 
+    Write-Host "BuildConfiguration: $($BuildConfiguration | ConvertTo-Json -Depth 10)"
 
     try {
         Write-Host "Updating metadata..." -ForegroundColor Cyan
@@ -1807,6 +1808,8 @@ function Invoke-CIPipeline {
                 Error = "Metadata update returned null"
             }
         }
+
+        Write-Host "Metadata: $($metadata | ConvertTo-Json -Depth 10)"
 
         $BuildConfiguration.Version = $metadata.Version
         $BuildConfiguration.ReleaseHash = $metadata.ReleaseHash

@@ -59,14 +59,6 @@ jobs:
         # Import the PSBuild module
         Import-Module ${{ github.workspace }}/scripts/PSBuild.psm1
 
-        Write-Host "Checking input variables:"
-        Write-Host "ServerUrl: ${{ github.server_url }}"
-        Write-Host "GitRef: ${{ github.ref }}"
-        Write-Host "GitSha: ${{ github.sha }}"
-        Write-Host "GitHubOwner: ${{ github.repository_owner }}"
-        Write-Host "GitHubRepo: ${{ github.repository }}"
-        Write-Host "WorkspacePath: ${{ github.workspace }}"
-
         # Get build configuration
         $buildConfig = Get-BuildConfiguration `
           -ServerUrl "${{ github.server_url }}" `
@@ -82,9 +74,6 @@ jobs:
         if (-not $buildConfig.Success) {
             throw $buildConfig.Error
         }
-
-        Write-Host "Build config data:"
-        $buildConfig.Data | Format-List
 
         # Run the complete CI/CD pipeline
         $result = Invoke-CIPipeline `
