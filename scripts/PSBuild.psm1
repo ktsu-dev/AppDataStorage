@@ -169,20 +169,35 @@ function Get-GitTags {
     [OutputType([string[]])]
     param()
 
-    # Configure git to properly sort version tags with suffixes
-    git config versionsort.suffix "-alpha"
-    git config versionsort.suffix "-beta"
-    git config versionsort.suffix "-rc"
-    git config versionsort.suffix "-pre"
+    Write-Host "Configuring git version sort settings..." -ForegroundColor Cyan
 
+    # Configure git to properly sort version tags with suffixes
+    $output = git config versionsort.suffix "-alpha" 2>&1
+    Write-Host "git config versionsort.suffix -alpha: $output"
+
+    $output = git config versionsort.suffix "-beta" 2>&1
+    Write-Host "git config versionsort.suffix -beta: $output"
+
+    $output = git config versionsort.suffix "-rc" 2>&1
+    Write-Host "git config versionsort.suffix -rc: $output"
+
+    $output = git config versionsort.suffix "-pre" 2>&1
+    Write-Host "git config versionsort.suffix -pre: $output"
+
+    Write-Host "Getting sorted tags..." -ForegroundColor Cyan
     # Get tags and ensure we return an array
-    $tags = @(git tag --list --sort=-v:refname)
+    $output = git tag --list --sort=-v:refname 2>&1
+    Write-Host "git tag --list --sort=-v:refname output: $output"
+
+    $tags = @($output)
 
     # Return default if no tags exist
     if ($null -eq $tags -or $tags.Count -eq 0) {
+        Write-Host "No tags found, returning default v1.0.0-pre.0" -ForegroundColor Yellow
         return @('v1.0.0-pre.0')
     }
 
+    Write-Host "Found $($tags.Count) tags" -ForegroundColor Green
     return $tags
 }
 
@@ -204,6 +219,7 @@ function Get-VersionType {
 
     Write-StepHeader "Analyzing Version Changes"
     Write-Host "Analyzing commits for version increment decision..."
+    Write-Host "Commit range: $Range" -ForegroundColor Cyan
 
     # Initialize to the most conservative version bump
     $versionType = "prerelease"
@@ -213,8 +229,13 @@ function Get-VersionType {
     $EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
     $EXCLUDE_PRS = '^.*(Merge pull request|Merge branch ''main''|Updated packages in|Update.*package version).*$'
 
+    Write-Host "`nChecking for non-merge commits..." -ForegroundColor Cyan
+    Write-Host "Running: git log --date-order --perl-regexp --regexp-ignore-case --grep=""$EXCLUDE_PRS"" --invert-grep --committer=""$EXCLUDE_BOTS"" --author=""$EXCLUDE_BOTS"" $Range"
+
     # Check for non-merge commits
-    $allCommits = git log --date-order --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $Range
+    $allCommits = git log --date-order --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $Range 2>&1
+    Write-Host "Non-merge commits found:`n$allCommits"
+
     if ($allCommits) {
         $versionType = "patch"
         $reason = "Found non-merge commits requiring at least a patch version"
@@ -222,6 +243,7 @@ function Get-VersionType {
     }
 
     # Check for code changes (excluding documentation, config files, etc.)
+    Write-Host "`nChecking for code changes..." -ForegroundColor Cyan
     $EXCLUDE_PATTERNS = @(
         ":(icase,exclude)*/*.*md"
         ":(icase,exclude)*/*.txt"
@@ -233,7 +255,11 @@ function Get-VersionType {
         ":(icase,exclude)*/*.ps1"
     )
     $excludeString = $EXCLUDE_PATTERNS -join ' '
-    $codeChanges = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $Range -- '*/*.*' $excludeString
+    Write-Host "Running: git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer=""$EXCLUDE_BOTS"" --author=""$EXCLUDE_BOTS"" --grep=""$EXCLUDE_PRS"" --invert-grep $Range -- '*/*.*' $excludeString"
+
+    $codeChanges = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $Range -- '*/*.*' $excludeString 2>&1
+    Write-Host "Code changes found:`n$codeChanges"
+
     if ($codeChanges) {
         $versionType = "minor"
         $reason = "Found code changes requiring at least a minor version"
@@ -241,7 +267,12 @@ function Get-VersionType {
     }
 
     # Look for explicit version bump annotations in commit messages
-    $messages = git log --format=format:%s $Range
+    Write-Host "`nChecking for version bump annotations in commit messages..." -ForegroundColor Cyan
+    Write-Host "Running: git log --format=format:%s $Range"
+
+    $messages = git log --format=format:%s $Range 2>&1
+    Write-Host "Commit messages found:`n$messages"
+
     foreach ($message in $messages) {
         if ($message.Contains('[major]')) {
             Write-Host "Found [major] tag in commit: $message" -ForegroundColor Red
@@ -266,6 +297,9 @@ function Get-VersionType {
             $reason = "Explicit [pre] tag found in commit message: $message"
         }
     }
+
+    Write-Host "`nVersion type decision: $versionType" -ForegroundColor Cyan
+    Write-Host "Reason: $reason" -ForegroundColor Cyan
 
     return @{
         Type = $versionType
@@ -295,8 +329,10 @@ function Get-VersionInfoFromGit {
 
     Write-StepHeader "Analyzing Version Information"
     Write-Host "Analyzing repository for version information..."
+    Write-Host "Commit hash: $CommitHash" -ForegroundColor Cyan
 
     # Get tag information
+    Write-Host "`nGetting tag information..." -ForegroundColor Cyan
     $allTags = Get-GitTags
     $noTagsExist = ($null -eq $allTags) -or
                    (($allTags -is [string]) -and $allTags -eq 'v1.0.0-pre.0') -or
@@ -357,8 +393,15 @@ function Get-VersionInfoFromGit {
     }
 
     # Determine version increment type
-    $firstCommit = (git rev-list HEAD)[-1]
+    Write-Host "`nGetting first commit..." -ForegroundColor Cyan
+    Write-Host "Running: git rev-list HEAD"
+    $output = git rev-list HEAD 2>&1
+    Write-Host "git rev-list HEAD output:`n$output"
+    $firstCommit = $output[-1]
+    Write-Host "First commit: $firstCommit"
+
     $commitRange = "$firstCommit...$CommitHash"
+    Write-Host "`nAnalyzing commit range: $commitRange" -ForegroundColor Cyan
     $incrementInfo = Get-VersionType -Range $commitRange
     $incrementType = $incrementInfo.Type
     $incrementReason = $incrementInfo.Reason
@@ -892,80 +935,128 @@ function Update-ProjectMetadata {
         [bool]$SetGitHubEnv = $true
     )
 
-    # Configure git user for GitHub Actions
-    git config --global user.name "Github Actions"
-    git config --global user.email "actions@users.noreply.github.com"
-
-    # 1. Generate version information
-    Write-StepHeader "Generating Version Information"
-    $version = New-Version -CommitHash $GitSha -OutputPath "."
-    Write-Host "Generated version: $version"
-
-    # 2. License file - always update
-    New-License -ServerUrl $ServerUrl -Owner $GitHubOwner -Repository $GitHubRepo
-    Write-Host "Generated LICENSE.md file"
-
-    # 3. Generate AUTHORS.md only if it doesn't already exist
-    if (-not (Test-Path "AUTHORS.md")) {
-        if (-not $Authors -or $Authors.Count -eq 0) {
-            $Authors = git log --format="%aN" | Sort-Object -Unique
+    try {
+        # Configure git user for GitHub Actions
+        $output = git config --global user.name "Github Actions" 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to configure git user name: $output"
         }
-        $authorsList = $Authors -join "`n"
-        $authorsList | Out-File -FilePath "AUTHORS.md" -Encoding utf8
-        Write-Host "Generated AUTHORS.md file"
-    } else {
-        Write-Host "Preserving existing AUTHORS.md file"
+
+        $output = git config --global user.email "actions@users.noreply.github.com" 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to configure git user email: $output"
+        }
+
+        # 1. Generate version information
+        Write-StepHeader "Generating Version Information"
+        $version = New-Version -CommitHash $GitSha -OutputPath "."
+        Write-Host "Generated version: $version"
+
+        # 2. License file - always update
+        New-License -ServerUrl $ServerUrl -Owner $GitHubOwner -Repository $GitHubRepo
+        Write-Host "Generated LICENSE.md file"
+
+        # 3. Generate AUTHORS.md only if it doesn't already exist
+        if (-not (Test-Path "AUTHORS.md")) {
+            if (-not $Authors -or $Authors.Count -eq 0) {
+                $output = git log --format="%aN" | Sort-Object -Unique 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to get authors from git log: $output"
+                }
+                $Authors = $output
+            }
+            $authorsList = $Authors -join "`n"
+            $authorsList | Out-File -FilePath "AUTHORS.md" -Encoding utf8
+            Write-Host "Generated AUTHORS.md file"
+        } else {
+            Write-Host "Preserving existing AUTHORS.md file"
+        }
+
+        # 4. URL files - always generate
+        "$ServerUrl/$GitHubOwner/$GitHubRepo" | Out-File -FilePath "PROJECT_URL.url" -Encoding utf8
+        Write-Host "Generated PROJECT_URL.url file"
+
+        "$ServerUrl/$GitHubOwner" | Out-File -FilePath "AUTHORS.url" -Encoding utf8
+        Write-Host "Generated AUTHORS.url file"
+
+        # 5. Always generate CHANGELOG.md
+        New-Changelog -Version $version -CommitHash $GitSha
+        Write-Host "Generated CHANGELOG.md file"
+
+        # Add all metadata files to git (will only add files that exist)
+        $filesToAdd = @(
+            "VERSION.md",
+            "LICENSE.md",
+            "AUTHORS.md",
+            "CHANGELOG.md",
+            "PROJECT_URL.url",
+            "AUTHORS.url"
+        ) | Where-Object { Test-Path $_ }
+
+        if ($filesToAdd.Count -gt 0) {
+            $output = git add $filesToAdd 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to add files to git: $output"
+            }
+
+            # Check if there are changes to commit
+            $status = git status --porcelain 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to get git status: $status"
+            }
+
+            if ($status) {
+                $output = git commit -m $CommitMessage 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to commit changes: $output"
+                }
+            } else {
+                Write-Host "No changes to commit"
+            }
+        } else {
+            Write-Warning "No metadata files to commit"
+        }
+
+        # Push changes if requested
+        if ($Push) {
+            $output = git push 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to push changes: $output"
+            }
+        }
+
+        # Get and set release hash
+        $output = git rev-parse HEAD 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to get release hash: $output"
+        }
+        $releaseHash = $output
+        Write-Host "Metadata committed as $releaseHash"
+
+        # Set GitHub environment variable if requested
+        if ($SetGitHubEnv -and $env:GITHUB_ENV) {
+            "RELEASE_HASH=$releaseHash" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        }
+
+        Write-Host "Metadata updated and committed Version: $version ReleaseHash: $releaseHash"
+        return [PSCustomObject]@{
+            Success = $true
+            Error = ""
+            Data = @{
+                Version = $version
+                ReleaseHash = $releaseHash
+            }
+        }
     }
-
-    # 4. URL files - always generate
-    "$ServerUrl/$GitHubOwner/$GitHubRepo" | Out-File -FilePath "PROJECT_URL.url" -Encoding utf8
-    Write-Host "Generated PROJECT_URL.url file"
-
-    "$ServerUrl/$GitHubOwner" | Out-File -FilePath "AUTHORS.url" -Encoding utf8
-    Write-Host "Generated AUTHORS.url file"
-
-    # 5. Always generate CHANGELOG.md
-    New-Changelog -Version $version -CommitHash $GitSha
-    Write-Host "Generated CHANGELOG.md file"
-
-    # Add all metadata files to git (will only add files that exist)
-    $filesToAdd = @(
-        "VERSION.md",
-        "LICENSE.md",
-        "AUTHORS.md",
-        "CHANGELOG.md",
-        "PROJECT_URL.url",
-        "AUTHORS.url"
-    ) | Where-Object { Test-Path $_ }
-
-    if ($filesToAdd.Count -gt 0) {
-        git add $filesToAdd 2>&1
-        git commit -m $CommitMessage 2>&1
-    } else {
-        Write-Warning "No metadata files to commit"
-    }
-
-    # Push changes if requested
-    if ($Push) {
-        git push 2>&1
-    }
-
-    # Get and set release hash
-    $releaseHash = git rev-parse HEAD
-    Write-Host "Metadata committed as $releaseHash"
-
-    # Set GitHub environment variable if requested
-    if ($SetGitHubEnv -and $env:GITHUB_ENV) {
-        "RELEASE_HASH=$releaseHash" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-    }
-
-    Write-Host "Metadata updated and committed Version: $version ReleaseHash: $releaseHash"
-    return [PSCustomObject]@{
-        Success = $true
-        Error = ""
-        Data = @{
-            Version = $version
-            ReleaseHash = $releaseHash
+    catch {
+        Write-Error "Failed to update project metadata: $_"
+        return [PSCustomObject]@{
+            Success = $false
+            Error = $_.ToString()
+            Data = @{
+                Version = $version
+                ReleaseHash = $null
+            }
         }
     }
 }
@@ -1735,7 +1826,7 @@ function Invoke-CIPipeline {
         [string]$ExpectedOwner = "ktsu-dev"
     )
 
-    Set-PSDebug -Trace 1
+    # Set-PSDebug -Trace 1
     Write-StepHeader "Starting CI/CD Pipeline"
     Write-Host "Repository: $Owner/$Repository"
     Write-Host "Git Reference: $GitRef"
