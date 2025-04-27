@@ -73,8 +73,7 @@ jobs:
         # Run the complete CI/CD pipeline
         $result = Invoke-CIPipeline `
           -BuildConfiguration $buildConfig.Data `
-          -Push $true `
-          -SetGitHubEnv $true
+          -Push $true
 
         if (-not $result.Success) {
             throw $result.Error
