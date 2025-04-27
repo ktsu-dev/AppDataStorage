@@ -11,6 +11,7 @@ A comprehensive PowerShell module for automating the build, test, package, and r
 - NuGet package creation and publishing
 - GitHub release creation with assets
 - Proper line ending handling based on git config
+- Robust version string handling with automatic whitespace trimming
 
 ## Installation
 
@@ -102,9 +103,16 @@ When running in GitHub Actions, the following environment variables are set:
 
 While `Invoke-CIPipeline` handles most use cases, these individual functions are available for advanced scenarios:
 
+### Main Functions
 - `Update-ProjectMetadata`: Updates and commits metadata files
 - `Invoke-BuildWorkflow`: Runs the build and test process
 - `Invoke-ReleaseWorkflow`: Handles package creation and publishing
+
+### Utility Functions
+- `Assert-LastExitCode`: Verifies command execution success
+- `Write-StepHeader`: Creates formatted step headers in logs
+- `Test-AnyFiles`: Tests for existence of files matching a pattern
+- `Get-GitLineEnding`: Determines correct line endings based on git config
 
 ## Line Ending Handling
 

@@ -31,6 +31,10 @@
         'Invoke-DotNetPublish',
         'Invoke-NuGetPublish',
         'New-GitHubRelease',
+        'Assert-LastExitCode',
+        'Write-StepHeader',
+        'Test-AnyFiles',
+        'Get-GitLineEnding',
         'Invoke-BuildWorkflow',
         'Invoke-ReleaseWorkflow',
         'Invoke-CIPipeline'
