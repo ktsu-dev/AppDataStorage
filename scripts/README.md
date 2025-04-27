@@ -26,22 +26,27 @@ A comprehensive PowerShell module for automating the build, test, package, and r
 The main entry point is `Invoke-CIPipeline`, which handles the complete build, test, package, and release process:
 
 ```powershell
-$result = Invoke-CIPipeline `
+# First, get the build configuration
+$buildConfig = Get-BuildConfiguration `
+    -ServerUrl "https://github.com" `
     -GitRef "refs/heads/main" `
     -GitSha "abc123" `
-    -WorkspacePath "." `
-    -ServerUrl "https://github.com" `
-    -Owner "myorg" `
-    -Repository "myrepo" `
+    -GitHubOwner "myorg" `
+    -GitHubRepo "myrepo" `
     -GithubToken $env:GITHUB_TOKEN `
     -NuGetApiKey $env:NUGET_API_KEY `
-    -Configuration "Release"
+    -WorkspacePath "." `
+    -ExpectedOwner "myorg" `
+    -ChangelogFile "CHANGELOG.md" `
+    -AssetPatterns @("staging/*.nupkg", "staging/*.zip")
+
+# Then run the pipeline
+$result = Invoke-CIPipeline -BuildConfiguration $buildConfig
 
 if ($result.Success) {
     Write-Host "Pipeline completed successfully!"
-    if ($result.Data.ShouldRelease) {
-        Write-Host "Released version: $($result.Data.Version)"
-    }
+    Write-Host "Version: $($result.Version)"
+    Write-Host "Release Hash: $($result.ReleaseHash)"
 }
 ```
 
@@ -81,32 +86,49 @@ The module analyzes commit history to determine appropriate version increments:
 3. Considers the scope and impact of changes
 4. Maintains semantic versioning principles
 
-## Environment Variables
+## Build Configuration
 
-When running in GitHub Actions, the following environment variables are set:
+The `Get-BuildConfiguration` function returns a configuration object with the following key properties:
 
-| Variable | Description |
+| Property | Description |
 |----------|-------------|
-| VERSION | The current version number |
-| LAST_VERSION | The previous version number |
-| LAST_VERSION_MAJOR | Previous major version number |
-| LAST_VERSION_MINOR | Previous minor version number |
-| LAST_VERSION_PATCH | Previous patch version number |
-| LAST_VERSION_PRERELEASE | Previous pre-release number |
-| IS_PRERELEASE | Whether current version is pre-release |
-| VERSION_INCREMENT | Type of version increment performed |
-| FIRST_COMMIT | First commit in analyzed range |
-| LAST_COMMIT | Last commit in analyzed range |
-| RELEASE_HASH | Hash of the metadata commit |
+| IsOfficial | Whether this is an official repository build |
+| IsMain | Whether building from main branch |
+| IsTagged | Whether the current commit is tagged |
+| ShouldRelease | Whether a release should be created |
+| UseDotnetScript | Whether .NET script files are present |
+| OutputPath | Path for build outputs |
+| StagingPath | Path for staging artifacts |
+| PackagePattern | Pattern for NuGet packages |
+| SymbolsPattern | Pattern for symbol packages |
+| ApplicationPattern | Pattern for application archives |
+| Version | Current version number |
+| ReleaseHash | Hash of the release commit |
 
 ## Advanced Usage
 
-While `Invoke-CIPipeline` handles most use cases, these individual functions are available for advanced scenarios:
+The module provides several functions for advanced scenarios:
 
-### Main Functions
-- `Update-ProjectMetadata`: Updates and commits metadata files
+### Build and Release Functions
+- `Initialize-BuildEnvironment`: Sets up the build environment
+- `Get-BuildConfiguration`: Creates the build configuration object
 - `Invoke-BuildWorkflow`: Runs the build and test process
 - `Invoke-ReleaseWorkflow`: Handles package creation and publishing
+
+### Version Management Functions
+- `Get-GitTags`: Gets sorted list of version tags
+- `Get-VersionType`: Determines version increment type
+- `Get-VersionInfoFromGit`: Gets comprehensive version information
+- `New-Version`: Creates a new version file
+
+### Package and Release Functions
+- `Invoke-DotNetRestore`: Restores NuGet packages
+- `Invoke-DotNetBuild`: Builds the solution
+- `Invoke-DotNetTest`: Runs unit tests with coverage
+- `Invoke-DotNetPack`: Creates NuGet packages
+- `Invoke-DotNetPublish`: Publishes applications
+- `Invoke-NuGetPublish`: Publishes packages to repositories
+- `New-GitHubRelease`: Creates GitHub release with assets
 
 ### Utility Functions
 - `Assert-LastExitCode`: Verifies command execution success
@@ -119,9 +141,9 @@ While `Invoke-CIPipeline` handles most use cases, these individual functions are
 
 The module respects git's line ending settings when generating files:
 
-- Uses git's `core.eol` setting if defined
-- Falls back to `core.autocrlf` setting
-- Defaults to OS-specific line endings if no git settings are found
+1. Uses git's `core.eol` setting if defined
+2. Falls back to `core.autocrlf` setting
+3. Defaults to OS-specific line endings if no git settings are found
 
 ## Contributing
 

@@ -71,7 +71,7 @@ jobs:
           -NuGetApiKey "${{ secrets.NUGET_KEY }}" `
           -ExpectedOwner "ktsu-dev" `
           -ChangelogFile "CHANGELOG.md" `
-          -AssetPatterns "*.nupkg"
+          -AssetPatterns @("staging/*.nupkg", "staging/*.zip")
 
         if (-not $buildConfig.Success) {
             throw $buildConfig.Error
