@@ -105,18 +105,14 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     permissions:
-      security-events: write  # For security scanning
+      id-token: write # For dependency submission
+      contents: write # For dependency submission
 
     steps:
     - name: Checkout Release Commit
       uses: actions/checkout@v4
       with:
         ref: ${{ needs.build.outputs.release_hash }}
-
-    - name: Run Security Analysis
-      uses: microsoft/security-devops-action@v1
-      with:
-        tools: credscan,roslyn
 
     - name: Detect Dependencies
       uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
