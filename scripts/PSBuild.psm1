@@ -268,10 +268,6 @@ function Get-VersionType {
         [string]$Range
     )
 
-    # Write-StepHeader "Analyzing Version Changes"
-    # Write-Host "Analyzing commits for version increment decision..."
-    # Write-Host "Commit range: $Range" -ForegroundColor Cyan
-
     # Initialize to the most conservative version bump
     $versionType = "prerelease"
     $reason = "No significant changes detected"
@@ -280,21 +276,15 @@ function Get-VersionType {
     $EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
     $EXCLUDE_PRS = '^.*(Merge pull request|Merge branch ''main''|Updated packages in|Update.*package version).*$'
 
-    # Write-Host "`nChecking for non-merge commits..." -ForegroundColor Cyan
-    # Write-Host "Running: git log --date-order --perl-regexp --regexp-ignore-case --grep=""$EXCLUDE_PRS"" --invert-grep --committer=""$EXCLUDE_BOTS"" --author=""$EXCLUDE_BOTS"" $Range"
-
     # Check for non-merge commits
     $allCommits = git log --date-order --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $Range 2>&1
-    # Write-Host "Non-merge commits found:`n$allCommits"
 
     if ($allCommits) {
         $versionType = "patch"
         $reason = "Found non-merge commits requiring at least a patch version"
-        # Write-Host "Found non-merge commits - minimum patch version required" -ForegroundColor Yellow
     }
 
     # Check for code changes (excluding documentation, config files, etc.)
-    # Write-Host "`nChecking for code changes..." -ForegroundColor Cyan
     $EXCLUDE_PATTERNS = @(
         ":(icase,exclude)*/*.*md"
         ":(icase,exclude)*/*.txt"
@@ -306,23 +296,16 @@ function Get-VersionType {
         ":(icase,exclude)*/*.ps1"
     )
     $excludeString = $EXCLUDE_PATTERNS -join ' '
-    # Write-Host "Running: git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer=""$EXCLUDE_BOTS"" --author=""$EXCLUDE_BOTS"" --grep=""$EXCLUDE_PRS"" --invert-grep $Range -- '*/*.*' $excludeString"
 
     $codeChanges = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $Range -- '*/*.*' $excludeString 2>&1
-    # Write-Host "Code changes found:`n$codeChanges"
 
     if ($codeChanges) {
         $versionType = "minor"
         $reason = "Found code changes requiring at least a minor version"
-        # Write-Host "Found code changes - minimum minor version required" -ForegroundColor Yellow
     }
 
-    # Look for explicit version bump annotations in commit messages
-    # Write-Host "`nChecking for version bump annotations in commit messages..." -ForegroundColor Cyan
-    # Write-Host "Running: git log --format=format:%s $Range"
 
     $messages = git log --format=format:%s $Range 2>&1
-    # Write-Host "Commit messages found:`n$messages"
 
     foreach ($message in $messages) {
         if ($message.Contains('[major]')) {
@@ -348,9 +331,6 @@ function Get-VersionType {
             $reason = "Explicit [pre] tag found in commit message: $message"
         }
     }
-
-    # Write-Host "`nVersion type decision: $versionType" -ForegroundColor Cyan
-    # Write-Host "Reason: $reason" -ForegroundColor Cyan
 
     return @{
         Type = $versionType
@@ -378,12 +358,14 @@ function Get-VersionInfoFromGit {
         [string]$InitialVersion = "1.0.0"
     )
 
+    $lineEnding = Get-GitLineEnding
+
     Write-StepHeader "Analyzing Version Information"
     Write-Host "Analyzing repository for version information..."
     Write-Host "Commit hash: $CommitHash" -ForegroundColor Cyan
 
     # Get tag information
-    Write-Host "`nGetting tag information..." -ForegroundColor Cyan
+    Write-Host "$($lineEnding)Getting tag information..." -ForegroundColor Cyan
     $allTags = Get-GitTags
     $noTagsExist = ($null -eq $allTags) -or
                    (($allTags -is [string]) -and $allTags -eq 'v1.0.0-pre.0') -or
@@ -444,15 +426,15 @@ function Get-VersionInfoFromGit {
     }
 
     # Determine version increment type
-    Write-Host "`nGetting first commit..." -ForegroundColor Cyan
+    Write-Host "$($lineEnding)Getting first commit..." -ForegroundColor Cyan
     Write-Host "Running: git rev-list HEAD"
     $output = git rev-list HEAD 2>&1
-    Write-Host "git rev-list HEAD output:`n$output"
+    Write-Host "git rev-list HEAD output:$lineEnding$output"
     $firstCommit = $output[-1]
     Write-Host "First commit: $firstCommit"
 
     $commitRange = "$firstCommit...$CommitHash"
-    Write-Host "`nAnalyzing commit range: $commitRange" -ForegroundColor Cyan
+    Write-Host "$($lineEnding)Analyzing commit range: $commitRange" -ForegroundColor Cyan
     $incrementInfo = Get-VersionType -Range $commitRange
     $incrementType = $incrementInfo.Type
     $incrementReason = $incrementInfo.Reason
@@ -465,7 +447,7 @@ function Get-VersionInfoFromGit {
     $isPrerelease = $false
     $prereleaseLabel = "pre"
 
-    Write-Host "`nCalculating new version..." -ForegroundColor Cyan
+    Write-Host "$($lineEnding)Calculating new version..." -ForegroundColor Cyan
 
     # Calculate new version based on increment type
     switch ($incrementType) {
@@ -510,7 +492,7 @@ function Get-VersionInfoFromGit {
         $newVersion += "-$prereleaseLabel.$newPrereleaseNum"
     }
 
-    Write-Host "`nVersion decision:" -ForegroundColor Cyan
+    Write-Host "$($lineEnding)Version decision:" -ForegroundColor Cyan
     Write-Host "Previous version: $lastVersion" -ForegroundColor Gray
     Write-Host "New version    : $newVersion" -ForegroundColor White
     Write-Host "Reason        : $incrementReason" -ForegroundColor Gray
@@ -633,8 +615,7 @@ function New-License {
     $content = $content.Replace('{COPYRIGHT}', $copyright)
 
     # Normalize line endings
-    $content = $content.Replace("`r`n", "`n").Replace("`r", "`n")
-    $content = $content.Replace("`n", $lineEnding)
+    $content = $content.ReplaceLineEndings($lineEnding)
 
     $copyrightFilePath = if ($OutputPath) { Join-Path $OutputPath "COPYRIGHT.md" } else { "COPYRIGHT.md" }
     [System.IO.File]::WriteAllText($copyrightFilePath, $copyright + $lineEnding, [System.Text.UTF8Encoding]::new($false))
@@ -707,151 +688,175 @@ function Get-VersionNotes {
         [string]$ToSha = ""
     )
 
-    # Convert tags to comparable versions
-    $toVersion = ConvertTo-FourComponentVersion -VersionTag $ToTag
-    $fromVersion = ConvertTo-FourComponentVersion -VersionTag $FromTag
+    $lineEnding = Get-GitLineEnding
 
-    # Parse components for comparison
-    $toVersionComponents = $toVersion -split '\.'
-    $toVersionMajor = [int]$toVersionComponents[0]
-    $toVersionMinor = [int]$toVersionComponents[1]
-    $toVersionPatch = [int]$toVersionComponents[2]
-    $toVersionPrerelease = [int]$toVersionComponents[3]
+    # Define common patterns used for filtering commits
+    $EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
+    $EXCLUDE_PRS = '^.*(Merge pull request|Merge branch ''main''|Updated packages in|Update.*package version).*$'
 
-    $fromVersionComponents = $fromVersion -split '\.'
-    $fromVersionMajor = [int]$fromVersionComponents[0]
-    $fromVersionMinor = [int]$fromVersionComponents[1]
-    $fromVersionPatch = [int]$fromVersionComponents[2]
-    $fromVersionPrerelease = [int]$fromVersionComponents[3]
+    # Check if this is a first release
+    $isFirstRelease = $FromTag -eq "v0.0.0" -and
+                    ($null -eq $Tags -or
+                     ($Tags -is [array] -and $Tags.Count -eq 0) -or
+                     ($Tags -is [string] -and $Tags.Trim() -eq ""))
 
-    # Calculate previous version numbers for finding the correct tag
-    $fromMajorVersionNumber = $toVersionMajor - 1
-    $fromMinorVersionNumber = $toVersionMinor - 1
-    $fromPatchVersionNumber = $toVersionPatch - 1
-    $fromPrereleaseVersionNumber = $toVersionPrerelease - 1
+    # Determine the appropriate range and version type
+    $rangeFrom = ""
+    $rangeTo = if ([string]::IsNullOrEmpty($ToSha)) { $ToTag } else { $ToSha }
+    $versionType = "initial"
+    $changeDescription = "Initial release including"
+    $searchTag = "v0.0.0"
 
-    # Determine version type and search tag
-    $searchTag = $FromTag
-    $versionType = "unknown"
+    # For regular releases (not first release), determine proper range and version type
+    if (-not $isFirstRelease) {
+        # Convert tags to comparable versions
+        $toVersion = ConvertTo-FourComponentVersion -VersionTag $ToTag
+        $fromVersion = ConvertTo-FourComponentVersion -VersionTag $FromTag
 
-    if ($toVersionPrerelease -ne 0) {
-        $versionType = "prerelease"
-        $searchTag = "$toVersionMajor.$toVersionMinor.$toVersionPatch.$fromPrereleaseVersionNumber"
-    }
-    else {
-        if ($toVersionPatch -gt $fromVersionPatch) {
+        # Parse components for comparison
+        $toVersionComponents = $toVersion -split '\.'
+        $toVersionMajor = [int]$toVersionComponents[0]
+        $toVersionMinor = [int]$toVersionComponents[1]
+        $toVersionPatch = [int]$toVersionComponents[2]
+        $toVersionPrerelease = [int]$toVersionComponents[3]
+
+        $fromVersionComponents = $fromVersion -split '\.'
+        $fromVersionMajor = [int]$fromVersionComponents[0]
+        $fromVersionMinor = [int]$fromVersionComponents[1]
+        $fromVersionPatch = [int]$fromVersionComponents[2]
+        $fromVersionPrerelease = [int]$fromVersionComponents[3]
+
+        # Calculate previous version numbers for finding the correct tag
+        $fromMajorVersionNumber = $toVersionMajor - 1
+        $fromMinorVersionNumber = $toVersionMinor - 1
+        $fromPatchVersionNumber = $toVersionPatch - 1
+        $fromPrereleaseVersionNumber = $toVersionPrerelease - 1
+
+        # Determine version type and search tag
+        $searchTag = $FromTag
+        $versionType = "unknown"
+
+        if ($toVersionPrerelease -ne 0) {
+            $versionType = "prerelease"
+            $searchTag = "$toVersionMajor.$toVersionMinor.$toVersionPatch.$fromPrereleaseVersionNumber"
+        }
+        else {
+            if ($toVersionPatch -gt $fromVersionPatch) {
+                $versionType = "patch"
+                $searchTag = "$toVersionMajor.$toVersionMinor.$fromPatchVersionNumber.0"
+            }
+            if ($toVersionMinor -gt $fromVersionMinor) {
+                $versionType = "minor"
+                $searchTag = "$toVersionMajor.$fromMinorVersionNumber.0.0"
+            }
+            if ($toVersionMajor -gt $fromVersionMajor) {
+                $versionType = "major"
+                $searchTag = "$fromMajorVersionNumber.0.0.0"
+            }
+        }
+
+        # Handle case where version is same but prerelease was dropped
+        if ($toVersionMajor -eq $fromVersionMajor -and
+            $toVersionMinor -eq $fromVersionMinor -and
+            $toVersionPatch -eq $fromVersionPatch -and
+            $toVersionPrerelease -eq 0 -and
+            $fromVersionPrerelease -ne 0) {
             $versionType = "patch"
             $searchTag = "$toVersionMajor.$toVersionMinor.$fromPatchVersionNumber.0"
         }
-        if ($toVersionMinor -gt $fromVersionMinor) {
-            $versionType = "minor"
-            $searchTag = "$toVersionMajor.$fromMinorVersionNumber.0.0"
-        }
-        if ($toVersionMajor -gt $fromVersionMajor) {
-            $versionType = "major"
-            $searchTag = "$fromMajorVersionNumber.0.0.0"
-        }
-    }
 
-    # Handle case where version is same but prerelease was dropped
-    if ($toVersionMajor -eq $fromVersionMajor -and
-        $toVersionMinor -eq $fromVersionMinor -and
-        $toVersionPatch -eq $fromVersionPatch -and
-        $toVersionPrerelease -eq 0 -and
-        $fromVersionPrerelease -ne 0) {
-        $versionType = "patch"
-        $searchTag = "$toVersionMajor.$toVersionMinor.$fromPatchVersionNumber.0"
-    }
-
-    # Clean up search tag if it has prerelease component
-    if ($searchTag.Contains("-")) {
-        $searchTag = $FromTag
-    }
-
-    # Convert search tag to comparable format
-    $searchVersion = ConvertTo-FourComponentVersion -VersionTag $searchTag
-
-    # Find matching tag in repository
-    if ($FromTag -ne "v0.0.0") {
-        $foundSearchTag = $false
-        $matchingTag = $null
-
-        # First try to find exact match
-        foreach ($tag in $Tags) {
-            $otherVersion = ConvertTo-FourComponentVersion -VersionTag $tag
-            if ($searchVersion -eq $otherVersion) {
-                $matchingTag = $tag
-                $foundSearchTag = $true
-                break
-            }
-        }
-
-        # If no exact match, find closest lower version
-        if (-not $foundSearchTag) {
-            $closestVersion = "0.0.0.0"
-            foreach ($tag in $Tags) {
-                $otherVersion = ConvertTo-FourComponentVersion -VersionTag $tag
-                if (([Version]$otherVersion) -lt ([Version]$searchVersion) -and
-                    ([Version]$otherVersion) -gt ([Version]$closestVersion)) {
-                    $closestVersion = $otherVersion
-                    $matchingTag = $tag
-                    $foundSearchTag = $true
-                }
-            }
-        }
-
-        if ($foundSearchTag) {
-            $searchTag = $matchingTag
-        } else {
+        # Clean up search tag if it has prerelease component
+        if ($searchTag.Contains("-")) {
             $searchTag = $FromTag
         }
+
+        # Convert search tag to comparable format
+        $searchVersion = ConvertTo-FourComponentVersion -VersionTag $searchTag
+
+        # Find matching tag in repository
+        if ($FromTag -ne "v0.0.0") {
+            $foundSearchTag = $false
+            $matchingTag = $null
+
+            # First try to find exact match
+            foreach ($tag in $Tags) {
+                $otherVersion = ConvertTo-FourComponentVersion -VersionTag $tag
+                if ($searchVersion -eq $otherVersion) {
+                    $matchingTag = $tag
+                    $foundSearchTag = $true
+                    break
+                }
+            }
+
+            # If no exact match, find closest lower version
+            if (-not $foundSearchTag) {
+                $closestVersion = "0.0.0.0"
+                foreach ($tag in $Tags) {
+                    $otherVersion = ConvertTo-FourComponentVersion -VersionTag $tag
+                    if (([Version]$otherVersion) -lt ([Version]$searchVersion) -and
+                        ([Version]$otherVersion) -gt ([Version]$closestVersion)) {
+                        $closestVersion = $otherVersion
+                        $matchingTag = $tag
+                        $foundSearchTag = $true
+                    }
+                }
+            }
+
+            if ($foundSearchTag) {
+                $searchTag = $matchingTag
+            } else {
+                $searchTag = $FromTag
+            }
+        }
+
+        # Determine range for git log
+        $rangeFrom = $searchTag
+        if ($rangeFrom -eq "v0.0.0" -or $rangeFrom -eq "0.0.0.0" -or $rangeFrom -eq "1.0.0.0") {
+            $rangeFrom = ""
+        }
+
+        $range = $rangeTo
+        if ($rangeFrom -ne "") {
+            $range = "$rangeFrom...$rangeTo"
+        }
+
+        # Determine actual version type based on commit content
+        if ($versionType -ne "prerelease") {
+            $versionTypeInfo = Get-VersionType -Range $range
+            $versionType = $versionTypeInfo.Type
+        }
     }
 
-    # Determine range for git log
-    $rangeFrom = $searchTag
-    if ($rangeFrom -eq "v0.0.0" -or $rangeFrom -eq "0.0.0.0" -or $rangeFrom -eq "1.0.0.0") {
-        $rangeFrom = ""
+    # Update change description based on searchTag
+    if (-not $isFirstRelease) {
+        $changeDescription = "Changes since " + $searchTag
     }
 
-    $rangeTo = $ToSha
-    if ([string]::IsNullOrEmpty($rangeTo)) {
-        $rangeTo = $ToTag
-    }
-
+    # Set up the git log command range
     $range = $rangeTo
     if ($rangeFrom -ne "") {
         $range = "$rangeFrom...$rangeTo"
     }
 
-    # Determine actual version type based on commit content
-    if ($versionType -ne "prerelease") {
-        $versionTypeInfo = Get-VersionType -Range $range
-        $versionType = $versionTypeInfo.Type
-    }
-
-    # Exclude patterns for commit authors and messages
-    $EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
-    $EXCLUDE_PRS = '^.*(Merge pull request|Merge branch ''main''|Updated packages in|Update.*package version).*$'
-
-    # Get commit messages with authors
+    # Get commit messages with authors - common logic for all cases
     $commits = git log --pretty=format:"%s ([@%aN](https://github.com/%aN))" --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $range | Sort-Object | Get-Unique
 
     # Format changelog entry
     $versionChangelog = ""
-    if ($versionType -ne "prerelease" -and @($commits).Count -gt 0) {
-        $versionChangelog = "## $ToTag ($versionType)`n`n"
-        $versionChangelog += "Changes since ${searchTag}:`n`n"
+    if (($versionType -ne "prerelease" -or $isFirstRelease) -and @($commits).Count -gt 0) {
+        $versionChangelog = "## $ToTag ($versionType)$lineEnding$lineEnding"
+        $versionChangelog += "$($changeDescription):$lineEnding$lineEnding"
 
         foreach ($commit in $commits) {
             # Filter out version updates and skip CI commits
             if (-not $commit.Contains("Update VERSION to") -and -not $commit.Contains("[skip ci]")) {
-                $versionChangelog += "- $commit`n"
+                $versionChangelog += "- $commit$lineEnding"
             }
         }
-        $versionChangelog += "`n"
+        $versionChangelog += $lineEnding
     }
 
-    return $versionChangelog
+    return ($versionChangelog.Trim() + $lineEnding)
 }
 
 function New-Changelog {
@@ -879,28 +884,44 @@ function New-Changelog {
         [bool]$IncludeAllVersions = $true
     )
 
+    $lineEnding = Get-GitLineEnding
+
     # Get all tags
     $tags = Get-GitTags
     $changelog = ""
 
-    # Add entry for current/new version
-    $previousTag = if ($null -eq $tags -or
-                      ($tags -is [string]) -or
-                      ((@($tags).Count -eq 0))) {
-        'v0.0.0'
-    } else {
-        if ($tags -is [array]) {
-            $tags[0]
+    # Check if we have any tags at all
+    $hasTags = $null -ne $tags -and
+              ($tags -is [array] -and $tags.Count -gt 0) -or
+              ($tags -is [string] -and $tags.Trim() -ne "")
+
+    # For first release, there's no previous tag to compare against
+    $previousTag = 'v0.0.0'
+
+    # If we have tags, find the most recent one to compare against
+    if ($hasTags) {
+        $previousTag = if ($tags -is [array]) {
+            $tags[0]  # Most recent tag
         } else {
-            $tags
+            $tags  # Single tag
         }
     }
 
+    # Always add entry for current/new version (comparing current commit to previous tag or initial state)
     $currentTag = "v$Version"
-    $changelog += Get-VersionNotes -Tags $tags -FromTag $previousTag -ToTag $currentTag -ToSha $CommitHash
+    $versionNotes = Get-VersionNotes -Tags $tags -FromTag $previousTag -ToTag $currentTag -ToSha $CommitHash
+
+    # If we have changes, add them to the changelog
+    if (-not [string]::IsNullOrWhiteSpace($versionNotes)) {
+        $changelog += $versionNotes
+    } else {
+        # Handle no changes detected case - add a minimal entry
+        $changelog += "## $currentTag$lineEnding$lineEnding"
+        $changelog += "Initial release or no significant changes since $previousTag.$lineEnding$lineEnding"
+    }
 
     # Add entries for all previous versions if requested
-    if ($IncludeAllVersions -and $tags -is [array] -and $tags.Count -gt 0) {
+    if ($IncludeAllVersions -and $hasTags) {
         $processedTags = @{}
 
         for ($i = 0; $i -lt $tags.Count; $i++) {
@@ -931,12 +952,12 @@ function New-Changelog {
     $filePath = if ($OutputPath) { Join-Path $OutputPath "CHANGELOG.md" } else { "CHANGELOG.md" }
 
     # Normalize line endings in changelog content
-    $changelog = $changelog.Replace("`r`n", "`n").Replace("`r", "`n")
-    $changelog = $changelog.Replace("`n", $lineEnding)
+    $changelog = $changelog.ReplaceLineEndings($lineEnding)
 
     [System.IO.File]::WriteAllText($filePath, $changelog, [System.Text.UTF8Encoding]::new($false))
 
-    Write-Host "Changelog generated with entries for $(@($tags).Count + 1) versions"
+    $versionCount = if ($hasTags) { @($tags).Count + 1 } else { 1 }
+    Write-Host "Changelog generated with entries for $versionCount versions"
 }
 
 #endregion
@@ -964,24 +985,25 @@ function Update-ProjectMetadata {
         New-License -ServerUrl $BuildConfiguration.ServerUrl -Owner $BuildConfiguration.GitHubOwner -Repository $BuildConfiguration.GitHubRepo
 
         Write-Host "Generating changelog..."
+        # Fixed: Now properly includes latest changes
         New-Changelog -Version $version -CommitHash $BuildConfiguration.ReleaseHash
 
         # Create AUTHORS.md if authors are provided
         if ($Authors.Count -gt 0) {
             Write-Host "Generating authors file..."
-            $authorsContent = "# Project Authors`n`n"
+            $authorsContent = "# Project Authors$lineEnding$lineEnding"
             foreach ($author in $Authors) {
-                $authorsContent += "* $author`n"
+                $authorsContent += "* $author$lineEnding"
             }
             [System.IO.File]::WriteAllText("AUTHORS.md", $authorsContent, [System.Text.UTF8Encoding]::new($false))
         }
 
         # Create AUTHORS.url
-        $authorsUrl = "[InternetShortcut]`nURL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)"
+        $authorsUrl = "[InternetShortcut]$($lineEnding)URL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)"
         [System.IO.File]::WriteAllText("AUTHORS.url", $authorsUrl, [System.Text.UTF8Encoding]::new($false))
 
         # Create PROJECT_URL.url
-        $projectUrl = "[InternetShortcut]`nURL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)/$($BuildConfiguration.GitHubRepo)"
+        $projectUrl = "[InternetShortcut]$($lineEnding)URL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)/$($BuildConfiguration.GitHubRepo)"
         [System.IO.File]::WriteAllText("PROJECT_URL.url", $projectUrl, [System.Text.UTF8Encoding]::new($false))
 
         Write-Host "Checking git status before adding files..."
@@ -1494,7 +1516,8 @@ function Assert-LastExitCode {
             $errorDetails += " | Command: $Command"
         }
 
-        $fullMessage = "$Message`n$errorDetails"
+        $lineEnding = Get-GitLineEnding
+        $fullMessage = "$Message$lineEnding$errorDetails"
         Write-Host $fullMessage
         throw $fullMessage
     }
@@ -1519,7 +1542,8 @@ function Write-StepHeader {
         [Parameter(Mandatory=$true)]
         [string]$Message
     )
-    Write-Host "`n=== $Message ===`n" -ForegroundColor Cyan
+    $lineEnding = Get-GitLineEnding
+    Write-Host "$($lineEnding)=== $Message ===$($lineEnding)" -ForegroundColor Cyan
 }
 
 function Test-AnyFiles {
