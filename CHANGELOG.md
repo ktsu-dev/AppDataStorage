@@ -1,3 +1,10 @@
+## v1.12.0
+
+Initial release or no significant changes since v1.11.0.
+
+
+
+
 ## v1.8.0 (minor)
 
 Changes since v1.7.0:
@@ -51,6 +58,11 @@ Changes since v1.7.0:
 - Update README with improved documentation and API reference ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update version component checks in PSBuild module to use array count for improved clarity and consistency. This change enhances the handling of versioning and changelog generation processes. ([@matt-edmondson](https://github.com/matt-edmondson))
 
+
+
+
+
+
 ## v1.7.2 (patch)
 
 Changes since v1.7.1:
@@ -62,18 +74,23 @@ Changes since v1.7.1:
 Changes since v1.7.0:
 
 - Update packages ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.7.0 (minor)
 
 Changes since v1.6.0:
 
 - Refactor AppData locking mechanism and improve README ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.6.0 (minor)
 
 Changes since v1.5.0:
 
 - Add LICENSE template ([@matt-edmondson](https://github.com/matt-edmondson))
+
+
+
+
+
+
+
 
 ## v1.5.0 (minor)
 
@@ -88,42 +105,66 @@ Changes since v1.4.0:
 - Fix typo in variable name in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor version type checks in MakeNotesForRange function and add exclusion for PowerShell files in make-version.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## v1.4.6 (minor)
 
 Changes since v1.4.5:
 
 - Fix typo in variable name in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.4.5 (minor)
 
 Changes since v1.4.4:
 
 - Fix typo in variable name and remove unnecessary logging in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.4.4 (minor)
 
 Changes since v1.4.3:
 
 - Enhance changelog formatting by adding additional line breaks for improved readability ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.4.3 (minor)
 
 Changes since v1.4.2:
 
 - Add logging for note generation in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.4.2 (minor)
 
 Changes since v1.4.1:
 
 - Add changelog entry for changes since the specified tag in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.4.1 (minor)
 
 Changes since v1.4.0:
 
 - Refactor version type checks in MakeNotesForRange function and add exclusion for PowerShell files in make-version.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.4.0 (minor)
 
 Changes since v1.3.0:
@@ -148,7 +189,6 @@ Changes since v1.3.0:
 - Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update .NET workflow to trigger on main and develop branches ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update exclusion pattern for hidden files in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.3.16 (minor)
 
 Changes since v1.3.15:
@@ -157,12 +197,16 @@ Changes since v1.3.15:
 - Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
 
+
+
+
+
+
 ## v1.3.15 (minor)
 
 Changes since v1.3.14:
 
 - Move IS_PRERELEASE assignment to where its actually gonna work ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.3.14 (minor)
 
 Changes since v1.3.12-pre.1:
@@ -171,29 +215,39 @@ Changes since v1.3.12-pre.1:
 - Refactor bot commit exclusion patterns in dotnet workflow for case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor bot commit exclusion patterns in dotnet workflow for improved clarity and case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
 
+
+
+
+
+
+
+
+
 ## v1.3.5 (patch)
 
 Changes since v1.3.4:
 
 - Fix license ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.3.4 (patch)
 
 Changes since v1.3.3:
 
 - Replace LICENSE file with LICENSE.md ([@matt-edmondson](https://github.com/matt-edmondson))
 
+
 ## v1.3.1 (minor)
 
 Changes since v1.3.0:
 
 - Update .NET workflow to trigger on main and develop branches ([@matt-edmondson](https://github.com/matt-edmondson))
-
 ## v1.3.0 (minor)
 
 Changes since v1.2.0:
 
 - Refactor AppData to use Lazy<T> for internal state ([@matt-edmondson](https://github.com/matt-edmondson))
+
+
+
 
 ## v1.2.0 (minor)
 
@@ -223,6 +277,17 @@ Changes since 1.1.0:
 - Update README with Static Instance Access feature ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update VERSION ([@matt-edmondson](https://github.com/matt-edmondson))
 
+
+
+
+
+
+
+
+
+
+
+
 ## v1.1.45 (minor)
 
 Changes since v1.1.44:
@@ -238,11 +303,16 @@ Changes since v1.1.42:
 
 - Add GitHub Actions workflow to automate issue and PR management for ktsu.dev project ([@matt-edmondson](https://github.com/matt-edmondson))
 
+
 ## v1.1.40 (minor)
 
 Changes since v1.1.39:
 
 - Update dependencies ([@matt-edmondson](https://github.com/matt-edmondson))
+
+
+
+
 
 ## v1.1.34 (minor)
 
@@ -250,6 +320,35 @@ Changes since v1.1.33:
 
 - Make test classes and records public; update NoWarn property ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor visibility and enhance type conversion ([@matt-edmondson](https://github.com/matt-edmondson))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## v1.1.3 (minor)
 
@@ -303,4 +402,3 @@ Changes since 0.0.0.0:
 - Update LICENSE ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update nuget.config ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update ToStringJsonConverter to 1.0.0 ([@matt-edmondson](https://github.com/matt-edmondson))
-
