@@ -945,9 +945,6 @@ function New-Changelog {
         }
     }
 
-    # Get the correct line ending
-    $lineEnding = Get-GitLineEnding
-
     # Write changelog to file
     $filePath = if ($OutputPath) { Join-Path $OutputPath "CHANGELOG.md" } else { "CHANGELOG.md" }
 
@@ -987,6 +984,8 @@ function Update-ProjectMetadata {
         Write-Host "Generating changelog..."
         # Fixed: Now properly includes latest changes
         New-Changelog -Version $version -CommitHash $BuildConfiguration.ReleaseHash
+
+        $lineEnding = Get-GitLineEnding
 
         # Create AUTHORS.md if authors are provided
         if ($Authors.Count -gt 0) {
