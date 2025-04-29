@@ -1521,16 +1521,18 @@ function Write-InformationStream {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(ValueFromPipeline=$true, ParameterSetName="Object")]
         [object]$Object,
         [Parameter()]
         [AllowEmptyCollection()]
         [string[]]$Tags = @("Write-InformationStream")
     )
 
-    # Use array subexpression to ensure consistent collection handling
-    $Object | ForEach-Object {
-        Write-Information $_ -Tags $Tags
+    process {
+        # Use array subexpression to ensure consistent collection handling
+        $Object | ForEach-Object {
+            Write-Information $_ -Tags $Tags
+        }
     }
 }
 
@@ -1576,9 +1578,6 @@ function Invoke-ExpressionWithLogging {
         }
 
         if ($ScriptBlock) {
-            # Display the expression
-            Write-Information -MessageData $ScriptBlock -Tags $Tags
-
             # Execute the expression and return its result
             & $ScriptBlock | ForEach-Object {
                 Write-Output $_
