@@ -1,7 +1,7 @@
 @{
     # Module information
     RootModule = 'PSBuild.psm1'
-    ModuleVersion = '1.0.0'
+    ModuleVersion = '1.1.0'
     GUID = '15dd2bfc-0f11-4c8a-b98a-f2529558f423'
     Author = 'ktsu.dev'
     CompanyName = 'ktsu.dev'
@@ -49,6 +49,8 @@
         'Test-AnyFiles',
         'Get-GitLineEnding',
         'Set-GitIdentity',
+        'Write-InformationStream',
+        'Invoke-ExpressionWithLogging',
 
         # High-level workflow functions
         'Invoke-BuildWorkflow',
@@ -79,7 +81,15 @@
             LicenseUri = 'https://github.com/ktsu-dev/PSBuild/blob/main/LICENSE.md'
             ProjectUri = 'https://github.com/ktsu-dev/PSBuild'
             ReleaseNotes = @'
-Initial release of PSBuild module featuring:
+v1.1.0:
+- Improved object model using PSCustomObjects instead of hashtables
+- Enhanced git status detection and commit handling
+- Fixed logging and variable capture issues
+- Added comprehensive help comments to all functions
+- Added utility functions to the exported functions list
+
+v1.0.0:
+- Initial release of PSBuild module featuring:
 - Semantic versioning based on git history
 - Automatic version calculation from commit analysis
 - Metadata file generation and management
