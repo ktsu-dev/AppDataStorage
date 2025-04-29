@@ -1,3 +1,10 @@
+## v1.15.1-pre.3 (prerelease)
+
+Changes since v1.15.1-pre.2:
+
+- Enhance Get-VersionType function in PSBuild module to include detailed version bump criteria based on commit history and public API changes. Updated documentation to clarify major, minor, patch, and prerelease bump rules, improving version determination accuracy. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update README.md to enhance documentation on automatic version calculation and public API detection. Added detailed criteria for version increments based on commit history, including explicit version tags and public API changes, to clarify semantic versioning practices. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor Get-VersionType function in PSBuild module to improve version determination logic. Removed redundant file exclusion patterns and introduced public API change detection using git diff. This enhancement allows for more accurate minor version increments based on public API modifications. ([@github-actions[bot]](https://github.com/github-actions[bot]))
 ## v1.15.1-pre.2 (prerelease)
 
 Changes since v1.15.1-pre.1:
