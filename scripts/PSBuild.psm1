@@ -7,11 +7,23 @@
 # and release process for .NET applications using Git-based versioning.
 # See README.md for detailed documentation and usage examples.
 
+# Set Strict Mode
+Set-StrictMode -Version Latest
+
 #region Module Variables
 $script:DOTNET_VERSION = '9.0'
 $script:LICENSE_TEMPLATE = Join-Path $PSScriptRoot "LICENSE.template"
+
+# Set PowerShell preferences
 $ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
+$WarningPreference = 'Stop'
+$InformationPreference = 'Continue'
+$DebugPreference = 'Ignore'
+$VerbosePreference = 'Ignore'
+$ProgressPreference = 'Ignore'
+
+# Get the line ending for the current system
+$script:lineEnding = Get-GitLineEnding
 #endregion
 
 #region Environment and Configuration
@@ -30,7 +42,7 @@ function Initialize-BuildEnvironment {
     $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
     $env:DOTNET_NOLOGO = 'true'
 
-    Write-Host "Build environment initialized"
+    Write-Information "Build environment initialized" -Tags "Initialize-BuildEnvironment"
 }
 
 function Get-BuildConfiguration {
@@ -97,24 +109,25 @@ function Get-BuildConfiguration {
     if ($GithubToken) {
         try {
             $env:GH_TOKEN = $GithubToken
-            $repoInfo = gh repo view --json owner,nameWithOwner,isFork 2>$null | ConvertFrom-Json
+            $repoInfo = "gh repo view --json owner,nameWithOwner,isFork 2>`$null" | Invoke-ExpressionWithLogging -Tags "Get-BuildConfiguration" | ConvertFrom-Json
             if ($repoInfo) {
                 # Consider it official only if it's not a fork AND belongs to the expected owner
                 $IS_OFFICIAL = (-not $repoInfo.isFork) -and ($repoInfo.owner.login -eq $ExpectedOwner)
-                Write-Verbose "Repository: $($repoInfo.nameWithOwner), Is Fork: $($repoInfo.isFork), Owner: $($repoInfo.owner.login)"
+                Write-Information "Repository: $($repoInfo.nameWithOwner), Is Fork: $($repoInfo.isFork), Owner: $($repoInfo.owner.login)" -Tags "Get-BuildConfiguration"
             } else {
-                Write-Host "Could not retrieve repository information. Assuming unofficial build."
+                Write-Information "Could not retrieve repository information. Assuming unofficial build." -Tags "Get-BuildConfiguration"
             }
         }
         catch {
-            Write-Host "Failed to check repository status: $_. Assuming unofficial build."
+            Write-Information "Failed to check repository status: $_. Assuming unofficial build." -Tags "Get-BuildConfiguration"
         }
     }
-    Write-Verbose "Is Official: $IS_OFFICIAL"
+
+    Write-Information "Is Official: $IS_OFFICIAL" -Tags "Get-BuildConfiguration"
 
     # Determine if this is main branch and not tagged
     $IS_MAIN = $GitRef -eq "refs/heads/main"
-    $IS_TAGGED = (git show-ref --tags -d | Out-String).Contains($GitSha)
+    $IS_TAGGED = "(git show-ref --tags -d | Out-String).Contains($GitSha)" | Invoke-ExpressionWithLogging -Tags "Get-BuildConfiguration"
     $SHOULD_RELEASE = ($IS_MAIN -AND -NOT $IS_TAGGED -AND $IS_OFFICIAL)
 
     # Check for .csx files (dotnet-script)
@@ -166,41 +179,7 @@ function Get-BuildConfiguration {
         }
     }
 
-    # Display configuration details
-    Write-Host "Build Configuration:" -ForegroundColor Cyan
-    Write-Host "  Repository Status:" -ForegroundColor Yellow
-    Write-Host "    Server URL:      $($config.Data.ServerUrl)"
-    Write-Host "    Git Ref:         $($config.Data.GitRef)"
-    Write-Host "    Git Sha:         $($config.Data.GitSha)"
-    Write-Host "    GitHub Owner:    $($config.Data.GitHubOwner)"
-    Write-Host "    GitHub Repo:     $($config.Data.GitHubRepo)"
-    Write-Host "    Github Token:    $($config.Data.GithubToken)"
-    Write-Host "    NuGet Api Key:   $($config.Data.NuGetApiKey)"
-    Write-Host "    Workspace Path:  $($config.Data.WorkspacePath)"
-    Write-Host "    Expected Owner:  $($config.Data.ExpectedOwner)"
-    Write-Host "    Is Official Repo: $($config.Data.IsOfficial)"
-    Write-Host "    Is Main Branch:  $($config.Data.IsMain)"
-    Write-Host "    Is Tagged:       $($config.Data.IsTagged)"
-    Write-Host "    Should Release:  $($config.Data.ShouldRelease)"
-    Write-Host ""
-    Write-Host "  Build Settings:" -ForegroundColor Yellow
-    Write-Host "    .NET Version:    $($config.Data.DotnetVersion)"
-    Write-Host "    Uses Script:     $($config.Data.UseDotnetScript)"
-    Write-Host "    Build Args:      $($config.Data.BuildArgs)"
-    Write-Host ""
-    Write-Host "  Paths:" -ForegroundColor Yellow
-    Write-Host "    Workspace:       $($config.Data.WorkspacePath)"
-    Write-Host "    Output:          $($config.Data.OutputPath)"
-    Write-Host "    Staging:         $($config.Data.StagingPath)"
-    Write-Host ""
-    Write-Host "  Artifact Patterns:" -ForegroundColor Yellow
-    Write-Host "    Packages:        $($config.Data.PackagePattern)"
-    Write-Host "    Symbols:         $($config.Data.SymbolsPattern)"
-    Write-Host "    Applications:    $($config.Data.ApplicationPattern)"
-    Write-Host ""
-    Write-Host "  Changelog File:     $($config.Data.ChangelogFile)"
-    Write-Host "  Asset Patterns:     $($config.Data.AssetPatterns -join ', ')"
-
+    $config | ConvertTo-Json | Write-InformationStream -Tags "Get-BuildConfiguration"
 
     return $config
 }
@@ -217,38 +196,29 @@ function Get-GitTags {
         Retrieves a sorted list of git tags, handling versioning suffixes correctly.
     #>
     [CmdletBinding()]
-    [OutputType([string[]])]
+    [OutputType([System.Object[]])]
     param()
 
-    Write-Host "Configuring git version sort settings..." -ForegroundColor Cyan
+    Write-Information "Configuring git version sort settings..." -Tags "Get-GitTags"
 
     # Configure git to properly sort version tags with suffixes
-    $output = git config versionsort.suffix "-alpha" 2>&1
-    Write-Host "git config versionsort.suffix -alpha: $output"
+    @('-alpha', '-beta', '-rc', '-pre') | ForEach-Object {
+        "git config versionsort.suffix `"$_`"" | Invoke-ExpressionWithLogging -Tags "Get-GitTags" | Write-InformationStream -Tags "Get-GitTags"
+    }
 
-    $output = git config versionsort.suffix "-beta" 2>&1
-    Write-Host "git config versionsort.suffix -beta: $output"
-
-    $output = git config versionsort.suffix "-rc" 2>&1
-    Write-Host "git config versionsort.suffix -rc: $output"
-
-    $output = git config versionsort.suffix "-pre" 2>&1
-    Write-Host "git config versionsort.suffix -pre: $output"
-
-    Write-Host "Getting sorted tags..." -ForegroundColor Cyan
+    Write-Information "Getting sorted tags..." -Tags "Get-GitTags"
     # Get tags and ensure we return an array
-    $output = git tag --list --sort=-v:refname 2>&1
-    Write-Host "git tag --list --sort=-v:refname output: $output"
+    $output = "git tag --list --sort=-v:refname" | Invoke-ExpressionWithLogging -Tags "Get-GitTags"
 
     $tags = @($output)
 
     # Return default if no tags exist
     if ($null -eq $tags -or $tags.Count -eq 0) {
-        Write-Host "No tags found, returning default v1.0.0-pre.0" -ForegroundColor Yellow
+        Write-Information "No tags found, returning default v1.0.0-pre.0" -Tags "Get-GitTags"
         return @('v1.0.0-pre.0')
     }
 
-    Write-Host "Found $($tags.Count) tags" -ForegroundColor Green
+    Write-Information "Found $($tags.Count) tags" -Tags "Get-GitTags"
     return $tags
 }
 
@@ -277,7 +247,7 @@ function Get-VersionType {
     $EXCLUDE_PRS = '^.*(Merge pull request|Merge branch ''main''|Updated packages in|Update.*package version).*$'
 
     # Check for non-merge commits
-    $allCommits = git log --date-order --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $Range 2>&1
+    $allCommits = "git log --date-order --perl-regexp --regexp-ignore-case --grep=`"$EXCLUDE_PRS`" --invert-grep --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" $Range" | Invoke-ExpressionWithLogging -Tags "Get-VersionType"
 
     if ($allCommits) {
         $versionType = "patch"
@@ -297,7 +267,7 @@ function Get-VersionType {
     )
     $excludeString = $EXCLUDE_PATTERNS -join ' '
 
-    $codeChanges = git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" --grep="$EXCLUDE_PRS" --invert-grep $Range -- '*/*.*' $excludeString 2>&1
+    $codeChanges = "git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" --grep=`"$EXCLUDE_PRS`" --invert-grep $Range -- '*/*.*' $excludeString" | Invoke-ExpressionWithLogging -Tags "Get-VersionType"
 
     if ($codeChanges) {
         $versionType = "minor"
@@ -305,30 +275,29 @@ function Get-VersionType {
     }
 
 
-    $messages = git log --format=format:%s $Range 2>&1
+    $messages = "git log --format=format:%s $Range" | Invoke-ExpressionWithLogging -Tags "Get-VersionType"
 
     foreach ($message in $messages) {
-        if ($message.Contains('[major]')) {
-            # Write-Host "Found [major] tag in commit: $message" -ForegroundColor Red
-            return @{
-                Type = 'major'
-                Reason = "Explicit [major] tag found in commit message: $message"
+        $versionTags = @{
+            '[major]' = @{ Type = 'major'; HigherTypes = @() }
+            '[minor]' = @{ Type = 'minor'; HigherTypes = @('major') }
+            '[patch]' = @{ Type = 'patch'; HigherTypes = @('major', 'minor') }
+            '[pre]' = @{ Type = 'prerelease'; HigherTypes = @('major', 'minor', 'patch') }
+        }
+
+        foreach ($tag in $versionTags.Keys) {
+            if ($message.Contains($tag)) {
+                if ($versionType -notin $versionTags[$tag].HigherTypes) {
+                    $versionType = $versionTags[$tag].Type
+                    $reason = "Explicit $tag tag found in commit message: $message"
+                }
+                if ($tag -eq '[major]') {
+                    return @{
+                        Type = $versionType
+                        Reason = $reason
+                    }
+                }
             }
-        }
-        elseif ($message.Contains('[minor]') -and $versionType -ne 'major') {
-            # Write-Host "Found [minor] tag in commit: $message" -ForegroundColor Yellow
-            $versionType = 'minor'
-            $reason = "Explicit [minor] tag found in commit message: $message"
-        }
-        elseif ($message.Contains('[patch]') -and $versionType -notin @('major', 'minor')) {
-            # Write-Host "Found [patch] tag in commit: $message" -ForegroundColor Green
-            $versionType = 'patch'
-            $reason = "Explicit [patch] tag found in commit message: $message"
-        }
-        elseif ($message.Contains('[pre]') -and $versionType -notin @('major', 'minor', 'patch')) {
-            # Write-Host "Found [pre] tag in commit: $message" -ForegroundColor Blue
-            $versionType = 'prerelease'
-            $reason = "Explicit [pre] tag found in commit message: $message"
         }
     }
 
@@ -358,14 +327,12 @@ function Get-VersionInfoFromGit {
         [string]$InitialVersion = "1.0.0"
     )
 
-    $lineEnding = Get-GitLineEnding
-
-    Write-StepHeader "Analyzing Version Information"
-    Write-Host "Analyzing repository for version information..."
-    Write-Host "Commit hash: $CommitHash" -ForegroundColor Cyan
+    Write-StepHeader "Analyzing Version Information" -Tags "Get-VersionInfoFromGit"
+    Write-Information "Analyzing repository for version information..." -Tags "Get-VersionInfoFromGit"
+    Write-Information "Commit hash: $CommitHash" -Tags "Get-VersionInfoFromGit"
 
     # Get tag information
-    Write-Host "$($lineEnding)Getting tag information..." -ForegroundColor Cyan
+    Write-Information "$($script:lineEnding)Getting tag information..." -Tags "Get-VersionInfoFromGit"
     $allTags = Get-GitTags
     $noTagsExist = ($null -eq $allTags) -or
                    (($allTags -is [string]) -and $allTags -eq 'v1.0.0-pre.0') -or
@@ -373,7 +340,7 @@ function Get-VersionInfoFromGit {
 
     if ($noTagsExist) {
         # Special case: This is the first version, no real tags exist yet
-        Write-Host "No existing version tags found - using initial version: $InitialVersion" -ForegroundColor Yellow
+        Write-Information "No existing version tags found - using initial version: $InitialVersion" -Tags "Get-VersionInfoFromGit"
 
         return [PSCustomObject]@{
             Success = $true
@@ -408,7 +375,7 @@ function Get-VersionInfoFromGit {
 
     $lastTag = $allTags[0]
     $lastVersion = $lastTag -replace 'v', ''
-    Write-Host "Last version tag: $lastTag" -ForegroundColor Cyan
+    Write-Information "Last version tag: $lastTag" -Tags "Get-VersionInfoFromGit"
 
     # Parse previous version
     $wasPrerelease = $lastVersion.Contains('-')
@@ -426,15 +393,15 @@ function Get-VersionInfoFromGit {
     }
 
     # Determine version increment type
-    Write-Host "$($lineEnding)Getting first commit..." -ForegroundColor Cyan
-    Write-Host "Running: git rev-list HEAD"
-    $output = git rev-list HEAD 2>&1
-    Write-Host "git rev-list HEAD output:$lineEnding$output"
+    Write-Information "$($script:lineEnding)Getting first commit..." -Tags "Get-VersionInfoFromGit"
+    Write-Information "Running: git rev-list HEAD" -Tags "Get-VersionInfoFromGit"
+    $output = git rev-list HEAD
+    Write-Information "git rev-list HEAD output:$script:lineEnding$output" -Tags "Get-VersionInfoFromGit"
     $firstCommit = $output[-1]
-    Write-Host "First commit: $firstCommit"
+    Write-Information "First commit: $firstCommit" -Tags "Get-VersionInfoFromGit"
 
     $commitRange = "$firstCommit...$CommitHash"
-    Write-Host "$($lineEnding)Analyzing commit range: $commitRange" -ForegroundColor Cyan
+    Write-Information "$($script:lineEnding)Analyzing commit range: $commitRange" -Tags "Get-VersionInfoFromGit"
     $incrementInfo = Get-VersionType -Range $commitRange
     $incrementType = $incrementInfo.Type
     $incrementReason = $incrementInfo.Reason
@@ -447,7 +414,7 @@ function Get-VersionInfoFromGit {
     $isPrerelease = $false
     $prereleaseLabel = "pre"
 
-    Write-Host "$($lineEnding)Calculating new version..." -ForegroundColor Cyan
+    Write-Information "$($script:lineEnding)Calculating new version..." -Tags "Get-VersionInfoFromGit"
 
     # Calculate new version based on increment type
     switch ($incrementType) {
@@ -455,19 +422,19 @@ function Get-VersionInfoFromGit {
             $newMajor = $lastMajor + 1
             $newMinor = 0
             $newPatch = 0
-            Write-Host "Incrementing major version: $lastMajor.$lastMinor.$lastPatch -> $newMajor.0.0" -ForegroundColor Red
+            Write-Information "Incrementing major version: $lastMajor.$lastMinor.$lastPatch -> $newMajor.0.0" -Tags "Get-VersionInfoFromGit"
         }
         'minor' {
             $newMinor = $lastMinor + 1
             $newPatch = 0
-            Write-Host "Incrementing minor version: $lastMajor.$lastMinor.$lastPatch -> $lastMajor.$newMinor.0" -ForegroundColor Yellow
+            Write-Information "Incrementing minor version: $lastMajor.$lastMinor.$lastPatch -> $lastMajor.$newMinor.0" -Tags "Get-VersionInfoFromGit"
         }
         'patch' {
             if (-not $wasPrerelease) {
                 $newPatch = $lastPatch + 1
-                Write-Host "Incrementing patch version: $lastMajor.$lastMinor.$lastPatch -> $lastMajor.$lastMinor.$newPatch" -ForegroundColor Green
+                Write-Information "Incrementing patch version: $lastMajor.$lastMinor.$lastPatch -> $lastMajor.$lastMinor.$newPatch" -Tags "Get-VersionInfoFromGit"
             } else {
-                Write-Host "Converting prerelease to stable version: $lastVersion -> $lastMajor.$lastMinor.$lastPatch" -ForegroundColor Green
+                Write-Information "Converting prerelease to stable version: $lastVersion -> $lastMajor.$lastMinor.$lastPatch" -Tags "Get-VersionInfoFromGit"
             }
         }
         'prerelease' {
@@ -475,13 +442,13 @@ function Get-VersionInfoFromGit {
                 # Bump prerelease number
                 $newPrereleaseNum = $lastPrereleaseNum + 1
                 $isPrerelease = $true
-                Write-Host "Incrementing prerelease: $lastVersion -> $lastMajor.$lastMinor.$lastPatch-$prereleaseLabel.$newPrereleaseNum" -ForegroundColor Blue
+                Write-Information "Incrementing prerelease: $lastVersion -> $lastMajor.$lastMinor.$lastPatch-$prereleaseLabel.$newPrereleaseNum" -Tags "Get-VersionInfoFromGit"
             } else {
                 # Start new prerelease series
                 $newPatch = $lastPatch + 1
                 $newPrereleaseNum = 1
                 $isPrerelease = $true
-                Write-Host "Starting new prerelease: $lastVersion -> $lastMajor.$lastMinor.$newPatch-$prereleaseLabel.1" -ForegroundColor Blue
+                Write-Information "Starting new prerelease: $lastVersion -> $lastMajor.$lastMinor.$newPatch-$prereleaseLabel.1" -Tags "Get-VersionInfoFromGit"
             }
         }
     }
@@ -492,10 +459,10 @@ function Get-VersionInfoFromGit {
         $newVersion += "-$prereleaseLabel.$newPrereleaseNum"
     }
 
-    Write-Host "$($lineEnding)Version decision:" -ForegroundColor Cyan
-    Write-Host "Previous version: $lastVersion" -ForegroundColor Gray
-    Write-Host "New version    : $newVersion" -ForegroundColor White
-    Write-Host "Reason        : $incrementReason" -ForegroundColor Gray
+    Write-Information "$($script:lineEnding)Version decision:" -Tags "Get-VersionInfoFromGit"
+    Write-Information "Previous version: $lastVersion" -Tags "Get-VersionInfoFromGit"
+    Write-Information "New version: $newVersion" -Tags "Get-VersionInfoFromGit"
+    Write-Information "Reason: $incrementReason" -Tags "Get-VersionInfoFromGit"
 
     try {
         # Return comprehensive object with standard format
@@ -529,6 +496,7 @@ function Get-VersionInfoFromGit {
             Success = $false
             Error = $_.ToString()
             Data = @{}
+            StackTrace = $_.ScriptStackTrace
         }
     }
 }
@@ -556,15 +524,12 @@ function New-Version {
     # Get complete version information object
     $versionInfo = Get-VersionInfoFromGit -CommitHash $CommitHash
 
-    # Get the correct line ending
-    $lineEnding = Get-GitLineEnding
-
     # Write version file with correct line ending
     $filePath = if ($OutputPath) { Join-Path $OutputPath "VERSION.md" } else { "VERSION.md" }
     $version = $versionInfo.Data.Version.Trim()
-    [System.IO.File]::WriteAllText($filePath, $version + $lineEnding, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($filePath, $version + $script:lineEnding, [System.Text.UTF8Encoding]::new($false)) | Write-InformationStream -Tags "New-Version"
 
-    Write-Verbose "Previous version: $($versionInfo.Data.LastVersion), New version: $($versionInfo.Data.Version)"
+    Write-Information "Previous version: $($versionInfo.Data.LastVersion), New version: $($versionInfo.Data.Version)" -Tags "New-Version"
     return $versionInfo.Data.Version
 }
 
@@ -604,7 +569,6 @@ function New-License {
 
     $year = (Get-Date).Year
     $content = Get-Content $script:LICENSE_TEMPLATE -Raw
-    $lineEnding = Get-GitLineEnding
 
     # Project URL
     $projectUrl = "$ServerUrl/$Owner/$Repository"
@@ -615,13 +579,15 @@ function New-License {
     $content = $content.Replace('{COPYRIGHT}', $copyright)
 
     # Normalize line endings
-    $content = $content.ReplaceLineEndings($lineEnding)
+    $content = $content.ReplaceLineEndings($script:lineEnding)
 
     $copyrightFilePath = if ($OutputPath) { Join-Path $OutputPath "COPYRIGHT.md" } else { "COPYRIGHT.md" }
-    [System.IO.File]::WriteAllText($copyrightFilePath, $copyright + $lineEnding, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($copyrightFilePath, $copyright + $script:lineEnding, [System.Text.UTF8Encoding]::new($false)) | Write-InformationStream -Tags "New-License"
 
     $filePath = if ($OutputPath) { Join-Path $OutputPath "LICENSE.md" } else { "LICENSE.md" }
-    [System.IO.File]::WriteAllText($filePath, $content, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($filePath, $content, [System.Text.UTF8Encoding]::new($false)) | Write-InformationStream -Tags "New-License"
+
+    Write-Information "License file created at: $filePath" -Tags "New-License"
 }
 
 #endregion
@@ -687,8 +653,6 @@ function Get-VersionNotes {
         [Parameter()]
         [string]$ToSha = ""
     )
-
-    $lineEnding = Get-GitLineEnding
 
     # Define common patterns used for filtering commits
     $EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
@@ -839,24 +803,24 @@ function Get-VersionNotes {
     }
 
     # Get commit messages with authors - common logic for all cases
-    $commits = git log --pretty=format:"%s ([@%aN](https://github.com/%aN))" --perl-regexp --regexp-ignore-case --grep="$EXCLUDE_PRS" --invert-grep --committer="$EXCLUDE_BOTS" --author="$EXCLUDE_BOTS" $range | Sort-Object | Get-Unique
+    $commits = "git log --pretty=format:`"%s ([@%aN](https://github.com/%aN))`" --perl-regexp --regexp-ignore-case --grep=`"$EXCLUDE_PRS`" --invert-grep --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" $range | Sort-Object | Get-Unique" | Invoke-ExpressionWithLogging
 
     # Format changelog entry
     $versionChangelog = ""
     if (($versionType -ne "prerelease" -or $isFirstRelease) -and @($commits).Count -gt 0) {
-        $versionChangelog = "## $ToTag ($versionType)$lineEnding$lineEnding"
-        $versionChangelog += "$($changeDescription):$lineEnding$lineEnding"
+        $versionChangelog = "## $ToTag ($versionType)$script:lineEnding$script:lineEnding"
+        $versionChangelog += "$($changeDescription):$script:lineEnding$script:lineEnding"
 
         foreach ($commit in $commits) {
             # Filter out version updates and skip CI commits
             if (-not $commit.Contains("Update VERSION to") -and -not $commit.Contains("[skip ci]")) {
-                $versionChangelog += "- $commit$lineEnding"
+                $versionChangelog += "- $commit$script:lineEnding"
             }
         }
-        $versionChangelog += $lineEnding
+        $versionChangelog += $script:lineEnding
     }
 
-    return ($versionChangelog.Trim() + $lineEnding)
+    return ($versionChangelog.Trim() + $script:lineEnding)
 }
 
 function New-Changelog {
@@ -883,8 +847,6 @@ function New-Changelog {
         [string]$OutputPath = "",
         [bool]$IncludeAllVersions = $true
     )
-
-    $lineEnding = Get-GitLineEnding
 
     # Get all tags
     $tags = Get-GitTags
@@ -916,8 +878,8 @@ function New-Changelog {
         $changelog += $versionNotes
     } else {
         # Handle no changes detected case - add a minimal entry
-        $changelog += "## $currentTag$lineEnding$lineEnding"
-        $changelog += "Initial release or no significant changes since $previousTag.$lineEnding$lineEnding"
+        $changelog += "## $currentTag$script:lineEnding$script:lineEnding"
+        $changelog += "Initial release or no significant changes since $previousTag.$script:lineEnding$script:lineEnding"
     }
 
     # Add entries for all previous versions if requested
@@ -949,12 +911,12 @@ function New-Changelog {
     $filePath = if ($OutputPath) { Join-Path $OutputPath "CHANGELOG.md" } else { "CHANGELOG.md" }
 
     # Normalize line endings in changelog content
-    $changelog = $changelog.ReplaceLineEndings($lineEnding)
+    $changelog = $changelog.ReplaceLineEndings($script:lineEnding)
 
-    [System.IO.File]::WriteAllText($filePath, $changelog, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($filePath, $changelog, [System.Text.UTF8Encoding]::new($false)) | Write-InformationStream -Tags "New-Changelog"
 
     $versionCount = if ($hasTags) { @($tags).Count + 1 } else { 1 }
-    Write-Host "Changelog generated with entries for $versionCount versions"
+    Write-Information "Changelog generated with entries for $versionCount versions" -Tags "New-Changelog"
 }
 
 #endregion
@@ -974,44 +936,39 @@ function Update-ProjectMetadata {
     )
 
     try {
-        Write-Host "Generating version information..."
+        Write-Information "Generating version information..." -Tags "Update-ProjectMetadata"
         $version = New-Version -CommitHash $BuildConfiguration.ReleaseHash
-        Write-Host "Version: $version"
+        Write-Information "Version: $version" -Tags "Update-ProjectMetadata"
 
-        Write-Host "Generating license..."
-        New-License -ServerUrl $BuildConfiguration.ServerUrl -Owner $BuildConfiguration.GitHubOwner -Repository $BuildConfiguration.GitHubRepo
+        Write-Information "Generating license..." -Tags "Update-ProjectMetadata"
+        New-License -ServerUrl $BuildConfiguration.ServerUrl -Owner $BuildConfiguration.GitHubOwner -Repository $BuildConfiguration.GitHubRepo | Write-InformationStream -Tags "Update-ProjectMetadata"
 
-        Write-Host "Generating changelog..."
+        Write-Information "Generating changelog..." -Tags "Update-ProjectMetadata"
         # Fixed: Now properly includes latest changes
-        New-Changelog -Version $version -CommitHash $BuildConfiguration.ReleaseHash
-
-        $lineEnding = Get-GitLineEnding
+        New-Changelog -Version $version -CommitHash $BuildConfiguration.ReleaseHash | Write-InformationStream -Tags "Update-ProjectMetadata"
 
         # Create AUTHORS.md if authors are provided
         if ($Authors.Count -gt 0) {
-            Write-Host "Generating authors file..."
-            $authorsContent = "# Project Authors$lineEnding$lineEnding"
+            Write-Information "Generating authors file..." -Tags "Update-ProjectMetadata"
+            $authorsContent = "# Project Authors$script:lineEnding$script:lineEnding"
             foreach ($author in $Authors) {
-                $authorsContent += "* $author$lineEnding"
+                $authorsContent += "* $author$script:lineEnding"
             }
-            [System.IO.File]::WriteAllText("AUTHORS.md", $authorsContent, [System.Text.UTF8Encoding]::new($false))
+            [System.IO.File]::WriteAllText("AUTHORS.md", $authorsContent, [System.Text.UTF8Encoding]::new($false)) | Write-InformationStream -Tags "Update-ProjectMetadata"
         }
 
         # Create AUTHORS.url
-        $authorsUrl = "[InternetShortcut]$($lineEnding)URL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)"
-        [System.IO.File]::WriteAllText("AUTHORS.url", $authorsUrl, [System.Text.UTF8Encoding]::new($false))
+        $authorsUrl = "[InternetShortcut]$($script:lineEnding)URL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)"
+        [System.IO.File]::WriteAllText("AUTHORS.url", $authorsUrl, [System.Text.UTF8Encoding]::new($false)) | Write-InformationStream -Tags "Update-ProjectMetadata"
 
         # Create PROJECT_URL.url
-        $projectUrl = "[InternetShortcut]$($lineEnding)URL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)/$($BuildConfiguration.GitHubRepo)"
-        [System.IO.File]::WriteAllText("PROJECT_URL.url", $projectUrl, [System.Text.UTF8Encoding]::new($false))
+        $projectUrl = "[InternetShortcut]$($script:lineEnding)URL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)/$($BuildConfiguration.GitHubRepo)"
+        [System.IO.File]::WriteAllText("PROJECT_URL.url", $projectUrl, [System.Text.UTF8Encoding]::new($false)) | Write-InformationStream -Tags "Update-ProjectMetadata"
 
-        Write-Host "Checking git status before adding files..."
-        $preStatus = git status --porcelain
-        Write-Host "Current status:"
-        Write-Host $preStatus
-        Write-Host ""
+        Write-Information "Checking git status before adding files..." -Tags "Update-ProjectMetadata"
+        "git status --porcelain" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
 
-        Write-Host "Adding files to git..."
+        Write-Information "Adding files to git..." -Tags "Update-ProjectMetadata"
         $filesToAdd = @(
             "VERSION.md",
             "LICENSE.md",
@@ -1021,45 +978,33 @@ function Update-ProjectMetadata {
             "PROJECT_URL.url",
             "AUTHORS.url"
         )
-        Write-Host "Files to add: $($filesToAdd -join ", ")"
-        $addOutput = git add $filesToAdd 2>&1
-        Write-Host "git add output: "
-        Write-Host $addOutput
-        Write-Host ""
+        Write-Information "Files to add: $($filesToAdd -join ", ")" -Tags "Update-ProjectMetadata"
+        "git add $filesToAdd" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
 
-        Write-Host "Checking for changes to commit..."
-        $postStatus = git status --porcelain
-        Write-Host "Status after add:"
-        Write-Host $postStatus
-        Write-Host ""
+        Write-Information "Checking for changes to commit..." -Tags "Update-ProjectMetadata"
+        "git status --porcelain" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
 
         # Get the current commit hash regardless of whether we make changes
-        $currentHash = git rev-parse HEAD
-        Write-Host "Current commit hash: $currentHash"
+        $currentHash = "git rev-parse HEAD" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
+        Write-Information "Current commit hash: $currentHash" -Tags "Update-ProjectMetadata"
 
         if ($postStatus) {
             # Configure git user before committing
-            Set-GitIdentity
+            Set-GitIdentity | Write-InformationStream -Tags "Update-ProjectMetadata"
 
-            Write-Host "Committing changes..."
-            Write-Host "Running: git commit -m `"$CommitMessage`""
-            $commitOutput = git commit -m $CommitMessage 2>&1
-            Write-Host "Commit output: $commitOutput"
-            Write-Host ""
+            Write-Information "Committing changes..." -Tags "Update-ProjectMetadata"
+            "git commit -m $CommitMessage" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
 
-            Write-Host "Pushing changes..."
-            $pushOutput = git push 2>&1
-            Write-Host "Push output: $pushOutput"
-            Write-Host ""
+            Write-Information "Pushing changes..." -Tags "Update-ProjectMetadata"
+            "git push" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
 
-            Write-Host "Getting release hash..."
-            $releaseHash = git rev-parse HEAD
-            Write-Host "Metadata committed as $releaseHash"
-            Write-Host ""
+            Write-Information "Getting release hash..." -Tags "Update-ProjectMetadata"
+            $releaseHash = "git rev-parse HEAD" | Invoke-ExpressionWithLogging
+            Write-Information "Metadata committed as $releaseHash" -Tags "Update-ProjectMetadata"
 
-            Write-Host "Metadata update completed successfully with changes"
-            Write-Host "Version: $version"
-            Write-Host "Release Hash: $releaseHash"
+            Write-Information "Metadata update completed successfully with changes" -Tags "Update-ProjectMetadata"
+            Write-Information "Version: $version" -Tags "Update-ProjectMetadata"
+            Write-Information "Release Hash: $releaseHash" -Tags "Update-ProjectMetadata"
 
             return [PSCustomObject]@{
                 Success = $true
@@ -1072,9 +1017,9 @@ function Update-ProjectMetadata {
             }
         }
         else {
-            Write-Host "No changes to commit"
-            Write-Host "Version: $version"
-            Write-Host "Using current commit hash: $currentHash"
+            Write-Information "No changes to commit" -Tags "Update-ProjectMetadata"
+            Write-Information "Version: $version" -Tags "Update-ProjectMetadata"
+            Write-Information "Using current commit hash: $currentHash" -Tags "Update-ProjectMetadata"
 
             return [PSCustomObject]@{
                 Success = $true
@@ -1089,7 +1034,7 @@ function Update-ProjectMetadata {
     }
     catch {
         $errorMessage = $_.ToString()
-        Write-Host "Failed to update metadata: $errorMessage"
+        Write-Information "Failed to update metadata: $errorMessage" -Tags "Update-ProjectMetadata"
         return [PSCustomObject]@{
             Success = $false
             Error = $errorMessage
@@ -1117,12 +1062,10 @@ function Invoke-DotNetRestore {
     [CmdletBinding()]
     param()
 
-    Write-StepHeader "Restoring Dependencies"
+    Write-StepHeader "Restoring Dependencies" -Tags "Invoke-DotNetRestore"
 
     # Execute command and stream output directly to console
-    & dotnet restore --locked-mode -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" | ForEach-Object {
-        Write-Host $_
-    }
+    "dotnet restore --locked-mode -logger:`"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetRestore"
     Assert-LastExitCode "Restore failed"
 }
 
@@ -1143,32 +1086,28 @@ function Invoke-DotNetBuild {
         [string]$BuildArgs = ""
     )
 
-    Write-StepHeader "Building Solution"
+    Write-StepHeader "Building Solution" -Tags "Invoke-DotNetBuild"
 
     try {
         # First attempt with quiet verbosity - stream output directly
-        & dotnet build --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-incremental $BuildArgs --no-restore | ForEach-Object {
-            Write-Host $_
-        }
+        "dotnet build --configuration $Configuration -logger:`"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet`" --no-incremental $BuildArgs --no-restore" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetBuild"
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Build failed with exit code $LASTEXITCODE. Retrying with detailed verbosity..."
+            Write-Information "Build failed with exit code $LASTEXITCODE. Retrying with detailed verbosity..." -Tags "Invoke-DotNetBuild"
 
             # Retry with more detailed verbosity - stream output directly
-            & dotnet build --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-incremental $BuildArgs --no-restore | ForEach-Object {
-                Write-Host $_
-            }
+            "dotnet build --configuration $Configuration -logger:`"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet`" --no-incremental $BuildArgs --no-restore" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetBuild"
 
             # Still failed, show diagnostic info and throw error
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "Checking for common build issues:" -ForegroundColor Yellow
+                Write-Information "Checking for common build issues:" -Tags "Invoke-DotNetBuild"
 
                 # Check for project files
                 $projectFiles = @(Get-ChildItem -Recurse -Filter *.csproj)
-                Write-Host "Found $($projectFiles.Count) project files" -ForegroundColor Cyan
+                Write-Information "Found $($projectFiles.Count) project files" -Tags "Invoke-DotNetBuild"
 
                 foreach ($proj in $projectFiles) {
-                    Write-Host "  - $($proj.FullName)" -ForegroundColor Cyan
+                    Write-Information "  - $($proj.FullName)" -Tags "Invoke-DotNetBuild"
                 }
 
                 Assert-LastExitCode "Build failed"
@@ -1176,7 +1115,7 @@ function Invoke-DotNetBuild {
         }
     }
     catch {
-        Write-Host "Exception during build process: $_"
+        Write-Information "Exception during build process: $_" -Tags "Invoke-DotNetBuild"
         throw
     }
 }
@@ -1198,12 +1137,10 @@ function Invoke-DotNetTest {
         [string]$CoverageOutputPath = "coverage"
     )
 
-    Write-StepHeader "Running Tests"
+    Write-StepHeader "Running Tests" -Tags "Invoke-DotNetTest"
 
     # Execute command and stream output directly to console
-    & dotnet test -m:1 --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-build --collect:"XPlat Code Coverage" --results-directory $CoverageOutputPath | ForEach-Object {
-        Write-Host $_
-    }
+    "dotnet test -m:1 --configuration $Configuration -logger:`"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet`" --no-build --collect:`"XPlat Code Coverage`" --results-directory $CoverageOutputPath" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetTest"
     Assert-LastExitCode "Tests failed"
 }
 
@@ -1228,55 +1165,49 @@ function Invoke-DotNetPack {
         [string]$Project = ""
     )
 
-    Write-StepHeader "Packaging Libraries"
+    Write-StepHeader "Packaging Libraries" -Tags "Invoke-DotNetPack"
 
     # Ensure output directory exists
-    New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
+    New-Item -Path $OutputPath -ItemType Directory -Force | Write-InformationStream -Tags "Invoke-DotNetPack"
 
     # Check if any projects exist
     $projectFiles = @(Get-ChildItem -Recurse -Filter *.csproj -ErrorAction SilentlyContinue)
     if ($projectFiles.Count -eq 0) {
-        Write-Host "No .NET library projects found to package"
+        Write-Information "No .NET library projects found to package" -Tags "Invoke-DotNetPack"
         return
     }
 
     try {
         # Build either a specific project or all projects
         if ([string]::IsNullOrWhiteSpace($Project)) {
-            Write-Host "Packaging all projects in solution..."
-            & dotnet pack --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-build --output $OutputPath | ForEach-Object {
-                Write-Host $_
-            }
+            Write-Information "Packaging all projects in solution..." -Tags "Invoke-DotNetPack"
+            "dotnet pack --configuration $Configuration -logger:`"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet`" --no-build --output $OutputPath" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetPack"
         } else {
-            Write-Host "Packaging project: $Project"
-            & dotnet pack $Project --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" --no-build --output $OutputPath | ForEach-Object {
-                Write-Host $_
-            }
+            Write-Information "Packaging project: $Project" -Tags "Invoke-DotNetPack"
+            "dotnet pack $Project --configuration $Configuration -logger:`"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet`" --no-build --output $OutputPath" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetPack"
         }
 
         if ($LASTEXITCODE -ne 0) {
             # Get more details about what might have failed
-            Write-Host "Packaging failed with exit code $LASTEXITCODE, trying again with detailed verbosity..."
-            & dotnet pack --configuration $Configuration -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed" --no-build --output $OutputPath | ForEach-Object {
-                Write-Host $_
-            }
+            Write-Information "Packaging failed with exit code $LASTEXITCODE, trying again with detailed verbosity..." -Tags "Invoke-DotNetPack"
+            "dotnet pack --configuration $Configuration -logger:`"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=detailed`" --no-build --output $OutputPath" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetPack"
             throw "Library packaging failed with exit code $LASTEXITCODE"
         }
 
         # Report on created packages
         $packages = @(Get-ChildItem -Path $OutputPath -Filter *.nupkg -ErrorAction SilentlyContinue)
         if ($packages.Count -gt 0) {
-            Write-Host "Created $($packages.Count) packages in $OutputPath"
+            Write-Information "Created $($packages.Count) packages in $OutputPath" -Tags "Invoke-DotNetPack"
             foreach ($package in $packages) {
-                Write-Host "  - $($package.Name)"
+                Write-Information "  - $($package.Name)" -Tags "Invoke-DotNetPack"
             }
         } else {
-            Write-Host "No packages were created (projects may not be configured for packaging)"
+            Write-Information "No packages were created (projects may not be configured for packaging)" -Tags "Invoke-DotNetPack"
         }
     }
     catch {
         $originalException = $_.Exception
-        Write-Host "Package creation failed: $originalException"
+        Write-Information "Package creation failed: $originalException" -Tags "Invoke-DotNetPack"
         throw "Library packaging failed: $originalException"
     }
 }
@@ -1303,22 +1234,22 @@ function Invoke-DotNetPublish {
         [PSCustomObject]$BuildConfiguration
     )
 
-    Write-StepHeader "Publishing Applications"
+    Write-StepHeader "Publishing Applications" -Tags "Invoke-DotNetPublish"
 
     # Find all projects
     $projectFiles = @(Get-ChildItem -Recurse -Filter *.csproj -ErrorAction SilentlyContinue)
     if ($projectFiles.Count -eq 0) {
-        Write-Host "No .NET application projects found to publish"
+        Write-Information "No .NET application projects found to publish" -Tags "Invoke-DotNetPublish"
         return
     }
 
     # Clean output directory if it exists
     if (Test-Path $BuildConfiguration.OutputPath) {
-        Remove-Item -Recurse -Force $BuildConfiguration.OutputPath
+        Remove-Item -Recurse -Force $BuildConfiguration.OutputPath | Write-InformationStream -Tags "Invoke-DotNetPublish"
     }
 
     # Ensure staging directory exists
-    New-Item -Path $BuildConfiguration.StagingPath -ItemType Directory -Force | Out-Null
+    New-Item -Path $BuildConfiguration.StagingPath -ItemType Directory -Force | Write-InformationStream -Tags "Invoke-DotNetPublish"
 
     $publishedCount = 0
     foreach ($csproj in $projectFiles) {
@@ -1326,31 +1257,29 @@ function Invoke-DotNetPublish {
         $outDir = Join-Path $BuildConfiguration.OutputPath $projName
         $stageFile = Join-Path $BuildConfiguration.StagingPath "$projName-$($BuildConfiguration.Version).zip"
 
-        Write-Host "Publishing $projName..."
+        Write-Information "Publishing $projName..." -Tags "Invoke-DotNetPublish"
 
         # Create output directory
-        New-Item -Path $outDir -ItemType Directory -Force | Out-Null
+        New-Item -Path $outDir -ItemType Directory -Force | Write-InformationStream -Tags "Invoke-DotNetPublish"
 
         # Publish application - stream output directly
-        & dotnet publish $csproj --no-build --configuration $Configuration --framework net$($BuildConfiguration.DotnetVersion) --output $outDir  -logger:"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet" | ForEach-Object {
-            Write-Host $_
-        }
+        "dotnet publish $csproj --no-build --configuration $Configuration --framework net$($BuildConfiguration.DotnetVersion) --output $outDir  -logger:`"Microsoft.Build.Logging.ConsoleLogger,Microsoft.Build;Summary;ForceNoAlign;ShowTimestamp;ShowCommandLine;Verbosity=quiet`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetPublish"
 
         if ($LASTEXITCODE -eq 0) {
             # Create zip archive
-            Compress-Archive -Path "$outDir/*" -DestinationPath $stageFile -Force
+            Compress-Archive -Path "$outDir/*" -DestinationPath $stageFile -Force | Write-InformationStream -Tags "Invoke-DotNetPublish"
             $publishedCount++
-            Write-Host "Successfully published and archived $projName"
+            Write-Information "Successfully published and archived $projName" -Tags "Invoke-DotNetPublish"
         } else {
-            Write-Host "Skipping $projName (not configured as an executable project)"
+            Write-Information "Skipping $projName (not configured as an executable project)" -Tags "Invoke-DotNetPublish"
             continue
         }
     }
 
     if ($publishedCount -gt 0) {
-        Write-Host "Published $publishedCount application(s)"
+        Write-Information "Published $publishedCount application(s)" -Tags "Invoke-DotNetPublish"
     } else {
-        Write-Host "No applications were published (projects may not be configured as executables)"
+        Write-Information "No applications were published (projects may not be configured as executables)" -Tags "Invoke-DotNetPublish"
     }
 }
 
@@ -1380,32 +1309,22 @@ function Invoke-NuGetPublish {
     # Check if there are any packages to publish
     $packages = @(Get-Item -Path $BuildConfiguration.PackagePattern -ErrorAction SilentlyContinue)
     if ($packages.Count -eq 0) {
-        Write-Host "No packages found to publish"
+        Write-Information "No packages found to publish" -Tags "Invoke-NuGetPublish"
         return
     }
 
-    Write-Host "Found $($packages.Count) package(s) to publish"
+    Write-Information "Found $($packages.Count) package(s) to publish" -Tags "Invoke-NuGetPublish"
 
-    Write-StepHeader "Publishing to GitHub Packages"
-
-    # Display the command being run (without revealing the token)
-    Write-Host "Running: dotnet nuget push $($BuildConfiguration.PackagePattern) --source https://nuget.pkg.github.com/$($BuildConfiguration.GithubOwner)/index.json --skip-duplicate"
+    Write-StepHeader "Publishing to GitHub Packages" -Tags "Invoke-NuGetPublish"
 
     # Execute the command and stream output
-    & dotnet nuget push $BuildConfiguration.PackagePattern --api-key $BuildConfiguration.GithubToken --source "https://nuget.pkg.github.com/$($BuildConfiguration.GithubOwner)/index.json" --skip-duplicate | ForEach-Object {
-        Write-Host $_
-    }
+    "dotnet nuget push $BuildConfiguration.PackagePattern --api-key $BuildConfiguration.GithubToken --source `"https://nuget.pkg.github.com/$($BuildConfiguration.GithubOwner)/index.json`" --skip-duplicate" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-NuGetPublish"
     Assert-LastExitCode "GitHub package publish failed"
 
-    Write-StepHeader "Publishing to NuGet.org"
-
-    # Display the command being run (without revealing the API key)
-    Write-Host "Running: dotnet nuget push $($BuildConfiguration.PackagePattern) --source https://api.nuget.org/v3/index.json --skip-duplicate"
+    Write-StepHeader "Publishing to NuGet.org" -Tags "Invoke-NuGetPublish"
 
     # Execute the command and stream output
-    & dotnet nuget push $BuildConfiguration.PackagePattern --api-key $BuildConfiguration.NuGetApiKey --source "https://api.nuget.org/v3/index.json" --skip-duplicate | ForEach-Object {
-        Write-Host $_
-    }
+    "dotnet nuget push $BuildConfiguration.PackagePattern --api-key $BuildConfiguration.NuGetApiKey --source `"https://api.nuget.org/v3/index.json`" --skip-duplicate" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-NuGetPublish"
     Assert-LastExitCode "NuGet.org package publish failed"
 }
 
@@ -1432,14 +1351,14 @@ function New-GitHubRelease {
     $env:GH_TOKEN = $BuildConfiguration.GithubToken
 
     # Configure git user
-    Set-GitIdentity
+    Set-GitIdentity | Write-InformationStream -Tags "New-GitHubRelease"
 
     # Create and push the tag first
-    Write-Host "Creating and pushing tag v$($BuildConfiguration.Version)..."
-    & git tag -a "v$($BuildConfiguration.Version)" $BuildConfiguration.ReleaseHash -m "Release v$($BuildConfiguration.Version)"
+    Write-Information "Creating and pushing tag v$($BuildConfiguration.Version)..." -Tags "New-GitHubRelease"
+    "git tag -a `"v$($BuildConfiguration.Version)`" $BuildConfiguration.ReleaseHash -m `"Release v$($BuildConfiguration.Version)`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "New-GitHubRelease"
     Assert-LastExitCode "Failed to create git tag"
 
-    & git push origin "v$($BuildConfiguration.Version)"
+    "git push origin `"v$($BuildConfiguration.Version)`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "New-GitHubRelease"
     Assert-LastExitCode "Failed to push git tag"
 
     # Collect all assets
@@ -1452,7 +1371,7 @@ function New-GitHubRelease {
     }
 
     # Create release
-    Write-StepHeader "Creating GitHub Release v$($BuildConfiguration.Version)"
+    Write-StepHeader "Creating GitHub Release v$($BuildConfiguration.Version)" -Tags "New-GitHubRelease"
 
     $releaseArgs = @(
         "release",
@@ -1469,7 +1388,7 @@ function New-GitHubRelease {
 
     # Handle changelog content if file exists
     if (Test-Path $BuildConfiguration.ChangelogFile) {
-        Write-Host "Using changelog from $($BuildConfiguration.ChangelogFile)"
+        Write-Information "Using changelog from $($BuildConfiguration.ChangelogFile)" -Tags "New-GitHubRelease"
         $releaseArgs += "--notes-file"
         $releaseArgs += $BuildConfiguration.ChangelogFile
     }
@@ -1477,8 +1396,10 @@ function New-GitHubRelease {
     # Add assets as positional arguments
     $releaseArgs += $assets
 
-    Write-Host "Running: gh $($releaseArgs -join ' ')"
-    & gh @releaseArgs
+    # Join the arguments into a single string
+    $releaseArgs = $releaseArgs -join ' '
+
+    "gh $releaseArgs" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "New-GitHubRelease"
     Assert-LastExitCode "Failed to create GitHub release"
 }
 
@@ -1515,9 +1436,8 @@ function Assert-LastExitCode {
             $errorDetails += " | Command: $Command"
         }
 
-        $lineEnding = Get-GitLineEnding
-        $fullMessage = "$Message$lineEnding$errorDetails"
-        Write-Host $fullMessage
+        $fullMessage = "$Message$script:lineEnding$errorDetails"
+        Write-Information $fullMessage -Tags "Assert-LastExitCode"
         throw $fullMessage
     }
 }
@@ -1539,10 +1459,12 @@ function Write-StepHeader {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [string]$Message
+        [string]$Message,
+        [Parameter()]
+        [AllowEmptyCollection()]
+        [string[]]$Tags = @("Write-StepHeader")
     )
-    $lineEnding = Get-GitLineEnding
-    Write-Host "$($lineEnding)=== $Message ===$($lineEnding)" -ForegroundColor Cyan
+    Write-Information "$($script:lineEnding)=== $Message ===$($script:lineEnding)" -Tags $Tags
 }
 
 function Test-AnyFiles {
@@ -1574,7 +1496,68 @@ function Test-AnyFiles {
     return $matchingFiles.Count -gt 0
 }
 
-# Add this helper function in the Utility Functions region
+function Write-InformationStream {
+    <#
+    .SYNOPSIS
+        Streams output to the console.
+    .DESCRIPTION
+        Streams output to the console.
+    .PARAMETER Object
+        The object to write to the console.
+    .EXAMPLE
+        & git status | Write-InformationStream
+    .NOTES
+        Author: ktsu.dev
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [object]$Object,
+        [Parameter()]
+        [AllowEmptyCollection()]
+        [string[]]$Tags = @("Write-InformationStream")
+    )
+
+    # Use array subexpression to ensure consistent collection handling
+    $Object | ForEach-Object {
+        Write-Information $_ -Tags $Tags
+    }
+}
+
+function Invoke-ExpressionWithLogging {
+    <#
+    .SYNOPSIS
+        Invokes an expression and logs the result to the console.
+    .DESCRIPTION
+        Invokes an expression and logs the result to the console.
+    .PARAMETER Expression
+        The expression to execute.
+    .PARAMETER ForegroundColor
+        The color of the expression to display.
+    .OUTPUTS
+        The result of the expression.
+    .NOTES
+        Author: ktsu.dev
+        This function is useful for debugging expressions that are not returning the expected results.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, Position=0)]
+        [scriptblock]$ScriptBlock,
+        [Parameter()]
+        [AllowEmptyCollection()]
+        [string[]]$Tags = @("Invoke-ExpressionWithLogging")
+    )
+
+    # Display the expression
+    Write-Information -MessageData $ScriptBlock -Tags $Tags
+
+    # Execute the expression and return its result
+    & $ScriptBlock | ForEach-Object {
+        Write-Output $_
+    }
+}
+
 function Get-GitLineEnding {
     <#
     .SYNOPSIS
@@ -1594,8 +1577,8 @@ function Get-GitLineEnding {
     [OutputType([string])]
     param()
 
-    $autocrlf = git config --get core.autocrlf 2>&1
-    $eol = git config --get core.eol 2>&1
+    $autocrlf = "git config --get core.autocrlf" | Invoke-ExpressionWithLogging
+    $eol = "git config --get core.eol" | Invoke-ExpressionWithLogging
 
     # If core.eol is set, use that
     if ($LASTEXITCODE -eq 0 -and $eol -in @('lf', 'crlf')) {
@@ -1632,10 +1615,10 @@ function Set-GitIdentity {
     [CmdletBinding()]
     param()
 
-    Write-Host "Configuring git user for GitHub Actions..."
-    & git config --global user.name "Github Actions"
+    Write-Information "Configuring git user for GitHub Actions..." -Tags "Set-GitIdentity"
+    "git config --global user.name `"Github Actions`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Set-GitIdentity"
     Assert-LastExitCode "Failed to configure git user name"
-    & git config --global user.email "actions@users.noreply.github.com"
+    "git config --global user.email `"actions@users.noreply.github.com`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Set-GitIdentity"
     Assert-LastExitCode "Failed to configure git user email"
 }
 
@@ -1667,19 +1650,19 @@ function Invoke-BuildWorkflow {
 
     try {
         # Setup
-        Initialize-BuildEnvironment
+        Initialize-BuildEnvironment | Write-InformationStream -Tags "Invoke-BuildWorkflow"
 
         # Install dotnet-script if needed
         if ($BuildConfiguration.UseDotnetScript) {
-            Write-StepHeader "Installing dotnet-script"
-            dotnet tool install -g dotnet-script
+            Write-StepHeader "Installing dotnet-script" -Tags "Invoke-DotnetScript"
+            "dotnet tool install -g dotnet-script" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotnetScript"
             Assert-LastExitCode "Failed to install dotnet-script"
         }
 
         # Build and Test
-        Invoke-DotNetRestore
-        Invoke-DotNetBuild -Configuration $Configuration -BuildArgs $BuildArgs
-        Invoke-DotNetTest -Configuration $Configuration -CoverageOutputPath "coverage"
+        Invoke-DotNetRestore | Write-InformationStream -Tags "Invoke-BuildWorkflow"
+        Invoke-DotNetBuild -Configuration $Configuration -BuildArgs $BuildArgs | Write-InformationStream -Tags "Invoke-BuildWorkflow"
+        Invoke-DotNetTest -Configuration $Configuration -CoverageOutputPath "coverage" | Write-InformationStream -Tags "Invoke-BuildWorkflow"
 
         return [PSCustomObject]@{
             Success = $true
@@ -1691,11 +1674,12 @@ function Invoke-BuildWorkflow {
         }
     }
     catch {
-        Write-Host "Build workflow failed: $_"
+        Write-Information "Build workflow failed: $_" -Tags "Invoke-BuildWorkflow"
         return [PSCustomObject]@{
             Success = $false
             Error = $_.ToString()
             Data = @{}
+            StackTrace = $_.ScriptStackTrace
         }
     }
 }
@@ -1718,15 +1702,15 @@ function Invoke-ReleaseWorkflow {
     )
 
     try {
-        Write-StepHeader "Starting Release Process"
+        Write-StepHeader "Starting Release Process" -Tags "Invoke-ReleaseWorkflow"
 
         # Package and publish if not skipped
         $packagePaths = @()
 
         # Create NuGet packages
         try {
-                Write-StepHeader "Packaging Libraries"
-                Invoke-DotNetPack -Configuration $Configuration -OutputPath $BuildConfiguration.StagingPath
+            Write-StepHeader "Packaging Libraries" -Tags "Invoke-DotNetPack"
+            Invoke-DotNetPack -Configuration $Configuration -OutputPath $BuildConfiguration.StagingPath | Write-InformationStream -Tags "Invoke-DotNetPack"
 
             # Add package paths if they exist
             if (Test-Path $BuildConfiguration.PackagePattern) {
@@ -1737,13 +1721,13 @@ function Invoke-ReleaseWorkflow {
             }
         }
         catch {
-            Write-Host "Library packaging failed: $_"
-            Write-Host "Continuing with release process without NuGet packages."
+            Write-Information "Library packaging failed: $_" -Tags "Invoke-DotNetPack"
+            Write-Information "Continuing with release process without NuGet packages." -Tags "Invoke-DotNetPack"
         }
 
         # Create application packages
         try {
-            Invoke-DotNetPublish -Configuration $Configuration -BuildConfiguration $BuildConfiguration
+            Invoke-DotNetPublish -Configuration $Configuration -BuildConfiguration $BuildConfiguration | Write-InformationStream -Tags "Invoke-DotNetPublish"
 
             # Add application paths if they exist
             if (Test-Path $BuildConfiguration.ApplicationPattern) {
@@ -1751,30 +1735,30 @@ function Invoke-ReleaseWorkflow {
             }
         }
         catch {
-            Write-Host "Application publishing failed: $_"
-            Write-Host "Continuing with release process without application packages."
+            Write-Information "Application publishing failed: $_" -Tags "Invoke-DotNetPublish"
+            Write-Information "Continuing with release process without application packages." -Tags "Invoke-DotNetPublish"
         }
 
         # Publish packages if we have any and NuGet key is provided
         $packages = @(Get-Item -Path $BuildConfiguration.PackagePattern -ErrorAction SilentlyContinue)
         if ($packages.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($BuildConfiguration.NuGetApiKey)) {
-            Write-StepHeader "Publishing NuGet Packages"
+            Write-StepHeader "Publishing NuGet Packages" -Tags "Invoke-NuGetPublish"
             try {
-                Invoke-NuGetPublish -BuildConfiguration $BuildConfiguration
+                Invoke-NuGetPublish -BuildConfiguration $BuildConfiguration | Write-InformationStream -Tags "Invoke-NuGetPublish"
             }
             catch {
-                Write-Host "NuGet package publishing failed: $_"
-                Write-Host "Continuing with release process."
+                Write-Information "NuGet package publishing failed: $_" -Tags "Invoke-NuGetPublish"
+                Write-Information "Continuing with release process." -Tags "Invoke-NuGetPublish"
             }
         }
 
         # Create GitHub release
-        Write-StepHeader "Creating GitHub Release"
-        Write-Host "Creating release for version $($BuildConfiguration.Version)..."
-        New-GitHubRelease -BuildConfiguration $BuildConfiguration
+        Write-StepHeader "Creating GitHub Release" -Tags "New-GitHubRelease"
+        Write-Information "Creating release for version $($BuildConfiguration.Version)..." -Tags "New-GitHubRelease"
+        New-GitHubRelease -BuildConfiguration $BuildConfiguration | Write-InformationStream -Tags "New-GitHubRelease"
 
-        Write-StepHeader "Release Process Completed"
-        Write-Host "Release process completed successfully!" -ForegroundColor Green
+        Write-StepHeader "Release Process Completed" -Tags "Invoke-ReleaseWorkflow"
+        Write-Information "Release process completed successfully!" -Tags "Invoke-ReleaseWorkflow"
         return [PSCustomObject]@{
             Success = $true
             Error = ""
@@ -1786,11 +1770,12 @@ function Invoke-ReleaseWorkflow {
         }
     }
     catch {
-        Write-Host "Release workflow failed: $_"
+        Write-Information "Release workflow failed: $_" -Tags "Invoke-ReleaseWorkflow"
         return [PSCustomObject]@{
             Success = $false
             Error = $_.ToString()
             Data = @{}
+            StackTrace = $_.ScriptStackTrace
         }
     }
 }
@@ -1811,55 +1796,59 @@ function Invoke-CIPipeline {
         [PSCustomObject]$BuildConfiguration
     )
 
-    Write-Host "BuildConfiguration: $($BuildConfiguration | ConvertTo-Json -Depth 10)"
+    Write-Information "BuildConfiguration: $($BuildConfiguration | ConvertTo-Json -Depth 10)" -Tags "Invoke-CIPipeline"
 
     try {
-        Write-Host "Updating metadata..." -ForegroundColor Cyan
+        Write-Information "Updating metadata..." -Tags "Invoke-CIPipeline"
         $metadata = Update-ProjectMetadata `
             -BuildConfiguration $BuildConfiguration
 
         if ($null -eq $metadata) {
-            Write-Host "Metadata update returned null"
+            Write-Information "Metadata update returned null" -Tags "Invoke-CIPipeline"
             return [PSCustomObject]@{
                 Success = $false
                 Error = "Metadata update returned null"
+                StackTrace = $_.ScriptStackTrace
             }
         }
 
-        Write-Host "Metadata: $($metadata | ConvertTo-Json -Depth 10)"
+        Write-Information "Metadata: $($metadata | ConvertTo-Json -Depth 10)" -Tags "Invoke-CIPipeline"
 
         $BuildConfiguration.Version = $metadata.Data.Version
         $BuildConfiguration.ReleaseHash = $metadata.Data.ReleaseHash
 
         if (-not $metadata.Success) {
-            Write-Host "Failed to update metadata: $($metadata.Error)"
+            Write-Information "Failed to update metadata: $($metadata.Error)" -Tags "Invoke-CIPipeline"
             return [PSCustomObject]@{
                 Success = $false
                 Error = "Failed to update metadata: $($metadata.Error)"
+                StackTrace = $_.ScriptStackTrace
             }
         }
 
-        Write-Host "Running build workflow..." -ForegroundColor Cyan
+        Write-Information "Running build workflow..." -Tags "Invoke-CIPipeline"
         $result = Invoke-BuildWorkflow -BuildConfiguration $BuildConfiguration
         if (-not $result.Success) {
-            Write-Host "Build workflow failed: $($result.Error)"
+            Write-Information "Build workflow failed: $($result.Error)" -Tags "Invoke-CIPipeline"
             return [PSCustomObject]@{
                 Success = $false
                 Error = "Build workflow failed: $($result.Error)"
+                StackTrace = $_.ScriptStackTrace
             }
         }
 
-        Write-Host "Running release workflow..." -ForegroundColor Cyan
+        Write-Information "Running release workflow..." -Tags "Invoke-CIPipeline"
         $result = Invoke-ReleaseWorkflow -BuildConfiguration $BuildConfiguration
         if (-not $result.Success) {
-            Write-Host "Release workflow failed: $($result.Error)"
+            Write-Information "Release workflow failed: $($result.Error)" -Tags "Invoke-CIPipeline"
             return [PSCustomObject]@{
                 Success = $false
                 Error = "Release workflow failed: $($result.Error)"
+                StackTrace = $_.ScriptStackTrace
             }
         }
 
-        Write-Host "CI/CD pipeline completed successfully" -ForegroundColor Green
+        Write-Information "CI/CD pipeline completed successfully" -Tags "Invoke-CIPipeline"
         return [PSCustomObject]@{
             Success = $true
             Version = $metadata.Data.Version
@@ -1867,10 +1856,11 @@ function Invoke-CIPipeline {
         }
     }
     catch {
-        Write-Host "CI/CD pipeline failed: $_"
+        Write-Information "CI/CD pipeline failed: $_" -Tags "Invoke-CIPipeline"
         return [PSCustomObject]@{
             Success = $false
             Error = "CI/CD pipeline failed: $_"
+            StackTrace = $_.ScriptStackTrace
         }
     }
 }
