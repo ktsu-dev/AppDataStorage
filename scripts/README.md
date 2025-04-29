@@ -11,7 +11,6 @@ A comprehensive PowerShell module for automating the build, test, package, and r
 - NuGet package creation and publishing
 - GitHub release creation with assets
 - Proper line ending handling based on git config
-- Robust version string handling with automatic whitespace trimming
 
 ## Installation
 
@@ -49,6 +48,21 @@ if ($result.Success) {
     Write-Host "Release Hash: $($result.ReleaseHash)"
 }
 ```
+
+## Object Model
+
+The module consistently uses PSCustomObjects for return values and data storage, providing several benefits:
+
+- Easy property access with dot notation
+- Better IntelliSense support in modern editors
+- Consistent patterns throughout the codebase
+- More efficient memory usage
+- Clearer code structure
+
+Each function returns a standardized object with at least:
+- `Success`: Boolean indicating operation success
+- `Error`: Error message if operation failed
+- `Data`: Object containing function-specific results
 
 ## Managed Files
 
@@ -136,6 +150,8 @@ The module provides several functions for advanced scenarios:
 - `Test-AnyFiles`: Tests for existence of files matching a pattern
 - `Get-GitLineEnding`: Determines correct line endings based on git config
 - `Set-GitIdentity`: Configures git user identity for automated operations
+- `Write-InformationStream`: Streams output to the information stream
+- `Invoke-ExpressionWithLogging`: Executes commands with proper logging
 
 ## Line Ending Handling
 
@@ -144,6 +160,15 @@ The module respects git's line ending settings when generating files:
 1. Uses git's `core.eol` setting if defined
 2. Falls back to `core.autocrlf` setting
 3. Defaults to OS-specific line endings if no git settings are found
+
+## Git Status Handling
+
+The module carefully handles git status to prevent empty commits:
+
+1. Only attempts commits when there are actual changes
+2. Properly captures and interprets the git status output
+3. Reports clear status messages during metadata updates
+4. Preserves the correct commit hash for both success and no-change scenarios
 
 ## Contributing
 
