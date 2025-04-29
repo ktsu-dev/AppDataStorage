@@ -761,32 +761,52 @@ function Get-VersionNotes {
 
     # Try with progressively more relaxed filtering to ensure we show commits
 
+    # Get full commit info with hash to ensure uniqueness
+    $format = '%h|%s|%aN'
+
     # First try with standard filters
-    $commits = "git log --pretty=format:`"%s ([@%aN](https://github.com/%aN))`" --perl-regexp --regexp-ignore-case --grep=`"$EXCLUDE_PRS`" --invert-grep --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" `"$range`" | Sort-Object | Get-Unique" | Invoke-ExpressionWithLogging
+    $rawCommits = "git log --pretty=format:`"$format`" --perl-regexp --regexp-ignore-case --grep=`"$EXCLUDE_PRS`" --invert-grep --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" `"$range`"" | Invoke-ExpressionWithLogging
 
     # If no commits found, try with just PR exclusion but no author filtering
-    if (($commits | Measure-Object).Count -eq 0) {
+    if (($rawCommits | Measure-Object).Count -eq 0) {
         Write-Information "No commits found with standard filters, trying with relaxed author/committer filters..." -Tags "Get-VersionNotes"
-        $commits = "git log --pretty=format:`"%s ([@%aN](https://github.com/%aN))`" --perl-regexp --regexp-ignore-case --grep=`"$EXCLUDE_PRS`" --invert-grep `"$range`" | Sort-Object | Get-Unique" | Invoke-ExpressionWithLogging
+        $rawCommits = "git log --pretty=format:`"$format`" --perl-regexp --regexp-ignore-case --grep=`"$EXCLUDE_PRS`" --invert-grep `"$range`"" | Invoke-ExpressionWithLogging
     }
 
     # If still no commits, try with no filtering at all - show everything in the range
-    if (($commits | Measure-Object).Count -eq 0) {
+    if (($rawCommits | Measure-Object).Count -eq 0) {
         Write-Information "Still no commits found, trying with no filters..." -Tags "Get-VersionNotes"
-        $commits = "git log --pretty=format:`"%s ([@%aN](https://github.com/%aN))`" `"$range`" | Sort-Object | Get-Unique" | Invoke-ExpressionWithLogging
+        $rawCommits = "git log --pretty=format:`"$format`" `"$range`"" | Invoke-ExpressionWithLogging
 
         # If it's a prerelease version, include also version update commits
-        if ($versionType -eq "prerelease" -and ($commits | Measure-Object).Count -eq 0) {
+        if ($versionType -eq "prerelease" -and ($rawCommits | Measure-Object).Count -eq 0) {
             Write-Information "Looking for version update commits for prerelease..." -Tags "Get-VersionNotes"
-            $commits = "git log --pretty=format:`"%s ([@%aN](https://github.com/%aN))`" --grep=`"Update VERSION to`" `"$range`" | Sort-Object | Get-Unique" | Invoke-ExpressionWithLogging
+            $rawCommits = "git log --pretty=format:`"$format`" --grep=`"Update VERSION to`" `"$range`"" | Invoke-ExpressionWithLogging
         }
     }
 
-    Write-Information "Found $(($commits | Measure-Object).Count) commits for $ToTag" -Tags "Get-VersionNotes"
+    # Process raw commits into structured format
+    $structuredCommits = @()
+    foreach ($commit in $rawCommits) {
+        $parts = $commit -split '\|'
+        if ($parts.Count -ge 3) {
+            $structuredCommits += [PSCustomObject]@{
+                Hash = $parts[0]
+                Subject = $parts[1]
+                Author = $parts[2]
+                FormattedEntry = "$($parts[1]) ([@$($parts[2])](https://github.com/$($parts[2])))"
+            }
+        }
+    }
+
+    # Get unique commits based on hash (ensures unique commits)
+    $uniqueCommits = $structuredCommits | Sort-Object -Property Hash -Unique | ForEach-Object { $_.FormattedEntry }
+
+    Write-Information "Found $(($uniqueCommits | Measure-Object).Count) commits for $ToTag" -Tags "Get-VersionNotes"
 
     # Format changelog entry
     $versionChangelog = ""
-    if (($commits | Measure-Object).Count -gt 0) {
+    if (($uniqueCommits | Measure-Object).Count -gt 0) {
         $versionChangelog = "## $ToTag"
         if ($versionType -ne "unknown") {
             $versionChangelog += " ($versionType)"
@@ -799,9 +819,9 @@ function Get-VersionNotes {
 
         # Only filter out version updates for non-prerelease versions
         if ($versionType -ne "prerelease") {
-            $filteredCommits = $commits | Where-Object { -not $_.Contains("Update VERSION to") -and -not $_.Contains("[skip ci]") }
+            $filteredCommits = $uniqueCommits | Where-Object { -not $_.Contains("Update VERSION to") -and -not $_.Contains("[skip ci]") }
         } else {
-            $filteredCommits = $commits | Where-Object { -not $_.Contains("[skip ci]") }
+            $filteredCommits = $uniqueCommits | Where-Object { -not $_.Contains("[skip ci]") }
         }
 
         foreach ($commit in $filteredCommits) {
