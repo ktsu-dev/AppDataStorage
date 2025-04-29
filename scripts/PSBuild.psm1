@@ -162,8 +162,6 @@ function Get-BuildConfiguration {
         }
     }
 
-    $config | ConvertTo-Json | Write-InformationStream -Tags "Get-BuildConfiguration"
-
     return $config
 }
 
@@ -253,7 +251,7 @@ function Get-VersionType {
     )
     $excludeString = $EXCLUDE_PATTERNS -join ' '
 
-    $codeChanges = "git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" --grep=`"$EXCLUDE_PRS`" --invert-grep $Range -- '*/*.*' $excludeString" | Invoke-ExpressionWithLogging -Tags "Get-VersionType"
+    $codeChanges = "git log --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" --grep=`"$EXCLUDE_PRS`" --invert-grep `"$Range`" -- '*/*.*' `"$excludeString`"" | Invoke-ExpressionWithLogging -Tags "Get-VersionType"
 
     if ($codeChanges) {
         $versionType = "minor"
@@ -261,7 +259,7 @@ function Get-VersionType {
     }
 
 
-    $messages = "git log --format=format:%s $Range" | Invoke-ExpressionWithLogging -Tags "Get-VersionType"
+    $messages = "git log --format=format:%s `"$Range`"" | Invoke-ExpressionWithLogging -Tags "Get-VersionType"
 
     foreach ($message in $messages) {
         $versionTags = @{
@@ -380,13 +378,11 @@ function Get-VersionInfoFromGit {
 
     # Determine version increment type
     Write-Information "$($script:lineEnding)Getting first commit..." -Tags "Get-VersionInfoFromGit"
-    Write-Information "Running: git rev-list HEAD" -Tags "Get-VersionInfoFromGit"
-    $output = git rev-list HEAD
-    Write-Information "git rev-list HEAD output:$script:lineEnding$output" -Tags "Get-VersionInfoFromGit"
-    $firstCommit = $output[-1]
+    $firstCommit = "git rev-list HEAD" | Invoke-ExpressionWithLogging -Tags "Get-VersionInfoFromGit"
+    $firstCommit = $firstCommit[-1]
     Write-Information "First commit: $firstCommit" -Tags "Get-VersionInfoFromGit"
 
-    $commitRange = "$firstCommit...$CommitHash"
+    $commitRange = "$firstCommit..$CommitHash"
     Write-Information "$($script:lineEnding)Analyzing commit range: $commitRange" -Tags "Get-VersionInfoFromGit"
     $incrementInfo = Get-VersionType -Range $commitRange
     $incrementType = $incrementInfo.Type
@@ -788,11 +784,11 @@ function Get-VersionNotes {
     # Set up the git log command range
     $range = $rangeTo
     if ($rangeFrom -ne "") {
-        $range = "$rangeFrom...$rangeTo"
+        $range = "$rangeFrom..$rangeTo"
     }
 
     # Get commit messages with authors - common logic for all cases
-    $commits = "git log --pretty=format:`"%s ([@%aN](https://github.com/%aN))`" --perl-regexp --regexp-ignore-case --grep=`"$EXCLUDE_PRS`" --invert-grep --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" $range | Sort-Object | Get-Unique" | Invoke-ExpressionWithLogging
+    $commits = "git log --pretty=format:`"%s ([@%aN](https://github.com/%aN))`" --perl-regexp --regexp-ignore-case --grep=`"$EXCLUDE_PRS`" --invert-grep --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" `"$range`" | Sort-Object | Get-Unique" | Invoke-ExpressionWithLogging
 
     # Format changelog entry
     $versionChangelog = ""
@@ -1003,7 +999,7 @@ function Update-ProjectMetadata {
             Set-GitIdentity | Write-InformationStream -Tags "Update-ProjectMetadata"
 
             Write-Information "Committing changes..." -Tags "Update-ProjectMetadata"
-            "git commit -m $CommitMessage" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
+            "git commit -m `"$CommitMessage`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
 
             Write-Information "Pushing changes..." -Tags "Update-ProjectMetadata"
             "git push" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
@@ -1365,7 +1361,7 @@ function New-GitHubRelease {
 
     # Create and push the tag first
     Write-Information "Creating and pushing tag v$($BuildConfiguration.Version)..." -Tags "New-GitHubRelease"
-    "git tag -a `"v$($BuildConfiguration.Version)`" $BuildConfiguration.ReleaseHash -m `"Release v$($BuildConfiguration.Version)`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "New-GitHubRelease"
+    "git tag -a `"v$($BuildConfiguration.Version)`" `"$($BuildConfiguration.ReleaseHash)`" -m `"Release v$($BuildConfiguration.Version)`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "New-GitHubRelease"
     Assert-LastExitCode "Failed to create git tag"
 
     "git push origin `"v$($BuildConfiguration.Version)`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "New-GitHubRelease"
