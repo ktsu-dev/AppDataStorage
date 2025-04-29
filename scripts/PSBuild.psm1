@@ -9,22 +9,6 @@
 # Set Strict Mode
 Set-StrictMode -Version Latest
 
-#region Module Variables
-$script:DOTNET_VERSION = '9.0'
-$script:LICENSE_TEMPLATE = Join-Path $PSScriptRoot "LICENSE.template"
-
-# Set PowerShell preferences
-$ErrorActionPreference = 'Stop'
-$WarningPreference = 'Stop'
-$InformationPreference = 'Continue'
-$DebugPreference = 'Ignore'
-$VerbosePreference = 'Ignore'
-$ProgressPreference = 'Ignore'
-
-# Get the line ending for the current system
-$script:lineEnding = Get-GitLineEnding
-#endregion
-
 #region Environment and Configuration
 
 function Initialize-BuildEnvironment {
@@ -1944,3 +1928,19 @@ Export-ModuleMember -Function Assert-LastExitCode,
 Export-ModuleMember -Function Invoke-BuildWorkflow,
                              Invoke-ReleaseWorkflow,
                              Invoke-CIPipeline
+
+#region Module Variables
+$script:DOTNET_VERSION = '9.0'
+$script:LICENSE_TEMPLATE = Join-Path $PSScriptRoot "LICENSE.template"
+
+# Set PowerShell preferences
+$ErrorActionPreference = 'Stop'
+$WarningPreference = 'Stop'
+$InformationPreference = 'Continue'
+$DebugPreference = 'Ignore'
+$VerbosePreference = 'Ignore'
+$ProgressPreference = 'Ignore'
+
+# Get the line ending for the current system
+$script:lineEnding = Get-GitLineEnding
+#endregion
