@@ -110,7 +110,7 @@ function Get-BuildConfiguration {
 
     # Determine if this is main branch and not tagged
     $IS_MAIN = $GitRef -eq "refs/heads/main"
-    $IS_TAGGED = "(git show-ref --tags -d | Out-String).Contains($GitSha)" | Invoke-ExpressionWithLogging -Tags "Get-BuildConfiguration"
+    $IS_TAGGED = "(git show-ref --tags -d | Out-String).Contains(`"$GitSha`")" | Invoke-ExpressionWithLogging -Tags "Get-BuildConfiguration"
     $SHOULD_RELEASE = ($IS_MAIN -AND -NOT $IS_TAGGED -AND $IS_OFFICIAL)
 
     # Check for .csx files (dotnet-script)
