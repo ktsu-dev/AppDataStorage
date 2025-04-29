@@ -255,19 +255,6 @@ function Get-VersionType {
 
     # If no explicit version markers, check for code changes
     if ($versionType -eq "prerelease") {
-        # These patterns match the ones in make-version.ps1
-        $EXCLUDE_HIDDEN_FILES = ":(icase,exclude)*/.*"
-        $EXCLUDE_MARKDOWN_FILES = ":(icase,exclude)*/*.md"
-        $EXCLUDE_TEXT_FILES = ":(icase,exclude)*/*.txt"
-        $EXCLUDE_SOLUTIONS_FILES = ":(icase,exclude)*/*.sln"
-        $EXCLUDE_PROJECTS_FILES = ":(icase,exclude)*/*.*proj"
-        $EXCLUDE_URL_FILES = ":(icase,exclude)*/*.url"
-        $EXCLUDE_BUILD_FILES = ":(icase,exclude)*/Directory.Build.*"
-        $EXCLUDE_CI_FILES = ":(icase,exclude).github/workflows/*"
-        $EXCLUDE_PS_FILES = ":(icase,exclude)*/*.ps1"
-
-        $INCLUDE_ALL_FILES = "*/*.*"
-
         # Check for any commits that would warrant at least a patch version
         $patchCommits = "git log -n 1 --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" --grep=`"$EXCLUDE_PRS`" --invert-grep `"$Range`"" | Invoke-ExpressionWithLogging -Tags "Get-VersionType"
 
@@ -275,12 +262,35 @@ function Get-VersionType {
             $versionType = "patch"
             $reason = "Found changes warranting at least a patch version"
 
-            # Check for changes that would warrant a minor version
-            $minorCommits = "git log -n 1 --topo-order --perl-regexp --regexp-ignore-case --format=format:%H --committer=`"$EXCLUDE_BOTS`" --author=`"$EXCLUDE_BOTS`" --grep=`"$EXCLUDE_PRS`" --invert-grep `"$Range`" -- `"$INCLUDE_ALL_FILES`" `"$EXCLUDE_HIDDEN_FILES`" `"$EXCLUDE_MARKDOWN_FILES`" `"$EXCLUDE_TEXT_FILES`" `"$EXCLUDE_SOLUTIONS_FILES`" `"$EXCLUDE_PROJECTS_FILES`" `"$EXCLUDE_URL_FILES`" `"$EXCLUDE_BUILD_FILES`" `"$EXCLUDE_PS_FILES`" `"$EXCLUDE_CI_FILES`"" | Invoke-ExpressionWithLogging -Tags "Get-VersionType"
+            # Check for public API changes that would warrant a minor version
 
-            if ($minorCommits) {
+            # First, check if we can detect public API changes via git diff
+            $apiChangePatterns = @(
+                # C# public API patterns
+                '^\+\s*(public|protected)\s+(class|interface|enum|struct|record)\s+\w+',  # Added public types
+                '^\+\s*(public|protected)\s+\w+\s+\w+\s*\(',                             # Added public methods
+                '^\+\s*(public|protected)\s+\w+(\s+\w+)*\s*{',                          # Added public properties
+                '^\-\s*(public|protected)\s+(class|interface|enum|struct|record)\s+\w+', # Removed public types
+                '^\-\s*(public|protected)\s+\w+\s+\w+\s*\(',                            # Removed public methods
+                '^\-\s*(public|protected)\s+\w+(\s+\w+)*\s*{',                          # Removed public properties
+                '^\+\s*public\s+const\s',                                              # Added public constants
+                '^\-\s*public\s+const\s'                                               # Removed public constants
+            )
+
+            # Combine patterns for git diff
+            $apiChangePattern = "(" + ($apiChangePatterns -join ")|(") + ")"
+
+            # Search for API changes
+            $apiDiffCmd = "git diff `"$Range`" -- `"*.cs`" | Select-String -Pattern `"$apiChangePattern`" -SimpleMatch"
+            $apiChanges = Invoke-Expression $apiDiffCmd
+
+            if ($apiChanges) {
                 $versionType = "minor"
-                $reason = "Found code changes warranting a minor version increment"
+                $reason = "Public API changes detected (additions, removals, or modifications)"
+                return [PSCustomObject]@{
+                    Type = $versionType
+                    Reason = $reason
+                }
             }
         }
     }
