@@ -1,13 +1,84 @@
-## v1.15.0
+## v1.15.1-pre.1 (prerelease)
 
-Initial release or no significant changes since v1.14.0.
+Changes since v1.15.0:
 
+- Refactor Get-GitTags and Get-VersionType functions in PSBuild module to improve git tag retrieval and version increment logic. Enhanced handling of versioning suffixes and commit message parsing for version determination. Updated changelog generation to include more robust commit filtering and improved output formatting. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+## v1.15.0 (minor)
 
+Changes since v1.14.0:
 
+- Fix quoting in Invoke-NuGetPublish function to ensure proper command execution for package publishing to GitHub Packages and NuGet.org. This change enhances reliability and prevents potential issues with command interpretation. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+## v1.14.0 (minor)
 
+Changes since v1.13.0:
 
+- Add Command parameter to Invoke-ExpressionWithLogging function in PSBuild module to allow execution of string commands as script blocks. Enhanced parameter handling and documentation for clarity. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Enhance logging and error handling in CI/CD pipeline and build scripts. Added detailed information output for build configuration, improved error messages, and refactored logging functions for consistency across the workflow. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Enhance logging in Invoke-ExpressionWithLogging function by adding information output for both command strings and script blocks. This improves visibility into the execution process and aids in debugging. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Fix quoting in IS_TAGGED assignment in Get-BuildConfiguration function to ensure proper evaluation of GitSha. This change enhances the reliability of the build configuration logic. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor Invoke-ExpressionWithLogging function in PSBuild module to allow pipeline input for ScriptBlock parameter. Improved clarity by adding a conditional check before displaying and executing the script block. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor PSBuild module to enhance versioning logic and output structure. Updated output types to PSCustomObject for better data handling, added detailed documentation for functions, and improved error handling in metadata updates. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor PSBuild module to improve Git command execution by ensuring proper quoting in various functions. This change enhances the reliability of versioning and commit operations, and improves the clarity of the commit range logic. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor PSBuild module to reorganize module variables and PowerShell preferences. Moved variable definitions and preferences to a new section for improved clarity and maintainability. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor Update-ProjectMetadata function to improve git status logging. Removed redundant git status checks and enhanced output clarity by indicating whether changes were detected before committing. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update dotnet.yml workflow to ensure WorkspacePath is correctly set and enhance Write-InformationStream function to support pipeline input for Object parameter. This improves the flexibility of the logging function and maintains consistency in the CI/CD process. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update PSBuild module to include new utility functions: Get-GitLineEnding, Set-GitIdentity, Write-InformationStream, and Invoke-ExpressionWithLogging. Removed version number from the header for cleaner documentation. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update PSBuild module to version 1.1.0 with enhancements including improved object model using PSCustomObjects, better git status detection, and comprehensive help comments. Added new utility functions and updated documentation to reflect changes. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+## v1.13.0 (minor)
 
+Changes since v1.12.0:
+## v1.12.0 (minor)
 
+Changes since v1.11.0:
+
+- Add VSCode configuration files for .NET Core development. Introduced launch.json for debugging and tasks.json for build, publish, and watch tasks, enhancing the development workflow. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Bump ktsu.StrongStrings from 1.4.0 to 1.4.1 in the ktsu group ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Refactor New-Changelog function to restore line ending handling. Moved line ending retrieval back into the function to ensure consistent formatting in changelog generation. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor PSBuild module for improved versioning logic and changelog generation. Removed commented-out debug statements, streamlined version type determination, and enhanced handling of line endings. Updated changelog generation to ensure accurate entries for initial releases and improved output clarity. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Remove global.json configuration file and update project SDK references in AppDataStorage and AppDataStorage.Test to version 1.8.0 for improved compatibility. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update GitHub Actions workflow to enhance dependency submission. Added permissions for id-token and contents, and removed the security analysis step to streamline the process. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+## v1.11.0 (minor)
+
+Changes since v1.10.0:
+## v1.10.0 (minor)
+
+Changes since v1.9.0:
+
+- Add OutputType attribute to Invoke-BuildWorkflow, Invoke-ReleaseWorkflow, and Invoke-CIPipeline functions for improved output clarity ([@github-actions[bot]](https://github.com/github-actions[bot]))
+## v1.9.0 (minor)
+
+Changes since v1.8.0:
+
+- Add additional parameters to Get-BuildConfiguration function in PSBuild module ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Add debug tracing to GitHub Actions workflow and PSBuild module ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Add ServerUrl parameter to Get-BuildConfiguration function in PSBuild module ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Add Version and ReleaseHash properties directly to BuildConfiguration in Invoke-CIPipeline function ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Add Version and ReleaseHash properties to BuildConfiguration in Invoke-CIPipeline function ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Enhance Get-BuildConfiguration function in PSBuild module by adding GitHubOwner and GitHubRepo parameters. Updated documentation to improve clarity on parameter usage and streamline build configuration processes. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Enhance GitHub Actions workflow and PSBuild module with additional parameters ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Enhance Invoke-CIPipeline function in PSBuild module by initializing metadata variable and improving error handling for metadata updates. Ensure proper handling of null metadata scenarios to provide clearer error messages during CI/CD processes. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Enhance PSBuild module and GitHub Actions workflow by adding ChangelogFile and AssetPatterns parameters to improve build configuration flexibility. Updated Invoke-DotNetPublish and New-GitHubRelease functions to utilize the new parameters, ensuring better integration and traceability during the CI/CD process. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Enhance PSBuild module documentation by adding detailed descriptions for parameters and outputs in Get-BuildConfiguration, Invoke-DotNetPublish, Invoke-NuGetPublish, and New-GitHubRelease functions. This improves clarity and usability for developers utilizing the build configuration features. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Enhance Update-ProjectMetadata function in PSBuild module by adding version generation, license creation, and changelog generation. Implemented authors file creation and project URL shortcuts for improved project documentation and accessibility. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Enhance Update-ProjectMetadata function to include current commit hash logging and update ReleaseHash handling based on changes. Introduced HasChanges flag to indicate if metadata was updated. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Fix NuGet API key reference in Invoke-ReleaseWorkflow function to use BuildConfiguration.NuGetApiKey for correct package publishing. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor GitHub Actions workflow and PSBuild module to enhance build configuration handling and output management. Introduced Get-BuildConfiguration for improved error handling and streamlined output settings. Updated Invoke-CIPipeline to utilize build configuration data for release processing and added utility function for setting GitHub environment variables. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor Invoke-CIPipeline function in PSBuild module to improve error handling and streamline metadata updates. Removed redundant build configuration checks and added debugging support for better traceability during the build process. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor Invoke-CIPipeline function in PSBuild module to remove unnecessary metadata initialization and ensure consistent handling of ReleaseHash. Update logic to utilize metadata for release processing and improve error handling for null scenarios. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor logging in GitHub Actions workflow and PSBuild module ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor New-Changelog and Update-ProjectMetadata functions in PSBuild module ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor PSBuild module and GitHub Actions workflow to remove GitHub environment variable settings. Simplified New-Version function by eliminating SetGitHubEnv parameter and related logic, streamlining the CI/CD pipeline process. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor PSBuild module to replace Write-Warning and Write-Error with Write-Host for improved logging consistency ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Refactor Update-ProjectMetadata function in PSBuild module to utilize a single BuildConfiguration parameter. Updated version generation, license creation, and changelog generation to streamline the process and improve integration with GitHub workflows. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Remove GitHub environment variable setting from Update-ProjectMetadata function in PSBuild module to streamline metadata update process. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Remove Set-GithubEnv function from PSBuild module to further streamline the CI/CD pipeline by eliminating unnecessary GitHub environment variable settings. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update GitHub Actions workflow and documentation to enhance build configuration. Changed AssetPatterns to support multiple file types and updated README to reflect new parameters in Get-BuildConfiguration, improving clarity for users. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update GitHub Actions workflow to improve error handling and output settings. Ensure successful result checks before setting outputs for release processing, and adjust output variables to reference the correct data structure. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update Invoke-CIPipeline function to access Version and ReleaseHash from metadata.Data for improved data structure alignment ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update logging parameters in Invoke-DotNetPublish function to utilize structured console logger for improved output clarity during the build process. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update NuGet API key reference in GitHub Actions workflow to align with new secret naming convention ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update PSBuild module metadata and function exports to enhance versioning and automation capabilities. Changed GUID, updated copyright information, and expanded function exports to include new version management, utility, and workflow functions. Enhanced module description and release notes to reflect new features and improvements. ([@github-actions[bot]](https://github.com/github-actions[bot]))
+- Update PSBuild module to change parameter types for Get-BuildConfiguration and Invoke-CIPipeline functions. Added OutputType attribute to Get-BuildConfiguration and modified Invoke-CIPipeline to accept a PSCustomObject for BuildConfiguration, enhancing type safety and output management. ([@github-actions[bot]](https://github.com/github-actions[bot]))
 ## v1.8.0 (minor)
 
 Changes since v1.7.0:
@@ -60,19 +131,49 @@ Changes since v1.7.0:
 - Update PSBuild module with enhanced documentation, improved error handling, and refined function exports. Added detailed usage instructions and author information, updated command execution for better error reporting, and improved parameter descriptions for clarity. This refactor aims to streamline the CI/CD pipeline process for .NET applications. ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update README with improved documentation and API reference ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update version component checks in PSBuild module to use array count for improved clarity and consistency. This change enhances the handling of versioning and changelog generation processes. ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.7.3-pre.6 (prerelease)
 
+Changes since v1.7.3-pre.5:
 
+- Sync .editorconfig ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .runsettings ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.7.3-pre.5 (prerelease)
 
+Changes since v1.7.3-pre.4:
 
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.7.3-pre.4 (prerelease)
 
+Changes since v1.7.3-pre.3:
 
+- Update README with improved documentation and API reference ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.7.3-pre.3 (prerelease)
+
+Changes since v1.7.3-pre.2:
+
+- Bump TestableIO.System.IO.Abstractions from 22.0.13 to 22.0.14 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.7.3-pre.2 (prerelease)
+
+Changes since v1.7.3-pre.1:
+
+- Bump TestableIO.System.IO.Abstractions.Wrappers from 22.0.12 to 22.0.13 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.7.3-pre.1 (prerelease)
+
+Changes since v1.7.2:
+
+- Bump TestableIO.System.IO.Abstractions from 22.0.12 to 22.0.13 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
 ## v1.7.2 (patch)
 
 Changes since v1.7.1:
 
 - Update .editorconfig to include additional file types and formatting rules ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.7.2-pre.1 (prerelease)
 
-## v1.7.1 (minor)
+Incremental prerelease update.
+## v1.7.1 (patch)
 
 Changes since v1.7.0:
 
@@ -87,14 +188,56 @@ Changes since v1.6.0:
 Changes since v1.5.0:
 
 - Add LICENSE template ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.5.1-pre.8 (prerelease)
 
+Changes since v1.5.1-pre.7:
 
+- Sync scripts\make-changelog.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync scripts\make-version.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.5.1-pre.7 (prerelease)
 
+Changes since v1.5.1-pre.6:
 
+- Sync .editorconfig ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .gitignore ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync Directory.Build.targets ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync scripts\make-changelog.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync scripts\make-version.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.5.1-pre.6 (prerelease)
 
+Changes since v1.5.1-pre.5:
 
+- Bump TestableIO.System.IO.Abstractions from 22.0.11 to 22.0.12 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.5.1-pre.5 (prerelease)
 
+Changes since v1.5.1-pre.4:
 
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.Wrappers from 22.0.11 to 22.0.12 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.5.1-pre.4 (prerelease)
+
+Changes since v1.5.1-pre.3:
+
+- Bump TestableIO.System.IO.Abstractions from 22.0.10 to 22.0.11 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.Wrappers from 22.0.10 to 22.0.11 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.5.1-pre.3 (prerelease)
+
+Changes since v1.5.1-pre.2:
+
+- Bump TestableIO.System.IO.Abstractions from 21.3.1 to 22.0.10 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.Wrappers from 21.3.1 to 22.0.10 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.5.1-pre.2 (prerelease)
+
+Changes since v1.5.1-pre.1:
+
+- Bump the ktsu group with 3 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.5.1-pre.1 (prerelease)
+
+Changes since v1.5.0:
+
+- Bump ktsu.CaseConverter from 1.1.1 to 1.2.0 in the ktsu group ([@dependabot[bot]](https://github.com/dependabot[bot]))
 ## v1.5.0 (minor)
 
 Changes since v1.4.0:
@@ -107,63 +250,177 @@ Changes since v1.4.0:
 - Fix typo in variable name and remove unnecessary logging in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix typo in variable name in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor version type checks in MakeNotesForRange function and add exclusion for PowerShell files in make-version.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.4.8-pre.3 (prerelease)
 
+Changes since v1.4.8-pre.2:
 
+- Sync scripts\make-changelog.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync scripts\make-version.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.4.8-pre.2 (prerelease)
 
+Changes since v1.4.8-pre.1:
 
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.4.8-pre.1 (prerelease)
 
+Changes since v1.4.7:
 
+- Don't serialise the lock member ([@Damon3000s](https://github.com/Damon3000s))
+## v1.4.7 (patch)
 
+Changes since v1.4.6:
 
+- Sync .mailmap ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync Directory.Build.props ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync Directory.Build.targets ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync scripts\make-changelog.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.4.7-pre.27 (prerelease)
 
+Changes since v1.4.7-pre.26:
 
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.4.7-pre.26 (prerelease)
 
+Changes since v1.4.7-pre.25:
 
+- Don't serialise the lock member ([@Damon3000s](https://github.com/Damon3000s))
+## v1.4.7-pre.25 (prerelease)
 
+Changes since v1.4.7-pre.24:
 
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.4.7-pre.24 (prerelease)
 
+Changes since v1.4.7-pre.23:
+## v1.4.7-pre.23 (prerelease)
 
+Changes since v1.4.7-pre.22:
 
+- Bump TestableIO.System.IO.Abstractions and TestableIO.System.IO.Abstractions.Wrappers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.4.7-pre.22 (prerelease)
 
+Changes since v1.4.7-pre.21:
 
+- Bump TestableIO.System.IO.Abstractions from 21.2.12 to 21.3.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.4.7-pre.21 (prerelease)
 
+Changes since v1.4.7-pre.20:
 
+- Bump TestableIO.System.IO.Abstractions and TestableIO.System.IO.Abstractions.Wrappers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.4.7-pre.20 (prerelease)
 
+Changes since v1.4.7-pre.19:
 
+- Bump MSTest from 3.7.2 to 3.7.3 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions and TestableIO.System.IO.Abstractions.Wrappers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.4.7-pre.19 (prerelease)
 
+Changes since v1.4.7-pre.18:
 
+- Bump TestableIO.System.IO.Abstractions from 21.2.1 to 21.2.8 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.4.7-pre.18 (prerelease)
 
+Changes since v1.4.7-pre.17:
+## v1.4.7-pre.17 (prerelease)
 
+Changes since v1.4.7-pre.16:
+## v1.4.7-pre.16 (prerelease)
 
+Changes since v1.4.7-pre.15:
 
+- Bump MSTest from 3.7.1 to 3.7.2 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.4.7-pre.15 (prerelease)
 
+Changes since v1.4.7-pre.14:
 
-## v1.4.6 (minor)
+- Bump coverlet.collector from 6.0.3 to 6.0.4 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.4.7-pre.14 (prerelease)
+
+Changes since v1.4.7-pre.13:
+## v1.4.7-pre.13 (prerelease)
+
+Changes since v1.4.7-pre.12:
+## v1.4.7-pre.12 (prerelease)
+
+Changes since v1.4.7-pre.11:
+
+- Bump MSTest from 3.7.0 to 3.7.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.4.7-pre.11 (prerelease)
+
+Changes since v1.4.7-pre.10:
+## v1.4.7-pre.10 (prerelease)
+
+Changes since v1.4.7-pre.9:
+## v1.4.7-pre.9 (prerelease)
+
+Changes since v1.4.7-pre.8:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.4.7-pre.8 (prerelease)
+
+Changes since v1.4.7-pre.7:
+
+- Sync scripts\make-changelog.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync scripts\make-version.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.4.7-pre.7 (prerelease)
+
+Changes since v1.4.7-pre.6:
+## v1.4.7-pre.6 (prerelease)
+
+Changes since v1.4.7-pre.5:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.4.7-pre.5 (prerelease)
+
+Changes since v1.4.7-pre.4:
+## v1.4.7-pre.4 (prerelease)
+
+Changes since v1.4.7-pre.3:
+
+- Bump the ktsu group with 3 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.4.7-pre.3 (prerelease)
+
+Changes since v1.4.7-pre.2:
+
+- Sync .mailmap ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync scripts\make-version.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.4.7-pre.2 (prerelease)
+
+Changes since v1.4.7-pre.1:
+
+- Sync scripts\make-changelog.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.4.7-pre.1 (prerelease)
+
+Incremental prerelease update.
+## v1.4.6 (patch)
 
 Changes since v1.4.5:
 
 - Fix typo in variable name in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
-## v1.4.5 (minor)
+## v1.4.5 (patch)
 
 Changes since v1.4.4:
 
 - Fix typo in variable name and remove unnecessary logging in make-changelog.ps1 ([@matt-edmondson](https://github.com/matt-edmondson))
-## v1.4.4 (minor)
+## v1.4.4 (patch)
 
 Changes since v1.4.3:
 
 - Enhance changelog formatting by adding additional line breaks for improved readability ([@matt-edmondson](https://github.com/matt-edmondson))
-## v1.4.3 (minor)
+## v1.4.3 (patch)
 
 Changes since v1.4.2:
 
 - Add logging for note generation in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
-## v1.4.2 (minor)
+## v1.4.2 (patch)
 
 Changes since v1.4.1:
 
 - Add changelog entry for changes since the specified tag in MakeNotesForRange function ([@matt-edmondson](https://github.com/matt-edmondson))
-## v1.4.1 (minor)
+## v1.4.1 (patch)
 
 Changes since v1.4.0:
 
@@ -192,40 +449,109 @@ Changes since v1.3.0:
 - Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update .NET workflow to trigger on main and develop branches ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update exclusion pattern for hidden files in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
-## v1.3.16 (minor)
+## v1.3.16 (patch)
 
 Changes since v1.3.15:
 
 - Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.3.16-pre.6 (prerelease)
 
+Changes since v1.3.16-pre.5:
 
+- Fix range check in MakeNotesForRange function to handle additional version format ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix syntax error in make-license.ps1 command in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Modularize PowerShell scripts in dotnet.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor scripts and update workflow parameters ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update .mailmap for user and bot email consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.3.16-pre.5 (prerelease)
 
+Changes since v1.3.16-pre.4:
 
+- Bump coverlet.collector from 6.0.2 to 6.0.3 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions and TestableIO.System.IO.Abstractions.Wrappers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.3.16-pre.4 (prerelease)
 
+Changes since v1.3.16-pre.3:
 
-## v1.3.15 (minor)
+- Bump ktsu.StrongStrings from 1.2.25 to 1.2.26 in the ktsu group ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions from 21.1.7 to 21.2.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.3.16-pre.3 (prerelease)
+
+Changes since v1.3.16-pre.2:
+## v1.3.16-pre.2 (prerelease)
+
+Changes since v1.3.16-pre.1:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.3.16-pre.1 (prerelease)
+
+Incremental prerelease update.
+## v1.3.15 (patch)
 
 Changes since v1.3.14:
 
 - Move IS_PRERELEASE assignment to where its actually gonna work ([@matt-edmondson](https://github.com/matt-edmondson))
-## v1.3.14 (minor)
+## v1.3.14 (patch)
+
+Changes since v1.3.13-pre.1:
+
+- Refactor bot commit exclusion patterns in dotnet workflow for improved clarity and case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.3.13-pre.1 (prerelease)
 
 Changes since v1.3.12-pre.1:
 
 - Fix regex for bot commit exclusion patterns in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor bot commit exclusion patterns in dotnet workflow for case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
-- Refactor bot commit exclusion patterns in dotnet workflow for improved clarity and case-insensitivity ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.3.12-pre.1 (prerelease)
 
+Changes since v1.3.11-pre.1:
 
+- Refactor exclusion patterns in dotnet workflow to simplify bot commit filtering ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.3.11-pre.1 (prerelease)
 
+Changes since v1.3.10:
 
+- Move shared workflow into local workflow ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor exclusion patterns in dotnet workflow for improved clarity and consistency ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove URL escaping from workflow and adjust environment variable output ([@matt-edmondson](https://github.com/matt-edmondson))
+- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sort git tags when retrieving the last released version in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update exclusion pattern for hidden files in dotnet workflow ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.3.10 (patch)
 
+Changes since v1.3.9:
 
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.3.10-pre.1 (prerelease)
 
+Changes since v1.3.10:
 
+- Move shared workflow into local workflow ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove URL escaping from workflow and adjust environment variable output ([@matt-edmondson](https://github.com/matt-edmondson))
+- Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.3.9 (patch)
 
+Changes since v1.3.8:
+
+- Sync icon.png ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.3.8 (patch)
+
+Changes since v1.3.7:
+
+- Sync Directory.Build.props ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.3.7 (patch)
+
+Changes since v1.3.6:
+
+- Sync Directory.Build.props ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.3.6 (patch)
+
+Changes since v1.3.5:
+
+- Sync Directory.Build.props ([@ktsu[bot]](https://github.com/ktsu[bot]))
 ## v1.3.5 (patch)
 
 Changes since v1.3.4:
@@ -236,9 +562,17 @@ Changes since v1.3.4:
 Changes since v1.3.3:
 
 - Replace LICENSE file with LICENSE.md ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.3.3 (patch)
 
+Changes since v1.3.2:
 
-## v1.3.1 (minor)
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.3.2 (patch)
+
+Changes since v1.3.1:
+
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.3.1 (patch)
 
 Changes since v1.3.0:
 
@@ -248,10 +582,23 @@ Changes since v1.3.0:
 Changes since v1.2.0:
 
 - Refactor AppData to use Lazy<T> for internal state ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.2.4 (patch)
 
+Changes since v1.2.3:
 
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.2.3 (patch)
 
+Changes since v1.2.2:
+## v1.2.2 (patch)
 
+Changes since v1.2.1:
+
+- Sync Directory.Build.props ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync Directory.Build.targets ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.2.1 (patch)
+
+Changes since v1.2.0:
 ## v1.2.0 (minor)
 
 Changes since 1.1.0:
@@ -279,19 +626,58 @@ Changes since 1.1.0:
 - Update project to target both .NET 8.0 and .NET 9.0 ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update README with Static Instance Access feature ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update VERSION ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.1.57 (patch)
 
+Changes since v1.1.56:
+## v1.1.56 (patch)
 
+Changes since v1.1.55:
+## v1.1.55 (patch)
 
+Changes since v1.1.54:
 
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.54 (patch)
 
+Changes since v1.1.53:
 
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.53 (patch)
 
+Changes since v1.1.52:
 
+- Bump the ktsu group with 3 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.52 (patch)
 
+Changes since v1.1.51:
 
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.51 (patch)
 
+Changes since v1.1.50:
+## v1.1.50 (patch)
 
-## v1.1.45 (minor)
+Changes since v1.1.49:
+## v1.1.49 (patch)
+
+Changes since v1.1.48:
+
+- Bump MSTest.TestAdapter from 3.6.3 to 3.6.4 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump MSTest.TestFramework from 3.6.3 to 3.6.4 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions from 21.1.3 to 21.1.7 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.48 (patch)
+
+Changes since v1.1.47:
+## v1.1.47 (patch)
+
+Changes since v1.1.46:
+## v1.1.46 (patch)
+
+Changes since v1.1.45:
+
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.45 (patch)
 
 Changes since v1.1.44:
 
@@ -299,60 +685,224 @@ Changes since v1.1.44:
 - Enhance AppData functionality and documentation ([@matt-edmondson](https://github.com/matt-edmondson))
 - Enhance AppDataStorage docs and add new examples ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update README with Static Instance Access feature ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.1.44 (patch)
 
-## v1.1.43 (minor)
+Changes since v1.1.43:
+
+- Sync Directory.Build.targets ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.1.43 (patch)
 
 Changes since v1.1.42:
 
 - Add GitHub Actions workflow to automate issue and PR management for ktsu.dev project ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.1.42 (patch)
 
+Changes since v1.1.41:
+## v1.1.41 (patch)
 
-## v1.1.40 (minor)
+Changes since v1.1.40:
+## v1.1.40 (patch)
 
 Changes since v1.1.39:
 
 - Update dependencies ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.1.39 (patch)
 
+Changes since v1.1.38:
+## v1.1.38 (patch)
 
+Changes since v1.1.37:
 
+- Sync Directory.Build.props ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.1.37 (patch)
 
+Changes since v1.1.36:
 
-## v1.1.34 (minor)
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.36 (patch)
+
+Changes since v1.1.35:
+
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.35 (patch)
+
+Changes since v1.1.34:
+
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.34 (patch)
 
 Changes since v1.1.33:
 
 - Make test classes and records public; update NoWarn property ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor visibility and enhance type conversion ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.1.33 (patch)
 
+Changes since v1.1.32:
 
+- Bump Microsoft.NET.Test.Sdk in the microsoft group ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.32 (patch)
 
+Changes since v1.1.31:
 
+- Bump the ktsu group with 3 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.31 (patch)
 
+Changes since v1.1.30:
 
+- Bump the ktsu group with 3 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.30 (patch)
 
+Changes since v1.1.29:
 
+- Bump MSTest.TestFramework from 3.6.2 to 3.6.3 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.29 (patch)
 
+Changes since v1.1.28:
 
+- Bump MSTest.TestAdapter from 3.6.2 to 3.6.3 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.28 (patch)
 
+Changes since v1.1.27:
 
+- Bump TestableIO.System.IO.Abstractions and TestableIO.System.IO.Abstractions.Wrappers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.27 (patch)
 
+Changes since v1.1.26:
 
+- Bump TestableIO.System.IO.Abstractions from 21.1.2 to 21.1.3 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.26 (patch)
 
+Changes since v1.1.25:
 
+- Bump TestableIO.System.IO.Abstractions and TestableIO.System.IO.Abstractions.Wrappers ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.25 (patch)
 
+Changes since v1.1.24:
 
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.24 (patch)
 
+Changes since v1.1.23:
 
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.23 (patch)
 
+Changes since v1.1.22:
 
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.22 (patch)
 
+Changes since v1.1.21:
 
+- Bump MSTest.TestAdapter from 3.6.1 to 3.6.2 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.21 (patch)
 
+Changes since v1.1.20:
 
+- Bump MSTest.TestFramework from 3.6.1 to 3.6.2 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.20 (patch)
 
+Changes since v1.1.19:
 
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.19 (patch)
 
+Changes since v1.1.18:
 
+- Bump ktsu.StrongPaths from 1.1.15 to 1.1.16 in the ktsu group ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.18 (patch)
+
+Changes since v1.1.17:
+
+- Bump ktsu.ToStringJsonConverter from 1.0.12 to 1.0.13 in the ktsu group ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.17 (patch)
+
+Changes since v1.1.16:
+
+- Bump MSTest.TestAdapter from 3.6.0 to 3.6.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.16 (patch)
+
+Changes since v1.1.15:
+
+- Bump MSTest.TestFramework from 3.6.0 to 3.6.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.15 (patch)
+
+Changes since v1.1.14:
+
+- Bump ktsu.StrongPaths from 1.1.12 to 1.1.13 in the ktsu group ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.14 (patch)
+
+Changes since v1.1.13:
+
+- Bump ktsu.ToStringJsonConverter from 1.0.10 to 1.0.11 in the ktsu group ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.13 (patch)
+
+Changes since v1.1.12:
+
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.12 (patch)
+
+Changes since v1.1.11:
+
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.11 (patch)
+
+Changes since v1.1.10:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.1.10 (patch)
+
+Changes since v1.1.9:
+
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+## v1.1.9 (patch)
+
+Changes since v1.1.8:
+
+- Bump the all group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Sync .github\dependabot.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.1.8 (patch)
+
+Changes since v1.1.7:
+
+- Sync .github\workflows\dependabot-merge.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.1.7 (patch)
+
+Changes since v1.1.6:
+
+- Sync .github\workflows\dependabot-merge.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.1.6 (patch)
+
+Changes since v1.1.5:
+
+- Bump ktsu.CaseConverter from 1.0.4 to 1.0.5 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump ktsu.StrongPaths from 1.1.3 to 1.1.4 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump ktsu.StrongStrings from 1.2.1 to 1.2.2 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump ktsu.ToStringJsonConverter from 1.0.2 to 1.0.3 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Sync .github\workflows\dependabot-merge.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.1.5 (patch)
+
+Changes since v1.1.4:
+
+- Bump ktsu.CaseConverter from 1.0.2 to 1.0.4 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump ktsu.StrongPaths from 1.1.2 to 1.1.3 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump ktsu.StrongStrings from 1.1.1 to 1.2.0 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump ktsu.StrongStrings from 1.2.0 to 1.2.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump ktsu.ToStringJsonConverter from 1.0.1 to 1.0.2 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump MSTest.TestAdapter from 3.5.2 to 3.6.0 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump MSTest.TestFramework from 3.5.2 to 3.6.0 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Sync .github\workflows\dependabot-merge.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+## v1.1.4 (patch)
+
+Changes since v1.1.3:
+
+- Sync .github\dependabot.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 ## v1.1.3 (minor)
 
 Changes since v1.0.0:
@@ -362,10 +912,10 @@ Changes since v1.0.0:
 - Migrate ktsu.io to ktsu namespace ([@matt-edmondson](https://github.com/matt-edmondson))
 - Take latest StrongPaths ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update VERSION ([@matt-edmondson](https://github.com/matt-edmondson))
+## v1.0.0-alpha.14 (prerelease)
 
-## v1.0.0 (minor)
-
-Changes since 0.0.0.0:
+Incremental prerelease update.
+## v1.0.0 (major)
 
 - Add github package support ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add stringify convertor and update strong strings ([@matt-edmondson](https://github.com/matt-edmondson))
