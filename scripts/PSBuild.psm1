@@ -206,9 +206,19 @@ function Get-GitTags {
 function Get-VersionType {
     <#
     .SYNOPSIS
-        Determines the type of version bump needed based on commit history
+        Determines the type of version bump needed based on commit history and public API changes
     .DESCRIPTION
-        Analyzes commit messages and changes to determine whether the next version should be a major, minor, patch, or prerelease bump.
+        Analyzes commit messages and code changes to determine whether the next version should be:
+        - Major (1.0.0 → 2.0.0): Breaking changes, indicated by [major] tags in commits
+        - Minor (1.0.0 → 1.1.0): Non-breaking public API changes (additions, modifications, removals)
+        - Patch (1.0.0 → 1.0.1): Bug fixes and changes that don't modify the public API
+        - Prerelease (1.0.0 → 1.0.1-pre.1): Small changes or no significant changes
+
+        Version bump determination follows these rules in order:
+        1. Explicit tags in commit messages: [major], [minor], [patch], [pre]
+        2. Public API changes detection via regex patterns (triggers minor bump)
+        3. Code changes that don't modify public API (triggers patch bump)
+        4. Default to prerelease bump for minimal changes
     .PARAMETER Range
         The git commit range to analyze (e.g., "v1.0.0...HEAD" or a specific commit range)
     .OUTPUTS
