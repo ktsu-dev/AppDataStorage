@@ -994,9 +994,6 @@ function Update-ProjectMetadata {
         $projectUrl = "[InternetShortcut]$($script:lineEnding)URL=$($BuildConfiguration.ServerUrl)/$($BuildConfiguration.GitHubOwner)/$($BuildConfiguration.GitHubRepo)"
         [System.IO.File]::WriteAllText("PROJECT_URL.url", $projectUrl, [System.Text.UTF8Encoding]::new($false)) | Write-InformationStream -Tags "Update-ProjectMetadata"
 
-        Write-Information "Checking git status before adding files..." -Tags "Update-ProjectMetadata"
-        "git status --porcelain" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
-
         Write-Information "Adding files to git..." -Tags "Update-ProjectMetadata"
         $filesToAdd = @(
             "VERSION.md",
@@ -1011,13 +1008,14 @@ function Update-ProjectMetadata {
         "git add $filesToAdd" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
 
         Write-Information "Checking for changes to commit..." -Tags "Update-ProjectMetadata"
-        "git status --porcelain" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
+        $postStatus = "git status --porcelain" | Invoke-ExpressionWithLogging
+        Write-Information "Git status: $($postStatus ? 'Changes detected' : 'No changes')" -Tags "Update-ProjectMetadata"
 
         # Get the current commit hash regardless of whether we make changes
-        $currentHash = "git rev-parse HEAD" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Update-ProjectMetadata"
+        $currentHash = "git rev-parse HEAD" | Invoke-ExpressionWithLogging
         Write-Information "Current commit hash: $currentHash" -Tags "Update-ProjectMetadata"
 
-        if ($postStatus) {
+        if (-not [string]::IsNullOrWhiteSpace($postStatus)) {
             # Configure git user before committing
             Set-GitIdentity | Write-InformationStream -Tags "Update-ProjectMetadata"
 
