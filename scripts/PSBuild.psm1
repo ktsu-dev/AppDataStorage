@@ -1324,13 +1324,13 @@ function Invoke-NuGetPublish {
     Write-StepHeader "Publishing to GitHub Packages" -Tags "Invoke-NuGetPublish"
 
     # Execute the command and stream output
-    "dotnet nuget push $BuildConfiguration.PackagePattern --api-key $BuildConfiguration.GithubToken --source `"https://nuget.pkg.github.com/$($BuildConfiguration.GithubOwner)/index.json`" --skip-duplicate" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-NuGetPublish"
+    "dotnet nuget push `"$($BuildConfiguration.PackagePattern)`" --api-key `"$($BuildConfiguration.GithubToken)`" --source `"https://nuget.pkg.github.com/$($BuildConfiguration.GithubOwner)/index.json`" --skip-duplicate" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-NuGetPublish"
     Assert-LastExitCode "GitHub package publish failed"
 
     Write-StepHeader "Publishing to NuGet.org" -Tags "Invoke-NuGetPublish"
 
     # Execute the command and stream output
-    "dotnet nuget push $BuildConfiguration.PackagePattern --api-key $BuildConfiguration.NuGetApiKey --source `"https://api.nuget.org/v3/index.json`" --skip-duplicate" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-NuGetPublish"
+    "dotnet nuget push `"$($BuildConfiguration.PackagePattern)`" --api-key `"$($BuildConfiguration.NuGetApiKey)`" --source `"https://api.nuget.org/v3/index.json`" --skip-duplicate" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-NuGetPublish"
     Assert-LastExitCode "NuGet.org package publish failed"
 }
 
