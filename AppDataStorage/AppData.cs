@@ -1,3 +1,7 @@
+// Copyright (c) ktsu.dev
+// All rights reserved.
+// Licensed under the MIT license.
+
 namespace ktsu.AppDataStorage;
 
 using System.IO.Abstractions;
@@ -288,7 +292,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	{
 		lock (Lock)
 		{
-			string jsonString = JsonSerializer.Serialize(this, typeof(T), AppData.JsonSerializerOptions);
+			var jsonString = JsonSerializer.Serialize(this, typeof(T), AppData.JsonSerializerOptions);
 			AppData.WriteText((T)this, jsonString);
 			LastSaveTime = DateTime.UtcNow;
 		}
@@ -356,7 +360,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 				FileNameOverride = fileName,
 			};
 
-			string jsonString = AppData.ReadText(newAppData);
+			var jsonString = AppData.ReadText(newAppData);
 
 			if (string.IsNullOrEmpty(jsonString))
 			{

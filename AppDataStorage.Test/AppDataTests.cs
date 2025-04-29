@@ -1,3 +1,7 @@
+// Copyright (c) ktsu.dev
+// All rights reserved.
+// Licensed under the MIT license.
+
 namespace ktsu.AppDataStorage.Test;
 
 using System;
@@ -40,7 +44,7 @@ public sealed class AppDataTests
 		using var appData = new TestAppData { Data = "Test data" };
 		appData.Save();
 
-		string backupFilePath = appData.FilePath + ".bk";
+		var backupFilePath = appData.FilePath + ".bk";
 		Assert.IsFalse(AppData.FileSystem.File.Exists(backupFilePath), "Backup file should not exist initially.");
 
 		appData.Save();
@@ -115,7 +119,7 @@ public sealed class AppDataTests
 		using var appData = new TestAppData { Data = "Test data" };
 		AppData.WriteText(appData, "Test data");
 
-		string text = AppData.ReadText(appData);
+		var text = AppData.ReadText(appData);
 		Assert.AreEqual("Test data", text, "Read text does not match written text.");
 	}
 
@@ -129,7 +133,7 @@ public sealed class AppDataTests
 		AppData.FileSystem.File.Copy(appData.FilePath, backupFilePath);
 		AppData.FileSystem.File.Delete(appData.FilePath);
 
-		string text = AppData.ReadText(appData);
+		var text = AppData.ReadText(appData);
 		Assert.AreEqual("Test data", text, "Read text does not match backup text.");
 		Assert.IsTrue(AppData.FileSystem.File.Exists(appData.FilePath), "Main file should be restored from backup.");
 	}
@@ -271,21 +275,21 @@ public sealed class AppDataTests
 	{
 		using var appData = new TestAppData();
 
-		string expectedFileName = $"{nameof(TestAppData).ToSnakeCase()}.json";
+		var expectedFileName = $"{nameof(TestAppData).ToSnakeCase()}.json";
 		Assert.AreEqual(expectedFileName, appData.FileName.ToString(), "FileName should be in snake_case.");
 	}
 
 	[TestMethod]
 	public void TestAppDomainIsSetCorrectly()
 	{
-		string appDomainName = AppData.AppDomain.ToString();
+		var appDomainName = AppData.AppDomain.ToString();
 		Assert.AreEqual(AppDomain.CurrentDomain.FriendlyName, appDomainName, "AppDomain should match current domain's friendly name.");
 	}
 
 	[TestMethod]
 	public void TestAppDataPathIsSetCorrectly()
 	{
-		string expectedPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\" + AppData.AppDomain;
+		var expectedPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\" + AppData.AppDomain;
 		Assert.AreEqual(expectedPath, AppData.Path.ToString(), "AppData path should be set correctly.");
 	}
 
@@ -312,7 +316,7 @@ public sealed class AppDataTests
 	public void TestAppDataSerializationIncludesFields()
 	{
 		using var appData = new TestAppData();
-		string json = JsonSerializer.Serialize(appData, AppData.JsonSerializerOptions);
+		var json = JsonSerializer.Serialize(appData, AppData.JsonSerializerOptions);
 
 		Assert.IsTrue(json.Contains("\"Data\""), "Serialized JSON should include fields.");
 	}
