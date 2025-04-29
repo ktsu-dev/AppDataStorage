@@ -93,12 +93,32 @@ Commits can include the following tags to control version increments:
 
 ### Automatic Version Calculation
 
-The module analyzes commit history to determine appropriate version increments:
+The module analyzes commit history to determine appropriate version increments, following semantic versioning principles:
 
-1. Checks for explicit version tags in commit messages
-2. Analyzes code changes vs. documentation changes
-3. Considers the scope and impact of changes
-4. Maintains semantic versioning principles
+1. Checks for explicit version tags in commit messages ([major], [minor], [patch], [pre])
+2. Detects public API changes by analyzing code diffs
+   - Adding, modifying, or removing public classes, interfaces, enums, structs, or records
+   - Changes to public methods, properties, or constants
+   - Any public API surface change triggers a minor version bump
+3. Non-API changing code commits trigger patch version increments
+4. Minimal changes default to prerelease increments
+
+This approach ensures that:
+- Breaking changes are always major version increments (manually tagged)
+- Public API additions or modifications are minor version increments (automatically detected)
+- Bug fixes and internal changes are patch version increments
+- Trivial changes result in prerelease increments
+
+### Public API Detection
+
+The module automatically analyzes code changes to detect modifications to the public API surface:
+
+- Added, modified, or removed public/protected classes, interfaces, enums, structs, or records
+- Added, modified, or removed public/protected methods
+- Added, modified, or removed public/protected properties
+- Added or removed public constants
+
+When any of these changes are detected, the module automatically triggers a minor version increment, following semantic versioning best practices where non-breaking API changes warrant a minor version bump.
 
 ## Build Configuration
 
