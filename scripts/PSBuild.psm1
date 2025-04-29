@@ -1552,19 +1552,21 @@ function Invoke-ExpressionWithLogging {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, Position=0)]
+        [Parameter(ValueFromPipeline=$true)]
         [scriptblock]$ScriptBlock,
         [Parameter()]
         [AllowEmptyCollection()]
         [string[]]$Tags = @("Invoke-ExpressionWithLogging")
     )
 
-    # Display the expression
-    Write-Information -MessageData $ScriptBlock -Tags $Tags
+    if ($ScriptBlock) {
+        # Display the expression
+        Write-Information -MessageData $ScriptBlock -Tags $Tags
 
-    # Execute the expression and return its result
-    & $ScriptBlock | ForEach-Object {
-        Write-Output $_
+        # Execute the expression and return its result
+        & $ScriptBlock | ForEach-Object {
+            Write-Output $_
+        }
     }
 }
 
