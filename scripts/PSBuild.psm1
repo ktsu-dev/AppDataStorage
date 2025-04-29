@@ -1,5 +1,4 @@
 # PSBuild Module for .NET CI/CD
-# Version: 1.0.0
 # Author: ktsu.dev
 # License: MIT
 #
@@ -1935,7 +1934,11 @@ Export-ModuleMember -Function Invoke-NuGetPublish,
 # Utility functions
 Export-ModuleMember -Function Assert-LastExitCode,
                              Write-StepHeader,
-                             Test-AnyFiles
+                             Test-AnyFiles,
+                             Get-GitLineEnding,
+                             Set-GitIdentity,
+                             Write-InformationStream,
+                             Invoke-ExpressionWithLogging
 
 # High-level workflow functions
 Export-ModuleMember -Function Invoke-BuildWorkflow,
