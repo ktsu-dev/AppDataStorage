@@ -1542,6 +1542,8 @@ function Invoke-ExpressionWithLogging {
         Invokes an expression and logs the result to the console.
     .PARAMETER ScriptBlock
         The script block to execute.
+    .PARAMETER Command
+        A string command to execute, which will be converted to a script block.
     .PARAMETER Tags
         Optional tags to include in the logging output for filtering and organization.
     .OUTPUTS
@@ -1552,20 +1554,31 @@ function Invoke-ExpressionWithLogging {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(ValueFromPipeline=$true)]
+        [Parameter(ValueFromPipeline=$true, ParameterSetName="ScriptBlock")]
         [scriptblock]$ScriptBlock,
+
+        [Parameter(ValueFromPipeline=$true, ParameterSetName="Command")]
+        [string]$Command,
+
         [Parameter()]
         [AllowEmptyCollection()]
         [string[]]$Tags = @("Invoke-ExpressionWithLogging")
     )
 
-    if ($ScriptBlock) {
-        # Display the expression
-        Write-Information -MessageData $ScriptBlock -Tags $Tags
+    process {
+        # Convert command string to scriptblock if needed
+        if ($PSCmdlet.ParameterSetName -eq "Command" -and -not [string]::IsNullOrWhiteSpace($Command)) {
+            $ScriptBlock = [scriptblock]::Create($Command)
+        }
 
-        # Execute the expression and return its result
-        & $ScriptBlock | ForEach-Object {
-            Write-Output $_
+        if ($ScriptBlock) {
+            # Display the expression
+            Write-Information -MessageData $ScriptBlock -Tags $Tags
+
+            # Execute the expression and return its result
+            & $ScriptBlock | ForEach-Object {
+                Write-Output $_
+            }
         }
     }
 }
