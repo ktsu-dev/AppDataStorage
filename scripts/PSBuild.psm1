@@ -230,9 +230,11 @@ function Get-VersionType {
         Analyzes commit messages and changes to determine whether the next version should be a major, minor, patch, or prerelease bump.
     .PARAMETER Range
         The git commit range to analyze (e.g., "v1.0.0...HEAD" or a specific commit range)
+    .OUTPUTS
+        Returns a PSCustomObject with 'Type' and 'Reason' properties explaining the version increment decision.
     #>
     [CmdletBinding()]
-    [OutputType([string])]
+    [OutputType([PSCustomObject])]
     param (
         [Parameter(Mandatory=$true)]
         [string]$Range
@@ -243,6 +245,7 @@ function Get-VersionType {
     $reason = "No significant changes detected"
 
     # Bot and PR patterns to exclude
+    # EXCLUDE_BOTS: Regex pattern to exclude bot commits (matches any commit NOT from a bot account)
     $EXCLUDE_BOTS = '^(?!.*(\[bot\]|github|ProjectDirector|SyncFileContents)).*$'
     $EXCLUDE_PRS = '^.*(Merge pull request|Merge branch ''main''|Updated packages in|Update.*package version).*$'
 
@@ -279,10 +282,10 @@ function Get-VersionType {
 
     foreach ($message in $messages) {
         $versionTags = @{
-            '[major]' = @{ Type = 'major'; HigherTypes = @() }
-            '[minor]' = @{ Type = 'minor'; HigherTypes = @('major') }
-            '[patch]' = @{ Type = 'patch'; HigherTypes = @('major', 'minor') }
-            '[pre]' = @{ Type = 'prerelease'; HigherTypes = @('major', 'minor', 'patch') }
+            '[major]' = [PSCustomObject]@{ Type = 'major'; HigherTypes = @() }
+            '[minor]' = [PSCustomObject]@{ Type = 'minor'; HigherTypes = @('major') }
+            '[patch]' = [PSCustomObject]@{ Type = 'patch'; HigherTypes = @('major', 'minor') }
+            '[pre]' = [PSCustomObject]@{ Type = 'prerelease'; HigherTypes = @('major', 'minor', 'patch') }
         }
 
         foreach ($tag in $versionTags.Keys) {
@@ -292,7 +295,7 @@ function Get-VersionType {
                     $reason = "Explicit $tag tag found in commit message: $message"
                 }
                 if ($tag -eq '[major]') {
-                    return @{
+                    return [PSCustomObject]@{
                         Type = $versionType
                         Reason = $reason
                     }
@@ -301,7 +304,7 @@ function Get-VersionType {
         }
     }
 
-    return @{
+    return [PSCustomObject]@{
         Type = $versionType
         Reason = $reason
     }
@@ -345,7 +348,7 @@ function Get-VersionInfoFromGit {
         return [PSCustomObject]@{
             Success = $true
             Error = ""
-            Data = @{
+            Data = [PSCustomObject]@{
                 # New version information
                 Version = $InitialVersion
                 Major = [int]($InitialVersion -split '\.')[0]
@@ -469,7 +472,7 @@ function Get-VersionInfoFromGit {
         return [PSCustomObject]@{
             Success = $true
             Error = ""
-            Data = @{
+            Data = [PSCustomObject]@{
                 Version = $newVersion
                 Major = $newMajor
                 Minor = $newMinor
@@ -495,7 +498,10 @@ function Get-VersionInfoFromGit {
         return [PSCustomObject]@{
             Success = $false
             Error = $_.ToString()
-            Data = @{}
+            Data = [PSCustomObject]@{
+                ErrorDetails = $_.Exception.Message
+                StackTrace = $_.ScriptStackTrace
+            }
             StackTrace = $_.ScriptStackTrace
         }
     }
@@ -924,6 +930,29 @@ function New-Changelog {
 #region Metadata Management
 
 function Update-ProjectMetadata {
+    <#
+    .SYNOPSIS
+        Updates project metadata files based on build configuration.
+    .DESCRIPTION
+        Generates and updates version information, license, changelog, and other metadata files for a project.
+        This function centralizes all metadata generation to ensure consistency across project documentation.
+    .PARAMETER BuildConfiguration
+        The build configuration object containing paths, version info, and GitHub details.
+        Should be obtained from Get-BuildConfiguration.
+    .PARAMETER Authors
+        Optional array of author names to include in the AUTHORS.md file.
+    .PARAMETER CommitMessage
+        Optional commit message to use when committing metadata changes.
+        Defaults to "[bot][skip ci] Update Metadata".
+    .EXAMPLE
+        $config = Get-BuildConfiguration -GitRef "refs/heads/main" -GitSha "abc123" -GitHubOwner "myorg" -GitHubRepo "myproject"
+        Update-ProjectMetadata -BuildConfiguration $config
+    .EXAMPLE
+        Update-ProjectMetadata -BuildConfiguration $config -Authors @("Developer 1", "Developer 2") -CommitMessage "Update project documentation"
+    .OUTPUTS
+        PSCustomObject with Success, Error, and Data properties.
+        Data contains Version, ReleaseHash, and HasChanges information.
+    #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
     param(
@@ -1009,7 +1038,7 @@ function Update-ProjectMetadata {
             return [PSCustomObject]@{
                 Success = $true
                 Error = ""
-                Data = @{
+                Data = [PSCustomObject]@{
                     Version = $version
                     ReleaseHash = $releaseHash
                     HasChanges = $true
@@ -1024,7 +1053,7 @@ function Update-ProjectMetadata {
             return [PSCustomObject]@{
                 Success = $true
                 Error = ""
-                Data = @{
+                Data = [PSCustomObject]@{
                     Version = $version
                     ReleaseHash = $currentHash
                     HasChanges = $false
@@ -1038,7 +1067,7 @@ function Update-ProjectMetadata {
         return [PSCustomObject]@{
             Success = $false
             Error = $errorMessage
-            Data = @{
+            Data = [PSCustomObject]@{
                 Version = $null
                 ReleaseHash = $null
                 HasChanges = $false
@@ -1530,10 +1559,10 @@ function Invoke-ExpressionWithLogging {
         Invokes an expression and logs the result to the console.
     .DESCRIPTION
         Invokes an expression and logs the result to the console.
-    .PARAMETER Expression
-        The expression to execute.
-    .PARAMETER ForegroundColor
-        The color of the expression to display.
+    .PARAMETER ScriptBlock
+        The script block to execute.
+    .PARAMETER Tags
+        Optional tags to include in the logging output for filtering and organization.
     .OUTPUTS
         The result of the expression.
     .NOTES
@@ -1667,7 +1696,7 @@ function Invoke-BuildWorkflow {
         return [PSCustomObject]@{
             Success = $true
             Error = ""
-            Data = @{
+            Data = [PSCustomObject]@{
                 Configuration = $Configuration
                 BuildArgs = $BuildArgs
             }
@@ -1678,7 +1707,7 @@ function Invoke-BuildWorkflow {
         return [PSCustomObject]@{
             Success = $false
             Error = $_.ToString()
-            Data = @{}
+            Data = [PSCustomObject]@{}
             StackTrace = $_.ScriptStackTrace
         }
     }
@@ -1690,8 +1719,12 @@ function Invoke-ReleaseWorkflow {
         Executes the release workflow.
     .DESCRIPTION
         Generates metadata, packages, and creates a release.
+    .PARAMETER Configuration
+        The build configuration (Debug/Release). Defaults to "Release".
     .PARAMETER BuildConfiguration
         The build configuration object from Get-BuildConfiguration.
+    .OUTPUTS
+        PSCustomObject with Success, Error, and Data properties.
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -1762,7 +1795,7 @@ function Invoke-ReleaseWorkflow {
         return [PSCustomObject]@{
             Success = $true
             Error = ""
-            Data = @{
+            Data = [PSCustomObject]@{
                 Version = $BuildConfiguration.Version
                 ReleaseHash = $BuildConfiguration.ReleaseHash
                 PackagePaths = $packagePaths
@@ -1774,7 +1807,10 @@ function Invoke-ReleaseWorkflow {
         return [PSCustomObject]@{
             Success = $false
             Error = $_.ToString()
-            Data = @{}
+            Data = [PSCustomObject]@{
+                ErrorDetails = $_.Exception.Message
+                PackagePaths = @()
+            }
             StackTrace = $_.ScriptStackTrace
         }
     }
