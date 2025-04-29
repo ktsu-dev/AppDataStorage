@@ -66,9 +66,9 @@ jobs:
           -GitSha "${{ github.sha }}" `
           -GitHubOwner "${{ github.repository_owner }}" `
           -GitHubRepo "${{ github.repository }}" `
-          -WorkspacePath "${{ github.workspace }}" `
           -GithubToken "${{ github.token }}" `
           -NuGetApiKey "${{ secrets.NUGET_KEY }}" `
+          -WorkspacePath "${{ github.workspace }}" `
           -ExpectedOwner "ktsu-dev" `
           -ChangelogFile "CHANGELOG.md" `
           -AssetPatterns @("staging/*.nupkg", "staging/*.zip")
