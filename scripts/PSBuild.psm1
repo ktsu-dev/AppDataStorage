@@ -1568,7 +1568,11 @@ function Invoke-ExpressionWithLogging {
     process {
         # Convert command string to scriptblock if needed
         if ($PSCmdlet.ParameterSetName -eq "Command" -and -not [string]::IsNullOrWhiteSpace($Command)) {
+            Write-Information "Executing command: $Command" -Tags $Tags
             $ScriptBlock = [scriptblock]::Create($Command)
+        }
+        else {
+            Write-Information "Executing script block: $ScriptBlock" -Tags $Tags
         }
 
         if ($ScriptBlock) {
