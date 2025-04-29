@@ -82,6 +82,9 @@ jobs:
           -BuildConfiguration $buildConfig.Data
 
         if (-not $result.Success) {
+            Write-Information "CI/CD pipeline failed: $($result.Error)" -Tags "Invoke-CIPipeline"
+            Write-Information "Stack Trace: $($result.StackTrace)" -Tags "Invoke-CIPipeline"
+            Write-Information "Build Configuration: $($buildConfig.Data | ConvertTo-Json -Depth 10)" -Tags "Invoke-CIPipeline"
             throw $result.Error
         }
 
