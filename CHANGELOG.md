@@ -1,6 +1,11 @@
+## v1.15.2 (patch)
+
+Changes since v1.15.1:
+
+- Add support for latest version changelog in GitHub releases ([@matt-edmondson](https://github.com/matt-edmondson))
 ## v1.15.2-pre.5 (prerelease)
 
-Incremental prerelease update.
+Changes since v1.15.2-pre.4:
 ## v1.15.2-pre.4 (prerelease)
 
 Changes since v1.15.2-pre.3:
