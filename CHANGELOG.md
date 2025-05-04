@@ -1,3 +1,6 @@
+## v1.15.3-pre.1 (prerelease)
+
+Incremental prerelease update.
 ## v1.15.2 (patch)
 
 Changes since v1.15.1:
@@ -17,7 +20,7 @@ Changes since v1.15.2-pre.2:
 Changes since v1.15.2-pre.1:
 ## v1.15.2-pre.1 (prerelease)
 
-Changes since v1.15.1:
+Incremental prerelease update.
 ## v1.15.1 (patch)
 
 Changes since v1.15.0:
