@@ -11,6 +11,7 @@ A comprehensive PowerShell module for automating the build, test, package, and r
 - NuGet package creation and publishing
 - GitHub release creation with assets
 - Proper line ending handling based on git config
+- Automatic extraction of latest version changelog for GitHub releases
 
 ## Installation
 
@@ -37,6 +38,7 @@ $buildConfig = Get-BuildConfiguration `
     -WorkspacePath "." `
     -ExpectedOwner "myorg" `
     -ChangelogFile "CHANGELOG.md" `
+    -LatestChangelogFile "LATEST_CHANGELOG.md" `
     -AssetPatterns @("staging/*.nupkg", "staging/*.zip")
 
 # Then run the pipeline
@@ -77,6 +79,28 @@ The module manages several metadata files in your repository:
 | CHANGELOG.md | Auto-generated changelog from git history |
 | PROJECT_URL.url | Link to project repository |
 | AUTHORS.url | Link to organization/owner |
+
+## Changelog Management
+
+### Full Changelog
+
+The module automatically generates a comprehensive `CHANGELOG.md` file containing entries for all versions, ordered from newest to oldest. Each entry includes:
+
+- Version number and type (major, minor, patch, prerelease)
+- List of changes since the previous version
+- Author attributions for each change
+
+### Latest Version Changelog
+
+For GitHub releases, the module extracts just the latest version's changelog to a separate file (default: `LATEST_CHANGELOG.md`). This file contains only the changes for the current version, making it ideal for use as GitHub release notes.
+
+When creating a GitHub release with `New-GitHubRelease`, the module automatically:
+
+1. Checks for the latest version changelog file
+2. Uses it as the release notes if available
+3. Falls back to the full changelog if necessary
+
+You can customize the latest changelog file path using the `LatestChangelogFile` parameter in `Get-BuildConfiguration`.
 
 ## Version Control
 
