@@ -1,6 +1,6 @@
 MIT License
 
-https://github.com/ktsu-dev/ktsu-dev/AppDataStorage
+https://github.com/ktsu-dev/AppDataStorage
 
 Copyright (c) 2023-2025 ktsu-dev
 
