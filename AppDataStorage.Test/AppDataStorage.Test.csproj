@@ -1,5 +1,7 @@
 <Project Sdk="ktsu.Sdk.Test/1.8.0">
   <ItemGroup>
     <PackageReference Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="22.0.14" />
+    <PackageReference Update="Microsoft.Testing.Extensions.CodeCoverage" Version="17.14.2" />
+    <PackageReference Update="Microsoft.Testing.Extensions.Fakes" Version="17.14.1" />
   </ItemGroup>
 </Project>
