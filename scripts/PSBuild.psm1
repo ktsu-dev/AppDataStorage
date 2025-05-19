@@ -854,7 +854,7 @@ function Get-VersionNotes {
     if ($rangeFrom -ne "") {
         try {
             # Try to get the SHA for the from tag, but don't error if it doesn't exist
-            $fromSha = "git rev-list -n 1 $rangeFrom 2>$null" | Invoke-ExpressionWithLogging -ErrorAction SilentlyContinue
+            $fromSha = "git rev-list -n 1 $rangeFrom 2>`$null" | Invoke-ExpressionWithLogging -ErrorAction SilentlyContinue
             if ($LASTEXITCODE -ne 0) {
                 Write-Information "Warning: Could not find SHA for tag $rangeFrom. Using fallback range." -Tags "Get-VersionNotes"
                 $gitSuccess = $false
@@ -866,7 +866,7 @@ function Get-VersionNotes {
                 $range = "$fromSha..$ToSha"
             } elseif ($gitSuccess) {
                 # For already tagged versions, get the SHA for the to tag
-                $toShaResolved = "git rev-list -n 1 $rangeTo 2>$null" | Invoke-ExpressionWithLogging -ErrorAction SilentlyContinue
+                $toShaResolved = "git rev-list -n 1 $rangeTo 2>`$null" | Invoke-ExpressionWithLogging -ErrorAction SilentlyContinue
                 if ($LASTEXITCODE -ne 0) {
                     Write-Information "Warning: Could not find SHA for tag $rangeTo. Using fallback range." -Tags "Get-VersionNotes"
                     $gitSuccess = $false
@@ -888,7 +888,7 @@ function Get-VersionNotes {
             $range = $ToSha
         } else {
             try {
-                $toShaResolved = "git rev-list -n 1 $rangeTo 2>$null" | Invoke-ExpressionWithLogging -ErrorAction SilentlyContinue
+                $toShaResolved = "git rev-list -n 1 $rangeTo 2>`$null" | Invoke-ExpressionWithLogging -ErrorAction SilentlyContinue
                 if ($LASTEXITCODE -eq 0) {
                     $range = $toShaResolved
                 } else {
