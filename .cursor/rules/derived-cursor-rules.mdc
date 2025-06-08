@@ -50,11 +50,23 @@ This file defines all project rules, coding standards, workflow guidelines, refe
 ## DEBUGGING
 
 - Use `dotnet build --verbosity normal` to get more detailed build error messages.
+- The following IDE and compiler errors cannot be automatically fixed using "Fix All in Solution":
+  - IDE1007 with code fixes: `CSharpSpellCheckCodeFixProvider`, `CSharpFullyQualifyCodeFixProvider`, `GenerateTypeCodeFixProvider`, `CSharpAddImportCodeFixProvider`
+  - CA1506: No associated code fix found.
+  - CA1812: No associated code fix found.
+  - CS0246 with code fixes: `CSharpMakeMethodAsynchronousCodeFixProvider` (didn't return a Fix All action), `CSharpGenerateVariableCodeFixProvider`
+  - CA1031: No associated code fix found.
 
 ## WORKFLOW & RELEASE RULES
 
 - When generating changelogs, output the logs for the latest version to a separate file so it can be used as the body of the GitHub release.
-- Increase test coverage for all components.
+- Increase test coverage for all components. Specifically focus on:
+  - Error handling and edge cases, specifically around file operations.
+  - Complex backup scenarios, such as timestamped backups when multiple backups exist.
+  - Thread safety, including more complex concurrent scenarios.
+  - Configuration and initialization, considering different scenarios for app data paths.
+  - File system abstraction edge cases.
+  - JSON serialization edge cases.
 
 ## CHANGELOG MANAGEMENT
 
