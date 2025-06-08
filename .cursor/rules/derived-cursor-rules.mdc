@@ -1,0 +1,60 @@
+---
+description: AI rules derived by SpecStory from the project AI interaction history
+globs: *
+---
+
+## HEADERS
+
+This file defines all project rules, coding standards, workflow guidelines, references, documentation structures, and best practices for the AI coding assistant. It is a living document, evolving with new user–AI interactions.
+
+## TECH STACK
+
+- PowerShell
+- .NET
+- Git
+
+## PROJECT DOCUMENTATION & CONTEXT SYSTEM
+
+- CHANGELOG.md: Auto-generated changelog from git history.  Stores a comprehensive history of all versions, ordered from newest to oldest, including version number/type, changes since last version, and author attributions.
+- LATEST_CHANGELOG.md: Latest version's changelog for GitHub releases. Contains only changes for the current version.
+- VERSION.md: Stores current version information.
+- README.md: Project documentation.
+- AUTHORS.md: List of contributors from git history.
+- COPYRIGHT.md: Copyright information.
+- PROJECT_URL.url: Link to project repository.
+- AUTHORS.url: Link to organization/owner.
+
+## CODING STANDARDS
+
+- Follow established PowerShell best practices.
+- Ensure proper error handling and logging.
+- Use clear and concise code.
+- Maintain consistent formatting.
+
+## DEBUGGING
+
+## WORKFLOW & RELEASE RULES
+
+- When generating changelogs, output the logs for the latest version to a separate file so it can be used as the body of the GitHub release.
+
+## CHANGELOG MANAGEMENT
+
+### Full Changelog
+
+The module automatically generates a comprehensive `CHANGELOG.md` file containing entries for all versions, ordered from newest to oldest. Each entry includes:
+
+- Version number and type (major, minor, patch, prerelease)
+- List of changes since the previous version
+- Author attributions for each change
+
+### Latest Version Changelog
+
+For GitHub releases, the module extracts just the latest version's changelog to a separate file (default: `LATEST_CHANGELOG.md`). This file contains only the changes for the current version, making it ideal for use as GitHub release notes.
+
+When creating a GitHub release with `New-GitHubRelease`, the module automatically:
+
+1. Checks for the latest version changelog file
+2. Uses it as the release notes if available
+3. Falls back to the full changelog if necessary
+
+You can customize the latest changelog file path using the `LatestChangelogFile` parameter in `Get-BuildConfiguration`.
