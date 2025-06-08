@@ -22,37 +22,44 @@ public sealed class Storage : AppData<Storage>
 [TestClass]
 public sealed class StrongStringTests
 {
-	[TestInitialize]
-	public void Setup()
+	[ClassInitialize]
+	public static void ClassSetup(TestContext _)
 	{
-		AppData.FileSystem = new MockFileSystem();
+		AppData.ConfigureForTesting(() => new MockFileSystem());
 		AppDomain.CurrentDomain.SetData("APP_CONTEXT_BASE_DIRECTORY", "/app");
+	}
+
+	[TestInitialize]
+	public void SetupTest()
+	{
+		// Clear any cached instance so the factory creates a fresh one for this test
+		AppData.ClearCachedFileSystem();
 	}
 
 	[TestMethod]
 	public void TestStrongStringInstantiation()
 	{
-		var s = new StrongName();
+		StrongName s = new();
 		Assert.AreEqual("", s);
 	}
 
 	[TestMethod]
 	public void TestStrongStrings()
 	{
-		using var storage1 = new Storage();
+		using Storage storage1 = new();
 		AppData.EnsureDirectoryExists(storage1.FilePath);
 		AppData.FileSystem.File.Delete(storage1.FilePath);
-		var storage = Storage.LoadOrCreate();
+		Storage storage = Storage.LoadOrCreate();
 		storage.WeakName = "WeakName";
 		storage.StrongName = (StrongName)"StrongName";
 		storage.StrongNames.Add((StrongName)"StrongName1", "StrongName1");
 		storage.StrongNames.Add((StrongName)"StrongName2", "StrongName2");
 		storage.Save();
 
-		var storage2 = Storage.LoadOrCreate();
+		Storage storage2 = Storage.LoadOrCreate();
 		Assert.AreEqual(storage.WeakName, storage2.WeakName);
 		Assert.AreEqual(storage.StrongName, storage2.StrongName);
-		foreach (var (key, value) in storage.StrongNames)
+		foreach ((StrongName key, string value) in storage.StrongNames)
 		{
 			Assert.AreEqual(value, storage2.StrongNames[key]);
 		}
@@ -61,7 +68,7 @@ public sealed class StrongStringTests
 	[TestMethod]
 	public void TestWeakNameProperty()
 	{
-		using var storage = new Storage();
+		using Storage storage = new();
 		storage.WeakName = "TestWeakName";
 		Assert.AreEqual("TestWeakName", storage.WeakName);
 	}
@@ -69,7 +76,7 @@ public sealed class StrongStringTests
 	[TestMethod]
 	public void TestStrongNameProperty()
 	{
-		using var storage = new Storage();
+		using Storage storage = new();
 		storage.StrongName = (StrongName)"TestStrongName";
 		Assert.AreEqual((StrongName)"TestStrongName", storage.StrongName);
 	}
@@ -77,7 +84,7 @@ public sealed class StrongStringTests
 	[TestMethod]
 	public void TestStrongNamesDictionary()
 	{
-		using var storage = new Storage();
+		using Storage storage = new();
 		storage.StrongNames.Add((StrongName)"Key1", "Value1");
 		storage.StrongNames.Add((StrongName)"Key2", "Value2");
 
@@ -88,20 +95,20 @@ public sealed class StrongStringTests
 	[TestMethod]
 	public void TestSaveAndLoad()
 	{
-		using var storage1 = new Storage();
+		using Storage storage1 = new();
 		AppData.EnsureDirectoryExists(storage1.FilePath);
 		AppData.FileSystem.File.Delete(storage1.FilePath);
-		var storage = Storage.LoadOrCreate();
+		Storage storage = Storage.LoadOrCreate();
 		storage.WeakName = "WeakName";
 		storage.StrongName = (StrongName)"StrongName";
 		storage.StrongNames.Add((StrongName)"StrongName1", "StrongName1");
 		storage.StrongNames.Add((StrongName)"StrongName2", "StrongName2");
 		storage.Save();
 
-		var storage2 = Storage.LoadOrCreate();
+		Storage storage2 = Storage.LoadOrCreate();
 		Assert.AreEqual(storage.WeakName, storage2.WeakName);
 		Assert.AreEqual(storage.StrongName, storage2.StrongName);
-		foreach (var (key, value) in storage.StrongNames)
+		foreach ((StrongName key, string value) in storage.StrongNames)
 		{
 			Assert.AreEqual(value, storage2.StrongNames[key]);
 		}

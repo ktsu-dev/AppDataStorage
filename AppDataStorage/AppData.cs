@@ -49,9 +49,45 @@ public static class AppData
 	};
 
 	/// <summary>
-	/// Gets or sets the file system abstraction used for file operations.
+	/// Thread-local factory for creating file system instances to ensure test isolation.
 	/// </summary>
-	internal static IFileSystem FileSystem { get; set; } = new FileSystem();
+	private static readonly ThreadLocal<Func<IFileSystem>?> ThreadLocalFileSystemFactory = new();
+
+	/// <summary>
+	/// Thread-local storage for file system instances to ensure each test gets its own persistent instance.
+	/// </summary>
+	private static readonly ThreadLocal<IFileSystem?> ThreadLocalFileSystem = new();
+
+	/// <summary>
+	/// Gets the file system abstraction used for file operations.
+	/// Uses thread-local instance if set, otherwise returns the default filesystem.
+	/// </summary>
+	internal static IFileSystem FileSystem
+	{
+		get
+		{
+			// If we have a thread-local instance, return it
+			if (ThreadLocalFileSystem.Value is not null)
+			{
+				return ThreadLocalFileSystem.Value;
+			}
+
+			// If we have a factory but no instance yet, create one and cache it
+			if (ThreadLocalFileSystemFactory.Value is not null)
+			{
+				ThreadLocalFileSystem.Value = ThreadLocalFileSystemFactory.Value();
+				return ThreadLocalFileSystem.Value;
+			}
+
+			// Fall back to default filesystem
+			return DefaultFileSystem;
+		}
+	}
+
+	/// <summary>
+	/// The default file system implementation used when no thread-local override is set.
+	/// </summary>
+	private static readonly IFileSystem DefaultFileSystem = new FileSystem();
 
 	/// <summary>
 	/// Ensures that the directory for the specified file path exists.
@@ -64,7 +100,7 @@ public static class AppData
 			return;
 		}
 
-		var dirPath = path.DirectoryPath;
+		AbsoluteDirectoryPath dirPath = path.DirectoryPath;
 		if (!string.IsNullOrEmpty(dirPath))
 		{
 			EnsureDirectoryExists(dirPath);
@@ -114,8 +150,8 @@ public static class AppData
 		lock (AppData<T>.Lock)
 		{
 			EnsureDirectoryExists(appData.FilePath);
-			var tempFilePath = MakeTempFilePath(appData.FilePath);
-			var bkFilePath = MakeBackupFilePath(appData.FilePath);
+			AbsoluteFilePath tempFilePath = MakeTempFilePath(appData.FilePath);
+			AbsoluteFilePath bkFilePath = MakeBackupFilePath(appData.FilePath);
 			FileSystem.File.WriteAllText(tempFilePath, text);
 			try
 			{
@@ -153,7 +189,7 @@ public static class AppData
 			}
 			catch (FileNotFoundException)
 			{
-				var bkFilePath = MakeBackupFilePath(appData.FilePath);
+				AbsoluteFilePath bkFilePath = MakeBackupFilePath(appData.FilePath);
 				if (FileSystem.File.Exists(bkFilePath))
 				{
 					FileSystem.File.Copy(bkFilePath, appData.FilePath);
@@ -200,6 +236,62 @@ public static class AppData
 				appData.Save();
 			}
 		}
+	}
+
+	/// <summary>
+	/// Configures the file system for testing using a factory function.
+	/// This ensures each test gets an isolated filesystem instance for thread-safe testing.
+	/// </summary>
+	/// <param name="fileSystemFactory">Factory function that creates a new mock file system instance.</param>
+	/// <exception cref="ArgumentNullException">Thrown when fileSystemFactory is null.</exception>
+	/// <exception cref="InvalidOperationException">Thrown when factory doesn't produce mock/test file systems.</exception>
+	/// <example>
+	/// <code>
+	/// // Each access gets a fresh instance:
+	/// AppData.ConfigureForTesting(() => new MockFileSystem());
+	///
+	/// // Or with pre-configured data:
+	/// AppData.ConfigureForTesting(() => new MockFileSystem(new Dictionary&lt;string, MockFileData&gt;
+	/// {
+	///     { "/test.txt", new MockFileData("content") }
+	/// }));
+	/// </code>
+	/// </example>
+	public static void ConfigureForTesting(Func<IFileSystem> fileSystemFactory)
+	{
+		ArgumentNullException.ThrowIfNull(fileSystemFactory);
+
+		// Validate that the factory produces mock/test file systems by testing it once
+		IFileSystem testInstance = fileSystemFactory();
+		string typeName = testInstance.GetType().Name;
+		if (!typeName.Contains("Mock") && !typeName.Contains("Test"))
+		{
+			throw new InvalidOperationException("ConfigureForTesting factory can only create mock or test file systems. Use dependency injection for production scenarios.");
+		}
+
+		ThreadLocalFileSystemFactory.Value = fileSystemFactory;
+	}
+
+	/// <summary>
+	/// Clears the cached filesystem instance for the current thread, forcing the factory to create a new instance on next access.
+	/// This is useful for test isolation while keeping the same factory.
+	/// </summary>
+	internal static void ClearCachedFileSystem() => ThreadLocalFileSystem.Value = null;
+
+	/// <summary>
+	/// Resets the filesystem to use the default system filesystem for the current thread.
+	/// This should be called after tests to restore normal file system behavior.
+	/// </summary>
+	/// <example>
+	/// <code>
+	/// // In your test teardown
+	/// AppData.ResetFileSystem();
+	/// </code>
+	/// </example>
+	public static void ResetFileSystem()
+	{
+		ThreadLocalFileSystemFactory.Value = null;
+		ThreadLocalFileSystem.Value = null;
 	}
 }
 
@@ -292,7 +384,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	{
 		lock (Lock)
 		{
-			var jsonString = JsonSerializer.Serialize(this, typeof(T), AppData.JsonSerializerOptions);
+			string jsonString = JsonSerializer.Serialize(this, typeof(T), AppData.JsonSerializerOptions);
 			AppData.WriteText((T)this, jsonString);
 			LastSaveTime = DateTime.UtcNow;
 		}
@@ -360,7 +452,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 				FileNameOverride = fileName,
 			};
 
-			var jsonString = AppData.ReadText(newAppData);
+			string jsonString = AppData.ReadText(newAppData);
 
 			if (string.IsNullOrEmpty(jsonString))
 			{

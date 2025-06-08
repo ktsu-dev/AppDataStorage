@@ -7,5 +7,7 @@
     <PackageReference Include="ktsu.CaseConverter" />
     <PackageReference Include="ktsu.StrongPaths" />
     <PackageReference Include="ktsu.StrongStrings" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
   </ItemGroup>
 </Project>
