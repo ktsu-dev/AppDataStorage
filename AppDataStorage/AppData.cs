@@ -193,7 +193,17 @@ public static class AppData
 				if (FileSystem.File.Exists(bkFilePath))
 				{
 					FileSystem.File.Copy(bkFilePath, appData.FilePath);
-					FileSystem.File.Move(bkFilePath, bkFilePath.WithSuffix($".{DateTime.Now:yyyyMMdd_HHmmss}"));
+
+					// Create a unique timestamped backup filename
+					AbsoluteFilePath timestampedBackup = bkFilePath.WithSuffix($".{DateTime.Now:yyyyMMdd_HHmmss}");
+					int counter = 0;
+					while (FileSystem.File.Exists(timestampedBackup))
+					{
+						counter++;
+						timestampedBackup = bkFilePath.WithSuffix($".{DateTime.Now:yyyyMMdd_HHmmss}_{counter}");
+					}
+
+					FileSystem.File.Move(bkFilePath, timestampedBackup);
 					return ReadText(appData);
 				}
 			}

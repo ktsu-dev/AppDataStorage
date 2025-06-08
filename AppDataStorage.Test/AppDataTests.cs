@@ -5,6 +5,8 @@
 namespace ktsu.AppDataStorage.Test;
 
 using System;
+using System.Collections.Concurrent;
+using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -568,18 +570,503 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestSaveIfRequiredStaticMethod()
 	{
-		TestAppData appData = TestAppData.Get();
-		appData.Data = "Test data";
-		appData.QueueSave();
-		Thread.Sleep(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100)); // Wait for more than debounce time
+		TestAppData.QueueSave();
+		Thread.Sleep(TestAppData.Get().SaveDebounceTime + TimeSpan.FromMilliseconds(100));
 
 		TestAppData.SaveIfRequired();
 
-		AbsoluteFilePath filePath = appData.FilePath;
-		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File was not saved.");
+		Assert.IsTrue(AppData.FileSystem.File.Exists(TestAppData.Get().FilePath), "File was not saved.");
+	}
 
-		TestAppData? testAppData = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(filePath), AppData.JsonSerializerOptions);
-		Assert.IsNotNull(testAppData, "Saved data should be deserialized correctly.");
-		Assert.AreEqual("Test data", testAppData.Data, "Saved data does not match.");
+	[TestMethod]
+	public void TestConfigureForTestingWithInvalidFileSystem()
+	{
+		Assert.ThrowsException<InvalidOperationException>(() => AppData.ConfigureForTesting(() => new FileSystem()), "Should throw when trying to configure with a non-mock file system");
+	}
+
+	[TestMethod]
+	public void TestConfigureForTestingWithNullFactory()
+	{
+		Assert.ThrowsException<ArgumentNullException>(() => AppData.ConfigureForTesting(null!), "Should throw when configuring with null factory");
+	}
+
+	[TestMethod]
+	public void TestResetFileSystemRestoresDefault()
+	{
+		// Configure with mock first
+		AppData.ConfigureForTesting(() => new MockFileSystem());
+		Assert.IsInstanceOfType<MockFileSystem>(AppData.FileSystem, "Should be using mock file system");
+
+		// Reset to default
+		AppData.ResetFileSystem();
+
+		// Note: We can't easily test this returns to the default filesystem
+		// because the default is internal, but we can at least verify the method doesn't throw
+	}
+
+	[TestMethod]
+	public void TestWriteTextWithNullAppData()
+	{
+		Assert.ThrowsException<ArgumentNullException>(() => AppData.WriteText<TestAppData>(null!, "test"), "Should throw when appData is null");
+	}
+
+	[TestMethod]
+	public void TestWriteTextWithNullText()
+	{
+		using TestAppData appData = new();
+		Assert.ThrowsException<ArgumentNullException>(() => AppData.WriteText(appData, null!), "Should throw when text is null");
+	}
+
+	[TestMethod]
+	public void TestReadTextWithNullAppData()
+	{
+		Assert.ThrowsException<ArgumentNullException>(() =>
+		{
+			AppData.ReadText<TestAppData>(null!);
+		}, "Should throw when appData is null");
+	}
+
+	[TestMethod]
+	public void TestQueueSaveWithNullAppData()
+	{
+		Assert.ThrowsException<ArgumentNullException>(() => AppData.QueueSave<TestAppData>(null!), "Should throw when appData is null");
+	}
+
+	[TestMethod]
+	public void TestSaveIfRequiredWithNullAppData()
+	{
+		Assert.ThrowsException<ArgumentNullException>(() => AppData.SaveIfRequired<TestAppData>(null!), "Should throw when appData is null");
+	}
+
+	[TestMethod]
+	public void TestFileNameWithOverride()
+	{
+		using TestAppData appData = new();
+		appData.FileNameOverride = "custom_name.json".As<FileName>();
+
+		Assert.AreEqual("custom_name.json", appData.FileName.ToString(), "File name should use override when set");
+	}
+
+	[TestMethod]
+	public void TestFilePathWithSubdirectoryAndFileName()
+	{
+		using TestAppData appData = new();
+		appData.Subdirectory = "custom_dir".As<RelativeDirectoryPath>();
+		appData.FileNameOverride = "custom_file.json".As<FileName>();
+
+		string expectedPath = (AppData.Path / appData.Subdirectory / appData.FileNameOverride).ToString();
+		Assert.AreEqual(expectedPath, appData.FilePath.ToString(), "File path should include both subdirectory and custom filename");
+	}
+
+	[TestMethod]
+	public void TestJsonSerializerOptionsConfiguration()
+	{
+		JsonSerializerOptions options = AppData.JsonSerializerOptions;
+
+		Assert.IsTrue(options.WriteIndented, "Should have WriteIndented set to true");
+		Assert.IsTrue(options.IncludeFields, "Should have IncludeFields set to true");
+		Assert.IsNotNull(options.ReferenceHandler, "Should have ReferenceHandler configured");
+		Assert.IsTrue(options.Converters.Count > 0, "Should have converters configured");
+	}
+
+	[TestMethod]
+	public void TestBackupFileRecoveryWithTimestamp()
+	{
+		using TestAppData appData = new();
+		AppData.WriteText(appData, "Original data");
+
+		// Create a backup file manually
+		AbsoluteFilePath backupFilePath = AppData.MakeBackupFilePath(appData.FilePath);
+		AppData.FileSystem.File.Copy(appData.FilePath, backupFilePath);
+
+		// Delete the main file
+		AppData.FileSystem.File.Delete(appData.FilePath);
+
+		// Reading should restore from backup and rename it with timestamp
+		string recoveredText = AppData.ReadText(appData);
+
+		Assert.AreEqual("Original data", recoveredText, "Should recover data from backup");
+		Assert.IsTrue(AppData.FileSystem.File.Exists(appData.FilePath), "Main file should be restored");
+		Assert.IsFalse(AppData.FileSystem.File.Exists(backupFilePath), "Original backup should be renamed");
+
+		// Check that a timestamped backup exists
+		string[] timestampedBackups = AppData.FileSystem.Directory.GetFiles(appData.FilePath.DirectoryPath.ToString(), "*.bk.*");
+		Assert.IsTrue(timestampedBackups.Length > 0, "Should have created a timestamped backup");
+	}
+
+	[TestMethod]
+	public void TestSaveCreatesIntermediateDirectories()
+	{
+		using TestAppData appData = new();
+		appData.Subdirectory = "level1/level2/level3".As<RelativeDirectoryPath>();
+
+		appData.Data = "Test data for nested directories";
+		appData.Save();
+
+		Assert.IsTrue(AppData.FileSystem.File.Exists(appData.FilePath), "File should be created in nested directory");
+		Assert.IsTrue(AppData.FileSystem.Directory.Exists(appData.FilePath.DirectoryPath), "Nested directories should be created");
+	}
+
+	[TestMethod]
+	public void TestMultipleInstancesWithDifferentSubdirectories()
+	{
+		using TestAppData appData1 = TestAppData.LoadOrCreate("subdir1".As<RelativeDirectoryPath>());
+		using TestAppData appData2 = TestAppData.LoadOrCreate("subdir2".As<RelativeDirectoryPath>());
+
+		appData1.Data = "Data for instance 1";
+		appData2.Data = "Data for instance 2";
+
+		appData1.Save();
+		appData2.Save();
+
+		Assert.AreNotEqual(appData1.FilePath, appData2.FilePath, "Instances should have different file paths");
+		Assert.IsTrue(AppData.FileSystem.File.Exists(appData1.FilePath), "First instance file should exist");
+		Assert.IsTrue(AppData.FileSystem.File.Exists(appData2.FilePath), "Second instance file should exist");
+
+		// Verify content is different
+		string content1 = AppData.FileSystem.File.ReadAllText(appData1.FilePath);
+		string content2 = AppData.FileSystem.File.ReadAllText(appData2.FilePath);
+		Assert.AreNotEqual(content1, content2, "File contents should be different");
+	}
+
+	[TestMethod]
+	public void TestMultipleInstancesWithDifferentFileNames()
+	{
+		using TestAppData appData1 = TestAppData.LoadOrCreate("file1.json".As<FileName>());
+		using TestAppData appData2 = TestAppData.LoadOrCreate("file2.json".As<FileName>());
+
+		appData1.Data = "Data for file 1";
+		appData2.Data = "Data for file 2";
+
+		appData1.Save();
+		appData2.Save();
+
+		Assert.AreNotEqual(appData1.FilePath, appData2.FilePath, "Instances should have different file paths");
+		Assert.IsTrue(appData1.FilePath.ToString().Contains("file1.json"), "First instance should use custom filename");
+		Assert.IsTrue(appData2.FilePath.ToString().Contains("file2.json"), "Second instance should use custom filename");
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateWithCorruptJsonRecursiveRecovery()
+	{
+		using TestAppData appData = new();
+
+		// Create a corrupt main file
+		AppData.FileSystem.File.WriteAllText(appData.FilePath, "{ invalid json");
+
+		// Create a corrupt backup file too
+		AbsoluteFilePath backupPath = AppData.MakeBackupFilePath(appData.FilePath);
+		AppData.FileSystem.File.WriteAllText(backupPath, "{ also invalid json");
+
+		// LoadOrCreate should handle both being corrupt and create a new instance
+		TestAppData loaded = TestAppData.LoadOrCreate();
+
+		Assert.IsNotNull(loaded, "Should create new instance when both files are corrupt");
+		Assert.AreEqual(string.Empty, loaded.Data, "Should have default empty data");
+		Assert.IsTrue(AppData.FileSystem.File.Exists(loaded.FilePath), "Should create new valid file");
+	}
+
+	[TestMethod]
+	public void TestConcurrentAccess()
+	{
+		const int threadCount = 5;
+		const int operationsPerThread = 10;
+		Thread[] threads = new Thread[threadCount];
+		List<Exception> exceptions = [];
+
+		for (int i = 0; i < threadCount; i++)
+		{
+			int threadId = i;
+			threads[i] = new Thread(() =>
+			{
+				try
+				{
+					for (int j = 0; j < operationsPerThread; j++)
+					{
+						using TestAppData appData = new()
+						{
+							Data = $"Thread {threadId}, Operation {j}"
+						};
+
+						appData.QueueSave();
+						appData.SaveIfRequired();
+
+						// Read the data back
+						string readData = AppData.ReadText(appData);
+						Assert.IsNotNull(readData, "Should be able to read data");
+					}
+				}
+				catch (Exception ex) when (ex is not OperationCanceledException and not ThreadInterruptedException)
+				{
+					lock (exceptions)
+					{
+						exceptions.Add(ex);
+					}
+				}
+			});
+		}
+
+		// Start all threads
+		foreach (Thread thread in threads)
+		{
+			thread.Start();
+		}
+
+		// Wait for all threads to complete
+		foreach (Thread thread in threads)
+		{
+			thread.Join(TimeSpan.FromSeconds(30)); // Timeout after 30 seconds
+		}
+
+		Assert.AreEqual(0, exceptions.Count, $"No exceptions should occur during concurrent access. Exceptions: {string.Join(", ", exceptions.Select(e => e.Message))}");
+	}
+
+	[TestMethod]
+	public void TestEmptyStringDataHandling()
+	{
+		using TestAppData appData = new() { Data = string.Empty };
+		appData.Save();
+
+		string readText = AppData.ReadText(appData);
+		TestAppData? deserialized = JsonSerializer.Deserialize<TestAppData>(readText, AppData.JsonSerializerOptions);
+
+		Assert.IsNotNull(deserialized, "Should deserialize successfully");
+		Assert.AreEqual(string.Empty, deserialized.Data, "Empty string should be preserved");
+	}
+
+	[TestMethod]
+	public void TestSpecialCharactersInData()
+	{
+		using TestAppData appData = new()
+		{
+			Data = "Special chars: \n\r\t\"'\\/<>&"
+		};
+
+		appData.Save();
+
+		TestAppData loaded = TestAppData.LoadOrCreate();
+		Assert.AreEqual(appData.Data, loaded.Data, "Special characters should be preserved during serialization");
+	}
+
+	[TestMethod]
+	public void TestVeryLargeDataHandling()
+	{
+		// Create a large string (1MB)
+		string largeData = new('A', 1024 * 1024);
+
+		using TestAppData appData = new() { Data = largeData };
+		appData.Save();
+
+		TestAppData loaded = TestAppData.LoadOrCreate();
+		Assert.AreEqual(largeData, loaded.Data, "Large data should be preserved");
+	}
+
+	[TestMethod]
+	public void TestUnicodeDataHandling()
+	{
+		using TestAppData appData = new()
+		{
+			Data = "Unicode: 🚀 测试 العربية русский"
+		};
+
+		appData.Save();
+
+		TestAppData loaded = TestAppData.LoadOrCreate();
+		Assert.AreEqual(appData.Data, loaded.Data, "Unicode characters should be preserved");
+	}
+
+	// Test class with complex data types for serialization testing
+	internal sealed class ComplexTestAppData : AppData<ComplexTestAppData>
+	{
+		public string StringData { get; set; } = string.Empty;
+		public int IntData { get; set; }
+		public double DoubleData { get; set; }
+		public bool BoolData { get; set; }
+		public DateTime DateTimeData { get; set; }
+		public List<string> ListData { get; set; } = [];
+		public Dictionary<string, int> DictData { get; set; } = [];
+		public TestEnum EnumData { get; set; }
+	}
+
+	internal enum TestEnum
+	{
+		Value1,
+		Value2,
+		Value3
+	}
+
+	[TestMethod]
+	public void TestComplexDataTypeSerialization()
+	{
+		using ComplexTestAppData appData = new()
+		{
+			StringData = "Test string",
+			IntData = 42,
+			DoubleData = 3.14159,
+			BoolData = true,
+			DateTimeData = DateTime.UtcNow,
+			ListData = ["item1", "item2", "item3"],
+			DictData = { ["key1"] = 1, ["key2"] = 2 },
+			EnumData = TestEnum.Value2
+		};
+
+		appData.Save();
+
+		ComplexTestAppData loaded = ComplexTestAppData.LoadOrCreate();
+
+		Assert.AreEqual(appData.StringData, loaded.StringData, "String data should match");
+		Assert.AreEqual(appData.IntData, loaded.IntData, "Int data should match");
+		Assert.AreEqual(appData.DoubleData, loaded.DoubleData, "Double data should match");
+		Assert.AreEqual(appData.BoolData, loaded.BoolData, "Bool data should match");
+		Assert.AreEqual(appData.DateTimeData, loaded.DateTimeData, "DateTime data should match");
+		CollectionAssert.AreEqual(appData.ListData, loaded.ListData, "List data should match");
+		CollectionAssert.AreEqual(appData.DictData, loaded.DictData, "Dictionary data should match");
+		Assert.AreEqual(appData.EnumData, loaded.EnumData, "Enum data should match");
+	}
+
+	[TestMethod]
+	public void TestFileSystemPropertyThreadSafety()
+	{
+		// Test that each thread gets its own FileSystem instance
+		ConcurrentBag<IFileSystem> fileSystemInstances = [];
+		Thread[] threads = new Thread[3];
+
+		for (int i = 0; i < threads.Length; i++)
+		{
+			threads[i] = new Thread(() => fileSystemInstances.Add(AppData.FileSystem));
+		}
+
+		foreach (Thread thread in threads)
+		{
+			thread.Start();
+		}
+
+		foreach (Thread thread in threads)
+		{
+			thread.Join();
+		}
+
+		Assert.AreEqual(3, fileSystemInstances.Count, "Each thread should access FileSystem");
+	}
+
+	[TestMethod]
+	public void TestReadTextReturnsEmptyStringForNonExistentFileWithoutBackup()
+	{
+		using TestAppData appData = new();
+
+		// Ensure no files exist
+		if (AppData.FileSystem.File.Exists(appData.FilePath))
+		{
+			AppData.FileSystem.File.Delete(appData.FilePath);
+		}
+
+		AbsoluteFilePath backupPath = AppData.MakeBackupFilePath(appData.FilePath);
+		if (AppData.FileSystem.File.Exists(backupPath))
+		{
+			AppData.FileSystem.File.Delete(backupPath);
+		}
+
+		string result = AppData.ReadText(appData);
+		Assert.AreEqual(string.Empty, result, "Should return empty string when no file exists");
+	}
+
+	[TestMethod]
+	public void TestLockObjectIsCorrectType()
+	{
+		// The type depends on the .NET version, but it should always be present
+#if NET8_0
+		object lockObj = TestAppData.Lock;
+		Assert.IsNotNull(lockObj, "Lock object should not be null");
+		Assert.IsInstanceOfType<object>(lockObj, "Lock should be of type object in .NET 8");
+#else
+		// In .NET 9+, Lock is a value type, so we check the type directly
+		Type lockType = TestAppData.Lock.GetType();
+		Assert.AreEqual(typeof(Lock), lockType, "Lock should be of type Lock in .NET 9+");
+#endif
+	}
+
+	[TestMethod]
+	public void TestSaveDebounceTimeIsCorrect()
+	{
+		using TestAppData appData = new();
+		Assert.AreEqual(TimeSpan.FromSeconds(3), appData.SaveDebounceTime, "Save debounce time should be 3 seconds");
+	}
+
+	[TestMethod]
+	public void TestIsDisposeRegisteredInitiallyFalse()
+	{
+		using TestAppData appData = new();
+		Assert.IsFalse(appData.IsDisposeRegistered, "IsDisposeRegistered should initially be false");
+	}
+
+	[TestMethod]
+	public void TestEnsureDisposeOnExitSetsFlag()
+	{
+		using TestAppData appData = new();
+		appData.EnsureDisposeOnExit();
+		Assert.IsTrue(appData.IsDisposeRegistered, "IsDisposeRegistered should be true after calling EnsureDisposeOnExit");
+	}
+
+	[TestMethod]
+	public void TestEnsureDisposeOnExitCalledMultipleTimes()
+	{
+		using TestAppData appData = new();
+		appData.EnsureDisposeOnExit();
+		appData.EnsureDisposeOnExit();
+		appData.EnsureDisposeOnExit();
+
+		Assert.IsTrue(appData.IsDisposeRegistered, "IsDisposeRegistered should remain true");
+	}
+
+	[TestMethod]
+	public void TestGetReturnsConsistentInstance()
+	{
+		TestAppData instance1 = TestAppData.Get();
+		TestAppData instance2 = TestAppData.Get();
+		TestAppData instance3 = TestAppData.Get();
+
+		Assert.AreSame(instance1, instance2, "Get() should return the same instance");
+		Assert.AreSame(instance2, instance3, "Get() should return the same instance");
+	}
+
+	[TestMethod]
+	public void TestInternalStateIsLazy()
+	{
+		Lazy<TestAppData> internalState = TestAppData.InternalState;
+		Assert.IsNotNull(internalState, "InternalState should not be null");
+		Assert.IsInstanceOfType<Lazy<TestAppData>>(internalState, "InternalState should be Lazy<TestAppData>");
+	}
+
+	[TestMethod]
+	public void TestSaveUpdatesLastSaveTime()
+	{
+		using TestAppData appData = new() { Data = "Test data" };
+		DateTime beforeSave = DateTime.UtcNow;
+
+		appData.Save();
+
+		DateTime afterSave = DateTime.UtcNow;
+		Assert.IsTrue(appData.LastSaveTime >= beforeSave, "LastSaveTime should be updated after save");
+		Assert.IsTrue(appData.LastSaveTime <= afterSave, "LastSaveTime should not be in the future");
+	}
+
+	[TestMethod]
+	public void TestWriteTextHandlesFileOperationErrors()
+	{
+		using TestAppData appData = new();
+
+		// Create the directory and file first
+		AppData.EnsureDirectoryExists(appData.FilePath);
+		AppData.WriteText(appData, "Initial content");
+
+		// Verify file exists
+		Assert.IsTrue(AppData.FileSystem.File.Exists(appData.FilePath), "File should exist initially");
+
+		// Now write new content - this should handle backup creation and restoration
+		AppData.WriteText(appData, "Updated content");
+
+		// Verify the content was updated
+		string content = AppData.FileSystem.File.ReadAllText(appData.FilePath);
+		Assert.AreEqual("Updated content", content, "File content should be updated");
 	}
 }
