@@ -1,4 +1,4 @@
-﻿<Project Sdk="ktsu.Sdk.Lib">
+<Project Sdk="ktsu.Sdk.Lib">
   <PropertyGroup>
     <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
