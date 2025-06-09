@@ -195,12 +195,13 @@ public static class AppData
 					FileSystem.File.Copy(bkFilePath, appData.FilePath);
 
 					// Create a unique timestamped backup filename
-					AbsoluteFilePath timestampedBackup = bkFilePath.WithSuffix($".{DateTime.Now:yyyyMMdd_HHmmss}");
+					string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+					AbsoluteFilePath timestampedBackup = bkFilePath.WithSuffix($".{timestamp}");
 					int counter = 0;
 					while (FileSystem.File.Exists(timestampedBackup))
 					{
 						counter++;
-						timestampedBackup = bkFilePath.WithSuffix($".{DateTime.Now:yyyyMMdd_HHmmss}_{counter}");
+						timestampedBackup = bkFilePath.WithSuffix($".{timestamp}_{counter}");
 					}
 
 					FileSystem.File.Move(bkFilePath, timestampedBackup);
@@ -273,13 +274,59 @@ public static class AppData
 
 		// Validate that the factory produces mock/test file systems by testing it once
 		IFileSystem testInstance = fileSystemFactory();
-		string typeName = testInstance.GetType().Name;
-		if (!typeName.Contains("Mock") && !typeName.Contains("Test"))
+		if (!IsTestFileSystem(testInstance))
 		{
 			throw new InvalidOperationException("ConfigureForTesting factory can only create mock or test file systems. Use dependency injection for production scenarios.");
 		}
 
 		ThreadLocalFileSystemFactory.Value = fileSystemFactory;
+	}
+
+	/// <summary>
+	/// Determines whether the specified file system is a test/mock implementation.
+	/// Uses robust type-based validation instead of fragile string matching.
+	/// </summary>
+	/// <param name="fileSystem">The file system instance to validate.</param>
+	/// <returns>True if the file system is a test/mock implementation; otherwise, false.</returns>
+	private static bool IsTestFileSystem(IFileSystem fileSystem)
+	{
+		ArgumentNullException.ThrowIfNull(fileSystem);
+
+		Type fileSystemType = fileSystem.GetType();
+
+		// Check if it's the standard TestableIO MockFileSystem
+		if (fileSystemType.FullName == "System.IO.Abstractions.TestingHelpers.MockFileSystem")
+		{
+			return true;
+		}
+
+		// Check if it's in a testing/mock namespace
+		string? namespaceName = fileSystemType.Namespace;
+		if (!string.IsNullOrEmpty(namespaceName))
+		{
+			if (namespaceName.Contains("TestingHelpers") ||
+				namespaceName.Contains("Testing") ||
+				namespaceName.Contains("Mock") ||
+				namespaceName.Contains("Fake") ||
+				namespaceName.Contains("Stub"))
+			{
+				return true;
+			}
+		}
+
+		// Check if it's not the production FileSystem implementation
+		if (fileSystemType.FullName == "System.IO.Abstractions.FileSystem")
+		{
+			return false;
+		}
+
+		// For other implementations, check the type name as fallback
+		// but only accept common test naming patterns
+		string typeName = fileSystemType.Name;
+		return typeName.EndsWith("MockFileSystem", StringComparison.OrdinalIgnoreCase) ||
+			   typeName.EndsWith("TestFileSystem", StringComparison.OrdinalIgnoreCase) ||
+			   typeName.EndsWith("FakeFileSystem", StringComparison.OrdinalIgnoreCase) ||
+			   typeName.EndsWith("StubFileSystem", StringComparison.OrdinalIgnoreCase);
 	}
 
 	/// <summary>
