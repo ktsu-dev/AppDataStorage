@@ -1335,9 +1335,3 @@ internal class InheritanceTestAppData : AppData<InheritanceTestAppData>
 	public string BaseData { get; set; } = "base";
 	public virtual string VirtualData { get; set; } = "virtual";
 }
-
-internal sealed class DerivedTestAppData : InheritanceTestAppData
-{
-	public string DerivedData { get; set; } = "derived";
-	public override string VirtualData { get; set; } = "overridden";
-}
