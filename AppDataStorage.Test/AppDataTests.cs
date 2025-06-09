@@ -110,7 +110,7 @@ public sealed class AppDataTests
 	}
 
 	// Helper method to test null argument exceptions
-	private static void AssertArgumentNullException<T>(Action action, string message = ShouldThrowWhenAppDataIsNullMessage)
+	private static void AssertArgumentNullException(Action action, string message = ShouldThrowWhenAppDataIsNullMessage)
 	{
 		Assert.ThrowsException<ArgumentNullException>(action, message);
 	}
@@ -121,13 +121,50 @@ public sealed class AppDataTests
 		Assert.IsNotNull(appData, message);
 	}
 
+	// Helper method to create test app data with default test content
+	private static TestAppData CreateTestAppData()
+	{
+		return new TestAppData();
+	}
+
+	// Helper method to save app data and assert file exists
+	private static void SaveAndAssertFileExists(TestAppData appData, string message = "File should exist after save.")
+	{
+		appData.Save();
+		AssertFileExists(appData.FilePath, message);
+	}
+
+	// Helper method to save TestAppData and verify content by loading
+	private static void SaveAndVerifyTestContent(TestAppData appData, string expectedData, string message = "Data should match after save and load.")
+	{
+		appData.Save();
+		TestAppData loaded = TestAppData.LoadOrCreate();
+		Assert.AreEqual(expectedData, loaded.Data, message);
+	}
+
+	// Helper method to test file cleanup scenarios
+	private static void TestFileCleanup(AbsoluteFilePath filePath, string message = "File should be cleaned up.")
+	{
+		if (AppData.FileSystem.File.Exists(filePath))
+		{
+			AppData.FileSystem.File.Delete(filePath);
+		}
+		AssertFileDoesNotExist(filePath, message);
+	}
+
+	// Helper method to verify file content matches expected text
+	private static void VerifyFileContent(AbsoluteFilePath filePath, string expectedContent, string message = "File content should match expected value.")
+	{
+		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File should exist before reading content.");
+		string actualContent = AppData.FileSystem.File.ReadAllText(filePath);
+		Assert.IsTrue(actualContent.Contains(expectedContent), message);
+	}
+
 	[TestMethod]
 	public void TestSaveCreatesFile()
 	{
 		using TestAppData appData = CreateTestAppDataWithContent(TestDataString);
-		appData.Save();
-
-		AssertFileExists(appData.FilePath, "File was not created.");
+		SaveAndAssertFileExists(appData, "File was not created.");
 	}
 
 	[TestMethod]
@@ -219,7 +256,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestQueueSaveSetsSaveQueuedTime()
 	{
-		using TestAppData appData = new();
+		using TestAppData appData = CreateTestAppData();
 		DateTime beforeQueueTime = DateTime.UtcNow;
 
 		appData.QueueSave();
@@ -278,7 +315,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestEnsureDisposeOnExitRegistersEvent()
 	{
-		using TestAppData appData = new();
+		using TestAppData appData = CreateTestAppData();
 
 		appData.EnsureDisposeOnExit();
 
@@ -288,7 +325,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestIsSaveQueuedReturnsCorrectValue()
 	{
-		using TestAppData appData = new();
+		using TestAppData appData = CreateTestAppData();
 		Assert.IsFalse(appData.IsSaveQueued(), "Save should not be queued initially.");
 
 		appData.QueueSave();
@@ -299,7 +336,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestIsDebounceTimeElapsedReturnsCorrectValue()
 	{
-		using TestAppData appData = new();
+		using TestAppData appData = CreateTestAppData();
 
 		appData.QueueSave();
 		Assert.IsFalse(appData.IsDoubounceTimeElapsed(), "Debounce should not have elapsed immediately after QueueSave.");
@@ -648,7 +685,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestWriteTextWithNullAppData()
 	{
-		AssertArgumentNullException<TestAppData>(() => AppData.WriteText<TestAppData>(null!, TestDataString));
+		AssertArgumentNullException(() => AppData.WriteText<TestAppData>(null!, TestDataString));
 	}
 
 	[TestMethod]
@@ -661,19 +698,19 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestReadTextWithNullAppData()
 	{
-		AssertArgumentNullException<TestAppData>(() => AppData.ReadText<TestAppData>(null!));
+		AssertArgumentNullException(() => AppData.ReadText<TestAppData>(null!));
 	}
 
 	[TestMethod]
 	public void TestQueueSaveWithNullAppData()
 	{
-		AssertArgumentNullException<TestAppData>(() => AppData.QueueSave<TestAppData>(null!));
+		AssertArgumentNullException(() => AppData.QueueSave<TestAppData>(null!));
 	}
 
 	[TestMethod]
 	public void TestSaveIfRequiredWithNullAppData()
 	{
-		AssertArgumentNullException<TestAppData>(() => AppData.SaveIfRequired<TestAppData>(null!));
+		AssertArgumentNullException(() => AppData.SaveIfRequired<TestAppData>(null!));
 	}
 
 	[TestMethod]
@@ -762,9 +799,8 @@ public sealed class AppDataTests
 		Assert.IsTrue(AppData.FileSystem.File.Exists(appData2.FilePath), "Second instance file should exist");
 
 		// Verify content is different
-		string content1 = AppData.FileSystem.File.ReadAllText(appData1.FilePath);
-		string content2 = AppData.FileSystem.File.ReadAllText(appData2.FilePath);
-		Assert.AreNotEqual(content1, content2, "File contents should be different");
+		VerifyFileContent(appData1.FilePath, "Data for instance 1", "First instance content should match");
+		VerifyFileContent(appData2.FilePath, "Data for instance 2", "Second instance content should match");
 	}
 
 	[TestMethod]
@@ -863,27 +899,15 @@ public sealed class AppDataTests
 	public void TestEmptyStringDataHandling()
 	{
 		using TestAppData appData = new() { Data = string.Empty };
-		appData.Save();
-
-		string readText = AppData.ReadText(appData);
-		TestAppData? deserialized = JsonSerializer.Deserialize<TestAppData>(readText, AppData.JsonSerializerOptions);
-
-		Assert.IsNotNull(deserialized, "Should deserialize successfully");
-		Assert.AreEqual(string.Empty, deserialized.Data, "Empty string should be preserved");
+		SaveAndVerifyTestContent(appData, string.Empty, "Empty string should be preserved");
 	}
 
 	[TestMethod]
 	public void TestSpecialCharactersInData()
 	{
-		using TestAppData appData = new()
-		{
-			Data = "Special chars: \n\r\t\"'\\/<>&"
-		};
-
-		appData.Save();
-
-		TestAppData loaded = TestAppData.LoadOrCreate();
-		Assert.AreEqual(appData.Data, loaded.Data, "Special characters should be preserved during serialization");
+		string specialCharsData = "Special chars: \n\r\t\"'\\/<>&";
+		using TestAppData appData = new() { Data = specialCharsData };
+		SaveAndVerifyTestContent(appData, specialCharsData, "Special characters should be preserved during serialization");
 	}
 
 	[TestMethod]
@@ -893,24 +917,15 @@ public sealed class AppDataTests
 		string largeData = new('A', 1024 * 1024);
 
 		using TestAppData appData = new() { Data = largeData };
-		appData.Save();
-
-		TestAppData loaded = TestAppData.LoadOrCreate();
-		Assert.AreEqual(largeData, loaded.Data, "Large data should be preserved");
+		SaveAndVerifyTestContent(appData, largeData, "Large data should be preserved");
 	}
 
 	[TestMethod]
 	public void TestUnicodeDataHandling()
 	{
-		using TestAppData appData = new()
-		{
-			Data = "Unicode: 🚀 测试 العربية русский"
-		};
-
-		appData.Save();
-
-		TestAppData loaded = TestAppData.LoadOrCreate();
-		Assert.AreEqual(appData.Data, loaded.Data, "Unicode characters should be preserved");
+		string unicodeData = "Unicode: 🚀 测试 العربية русский";
+		using TestAppData appData = new() { Data = unicodeData };
+		SaveAndVerifyTestContent(appData, unicodeData, "Unicode characters should be preserved");
 	}
 
 	// Test class with complex data types for serialization testing
@@ -990,19 +1005,12 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestReadTextReturnsEmptyStringForNonExistentFileWithoutBackup()
 	{
-		using TestAppData appData = new();
+		using TestAppData appData = CreateTestAppData();
 
 		// Ensure no files exist
-		if (AppData.FileSystem.File.Exists(appData.FilePath))
-		{
-			AppData.FileSystem.File.Delete(appData.FilePath);
-		}
-
+		TestFileCleanup(appData.FilePath, "Main file should be cleaned up");
 		AbsoluteFilePath backupPath = AppData.MakeBackupFilePath(appData.FilePath);
-		if (AppData.FileSystem.File.Exists(backupPath))
-		{
-			AppData.FileSystem.File.Delete(backupPath);
-		}
+		TestFileCleanup(backupPath, "Backup file should be cleaned up");
 
 		string result = AppData.ReadText(appData);
 		Assert.AreEqual(string.Empty, result, "Should return empty string when no file exists");

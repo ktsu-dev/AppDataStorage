@@ -108,3 +108,15 @@ When creating a GitHub release with `New-GitHubRelease`, the module automaticall
 3. Falls back to the full changelog if necessary
 
 You can customize the latest changelog file path using the `LatestChangelogFile` parameter in `Get-BuildConfiguration`.
+
+## TEST GUIDELINES
+
+- **ArgumentNullException Testing:** Use helper methods to test for `ArgumentNullException` in tests. This includes creating helper methods such as `AssertArgumentNullException<T>(Action action, string message = ShouldThrowWhenAppDataIsNullMessage)` which takes an Action and an optional message.
+
+### Reducing Duplication in Tests
+
+- **Save-and-Assert Pattern**: Create helper methods for tests that create, save, and assert file existence.
+- **Save-and-LoadOrCreate Pattern**: Create helper methods for tests that save data and then load it back to verify content.
+- **File Cleanup Pattern**: Create helper methods for tests that delete files and check for their absence.
+- **Property Equality Testing**: Create helper methods for tests that verify data equality after save/load cycles.
+- **Test Data Creation with Same Content**: Create helper methods for creating `TestAppData` with `TestDataString`.
