@@ -302,16 +302,14 @@ public static class AppData
 
 		// Check if it's in a testing/mock namespace
 		string? namespaceName = fileSystemType.Namespace;
-		if (!string.IsNullOrEmpty(namespaceName))
+		if (!string.IsNullOrEmpty(namespaceName) &&
+			(namespaceName.Contains("TestingHelpers") ||
+			namespaceName.Contains("Testing") ||
+			namespaceName.Contains("Mock") ||
+			namespaceName.Contains("Fake") ||
+			namespaceName.Contains("Stub")))
 		{
-			if (namespaceName.Contains("TestingHelpers") ||
-				namespaceName.Contains("Testing") ||
-				namespaceName.Contains("Mock") ||
-				namespaceName.Contains("Fake") ||
-				namespaceName.Contains("Stub"))
-			{
-				return true;
-			}
+			return true;
 		}
 
 		// Check if it's not the production FileSystem implementation

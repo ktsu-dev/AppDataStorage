@@ -53,8 +53,15 @@ This file defines all project rules, coding standards, workflow guidelines, refe
 - **.NET 9+ `System.Threading.Lock` Value Type Handling:** When testing code that uses `System.Threading.Lock` in .NET 9 or later, be aware that it is a value type. Avoid boxing it to `object` when performing type checks, as this can lead to unintended monitor-based locking. Instead, use `GetType()` to directly compare the type, e.g., `Type lockType = TestAppData.Lock.GetType(); Assert.AreEqual(typeof(Lock), lockType);`
 - **Sealed Class Virtual Member Rule:** A sealed class cannot have virtual members because sealed classes cannot be inherited from. If a class is sealed, any virtual members must be removed or the class must be unsealed.
 - **Timestamp Handling:** When creating timestamped backups, capture the timestamp (e.g., using `DateTime.Now`) *once before* any looping or collision detection logic. Avoid calling `DateTime.Now` repeatedly within loops to prevent inconsistent or identical timestamps.
-- **Test Constants:** Avoid using literal strings directly in tests. Define constants for frequently used values like `"Test data"` or `"test.txt"` to improve maintainability and readability.
+- **Test Constants:** Avoid using literal strings directly in tests. Define constants for frequently used values like `"Test data"`, `"test.txt"`, or `"custom_file.json"` to improve maintainability and readability.
 - **Path Handling:** Use `Path.Combine()` instead of hardcoding path delimiters (e.g., `\` or `/`) to ensure cross-platform compatibility.
+- **Enumeration Naming:** Enumeration type names should not have "Flags" or "Enum" suffixes (csharpsquid:S2344).
+- **Conditional Statements:** Mergeable "if" statements should be combined (csharpsquid:S1066).
+- **Test Helper Methods:** Use helper methods to reduce code duplication in tests. This includes:
+  - Creating file and directory paths.
+  - Setting up test data.
+  - Performing common assertions (e.g., checking if a directory or file exists).
+  - Testing for specific exceptions (e.g., `ArgumentNullException`).
 
 ## DEBUGGING
 

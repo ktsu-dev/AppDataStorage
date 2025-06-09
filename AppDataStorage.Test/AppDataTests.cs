@@ -82,6 +82,45 @@ public sealed class AppDataTests
 		AssertFileExists(appData.FilePath, "File was not created.");
 	}
 
+	// Helper method to create test file path
+	private static AbsoluteFilePath CreateTestFilePath() =>
+		(AppData.Path / TestFileName.As<FileName>()).As<AbsoluteFilePath>();
+
+	// Helper method to create test directory path
+	private static AbsoluteDirectoryPath CreateTestDirectoryPath() =>
+		(AppData.Path / "testDir".As<RelativeDirectoryPath>()).As<AbsoluteDirectoryPath>();
+
+	// Helper method to create nested directory path
+	private static AbsoluteDirectoryPath CreateNestedDirectoryPath() =>
+		(AppData.Path / "nested/dir/structure".As<RelativeDirectoryPath>()).As<AbsoluteDirectoryPath>();
+
+	// Helper method to test directory creation
+	private static void TestDirectoryCreation(AbsoluteDirectoryPath dirPath, string? initialMessage = null, string? createdMessage = null)
+	{
+		AssertDirectoryDoesNotExist(dirPath, initialMessage ?? DirectoryShouldNotExistInitiallyMessage);
+		AppData.EnsureDirectoryExists(dirPath);
+		AssertDirectoryExists(dirPath, createdMessage ?? DirectoryWasNotCreatedMessage);
+	}
+
+	// Helper method to test file path directory creation
+	private static void TestFilePathDirectoryCreation(AbsoluteFilePath filePath)
+	{
+		AbsoluteDirectoryPath dirPath = filePath.DirectoryPath;
+		TestDirectoryCreation(dirPath);
+	}
+
+	// Helper method to test null argument exceptions
+	private static void AssertArgumentNullException<T>(Action action, string message = ShouldThrowWhenAppDataIsNullMessage)
+	{
+		Assert.ThrowsException<ArgumentNullException>(action, message);
+	}
+
+	// Helper method to assert AppData instance is not null
+	private static void AssertAppDataNotNull(TestAppData appData, string message = "AppData instance should not be null.")
+	{
+		Assert.IsNotNull(appData, message);
+	}
+
 	[TestMethod]
 	public void TestSaveCreatesFile()
 	{
@@ -107,30 +146,21 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestEnsureDirectoryExistsForFilePath()
 	{
-		AbsoluteFilePath filePath = (AppData.Path / TestFileName.As<FileName>()).As<AbsoluteFilePath>();
-		AbsoluteDirectoryPath dirPath = filePath.DirectoryPath;
-		AssertDirectoryDoesNotExist(dirPath, DirectoryShouldNotExistInitiallyMessage);
-
-		AppData.EnsureDirectoryExists(filePath);
-
-		AssertDirectoryExists(dirPath, DirectoryWasNotCreatedMessage);
+		AbsoluteFilePath filePath = CreateTestFilePath();
+		TestFilePathDirectoryCreation(filePath);
 	}
 
 	[TestMethod]
 	public void TestEnsureDirectoryExistsForDirectoryPath()
 	{
-		AbsoluteDirectoryPath dirPath = (AppData.Path / "testDir".As<RelativeDirectoryPath>()).As<AbsoluteDirectoryPath>();
-		AssertDirectoryDoesNotExist(dirPath, DirectoryShouldNotExistInitiallyMessage);
-
-		AppData.EnsureDirectoryExists(dirPath);
-
-		AssertDirectoryExists(dirPath, DirectoryWasNotCreatedMessage);
+		AbsoluteDirectoryPath dirPath = CreateTestDirectoryPath();
+		TestDirectoryCreation(dirPath);
 	}
 
 	[TestMethod]
 	public void TestMakeTempFilePathCreatesCorrectPath()
 	{
-		AbsoluteFilePath filePath = (AppData.Path / TestFileName.As<FileName>()).As<AbsoluteFilePath>();
+		AbsoluteFilePath filePath = CreateTestFilePath();
 		AbsoluteFilePath tempFilePath = AppData.MakeTempFilePath(filePath);
 		Assert.AreEqual(filePath + ".tmp", tempFilePath, "Temp file path does not match expected value.");
 	}
@@ -138,7 +168,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestMakeBackupFilePathCreatesCorrectPath()
 	{
-		AbsoluteFilePath filePath = (AppData.Path / TestFileName.As<FileName>()).As<AbsoluteFilePath>();
+		AbsoluteFilePath filePath = CreateTestFilePath();
 		AbsoluteFilePath backupFilePath = AppData.MakeBackupFilePath(filePath);
 		Assert.AreEqual(filePath + ".bk", backupFilePath, "Backup file path does not match expected value.");
 	}
@@ -288,7 +318,7 @@ public sealed class AppDataTests
 
 		TestAppData appData = TestAppData.LoadOrCreate();
 
-		Assert.IsNotNull(appData, "LoadOrCreate should return a new instance if file is corrupt.");
+		AssertAppDataNotNull(appData, "LoadOrCreate should return a new instance if file is corrupt.");
 		Assert.AreEqual(string.Empty, appData.Data, "Data should be default if loaded from corrupt file.");
 	}
 
@@ -342,7 +372,7 @@ public sealed class AppDataTests
 	{
 		TestAppData appData = TestAppData.LoadOrCreate(null, null);
 
-		Assert.IsNotNull(appData, "AppData instance should not be null.");
+		AssertAppDataNotNull(appData);
 		Assert.IsNull(appData.Subdirectory, "Subdirectory should be null.");
 		Assert.IsNull(appData.FileNameOverride, "FileNameOverride should be null.");
 	}
@@ -443,35 +473,22 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestEnsureDirectoryExistsWithValidFilePath()
 	{
-		AbsoluteFilePath filePath = (AppData.Path / TestFileName.As<FileName>()).As<AbsoluteFilePath>();
-		AbsoluteDirectoryPath dirPath = filePath.DirectoryPath;
-		Assert.IsFalse(AppData.FileSystem.Directory.Exists(dirPath), DirectoryShouldNotExistInitiallyMessage);
-
-		AppData.EnsureDirectoryExists(filePath);
-
-		Assert.IsTrue(AppData.FileSystem.Directory.Exists(dirPath), DirectoryWasNotCreatedMessage);
+		AbsoluteFilePath filePath = CreateTestFilePath();
+		TestFilePathDirectoryCreation(filePath);
 	}
 
 	[TestMethod]
 	public void TestEnsureDirectoryExistsWithValidDirectoryPath()
 	{
-		AbsoluteDirectoryPath dirPath = (AppData.Path / "testDir".As<RelativeDirectoryPath>()).As<AbsoluteDirectoryPath>();
-		Assert.IsFalse(AppData.FileSystem.Directory.Exists(dirPath), DirectoryShouldNotExistInitiallyMessage);
-
-		AppData.EnsureDirectoryExists(dirPath);
-
-		Assert.IsTrue(AppData.FileSystem.Directory.Exists(dirPath), DirectoryWasNotCreatedMessage);
+		AbsoluteDirectoryPath dirPath = CreateTestDirectoryPath();
+		TestDirectoryCreation(dirPath);
 	}
 
 	[TestMethod]
 	public void TestEnsureDirectoryExistsWithNestedDirectories()
 	{
-		AbsoluteDirectoryPath dirPath = (AppData.Path / "nested/dir/structure".As<RelativeDirectoryPath>()).As<AbsoluteDirectoryPath>();
-		Assert.IsFalse(AppData.FileSystem.Directory.Exists(dirPath), "Nested directory structure should not exist initially.");
-
-		AppData.EnsureDirectoryExists(dirPath);
-
-		Assert.IsTrue(AppData.FileSystem.Directory.Exists(dirPath), "Nested directory structure was not created.");
+		AbsoluteDirectoryPath dirPath = CreateNestedDirectoryPath();
+		TestDirectoryCreation(dirPath, "Nested directory structure should not exist initially.", "Nested directory structure was not created.");
 	}
 
 	[TestMethod]
@@ -504,7 +521,7 @@ public sealed class AppDataTests
 
 		TestAppData appData = TestAppData.LoadOrCreate();
 
-		Assert.IsNotNull(appData, "LoadOrCreate should return a new instance if both main and backup files are corrupt.");
+		AssertAppDataNotNull(appData, "LoadOrCreate should return a new instance if both main and backup files are corrupt.");
 	}
 
 	[TestMethod]
@@ -534,7 +551,7 @@ public sealed class AppDataTests
 		RelativeDirectoryPath subdirectory = "subdir".As<RelativeDirectoryPath>();
 		TestAppData appData = TestAppData.LoadOrCreate(subdirectory);
 
-		Assert.IsNotNull(appData, "AppData instance should not be null.");
+		AssertAppDataNotNull(appData);
 		Assert.AreEqual(subdirectory, appData.Subdirectory, "Subdirectory should be set correctly.");
 	}
 
@@ -544,7 +561,7 @@ public sealed class AppDataTests
 		FileName fileName = CustomFileName.As<FileName>();
 		TestAppData appData = TestAppData.LoadOrCreate(fileName);
 
-		Assert.IsNotNull(appData, "AppData instance should not be null.");
+		AssertAppDataNotNull(appData);
 		Assert.AreEqual(fileName, appData.FileNameOverride, "FileNameOverride should be set correctly.");
 	}
 
@@ -555,7 +572,7 @@ public sealed class AppDataTests
 		FileName fileName = CustomFileName.As<FileName>();
 		TestAppData appData = TestAppData.LoadOrCreate(subdirectory, fileName);
 
-		Assert.IsNotNull(appData, "AppData instance should not be null.");
+		AssertAppDataNotNull(appData);
 		Assert.AreEqual(subdirectory, appData.Subdirectory, "Subdirectory should be set correctly.");
 		Assert.AreEqual(fileName, appData.FileNameOverride, "FileNameOverride should be set correctly.");
 	}
@@ -565,7 +582,7 @@ public sealed class AppDataTests
 	{
 		TestAppData appData = TestAppData.LoadOrCreate();
 
-		Assert.IsNotNull(appData, "AppData instance should not be null.");
+		AssertAppDataNotNull(appData);
 		Assert.AreEqual(string.Empty, appData.Data, "Data should be default if file does not exist.");
 	}
 
@@ -631,7 +648,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestWriteTextWithNullAppData()
 	{
-		Assert.ThrowsException<ArgumentNullException>(() => AppData.WriteText<TestAppData>(null!, TestDataString), ShouldThrowWhenAppDataIsNullMessage);
+		AssertArgumentNullException<TestAppData>(() => AppData.WriteText<TestAppData>(null!, TestDataString));
 	}
 
 	[TestMethod]
@@ -644,22 +661,19 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestReadTextWithNullAppData()
 	{
-		Assert.ThrowsException<ArgumentNullException>(() =>
-		{
-			AppData.ReadText<TestAppData>(null!);
-		}, ShouldThrowWhenAppDataIsNullMessage);
+		AssertArgumentNullException<TestAppData>(() => AppData.ReadText<TestAppData>(null!));
 	}
 
 	[TestMethod]
 	public void TestQueueSaveWithNullAppData()
 	{
-		Assert.ThrowsException<ArgumentNullException>(() => AppData.QueueSave<TestAppData>(null!), ShouldThrowWhenAppDataIsNullMessage);
+		AssertArgumentNullException<TestAppData>(() => AppData.QueueSave<TestAppData>(null!));
 	}
 
 	[TestMethod]
 	public void TestSaveIfRequiredWithNullAppData()
 	{
-		Assert.ThrowsException<ArgumentNullException>(() => AppData.SaveIfRequired<TestAppData>(null!), ShouldThrowWhenAppDataIsNullMessage);
+		AssertArgumentNullException<TestAppData>(() => AppData.SaveIfRequired<TestAppData>(null!));
 	}
 
 	[TestMethod]
@@ -1355,18 +1369,22 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestMultipleTimestampedBackupsCreation()
 	{
+		// Capture timestamp once before any looping to ensure consistency
+		DateTime timestamp = DateTime.Now;
+
 		AppData.ConfigureForTesting(() =>
 		{
 			MockFileSystem mockFileSystem = new();
 
-			// Use the proper AppData path structure for TestAppData
-			string appDataPath = Path.Combine(AppData.Path.ToString(), "test_app_data.json");
+			// Use the proper AppData path structure for TestAppData with dynamic filename
+			using TestAppData tempAppData = new();
+			string appDataPath = Path.Combine(AppData.Path.ToString(), tempAppData.FileName.ToString());
 			string baseBackupPath = appDataPath + ".bk";
 
 			// Pre-create multiple timestamped backups to test collision handling
 			for (int i = 0; i < 5; i++)
 			{
-				string timestampedPath = $"{baseBackupPath}.{DateTime.Now:yyyyMMdd_HHmmss}";
+				string timestampedPath = $"{baseBackupPath}.{timestamp:yyyyMMdd_HHmmss}";
 				if (i > 0)
 				{
 					timestampedPath += $"_{i}";
