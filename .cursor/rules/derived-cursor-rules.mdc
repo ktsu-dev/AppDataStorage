@@ -44,10 +44,15 @@ This file defines all project rules, coding standards, workflow guidelines, refe
   - **For concurrent/parallel tests, always use the factory pattern for `ConfigureForTesting()` to ensure each test gets its own isolated `MockFileSystem` instance. Therefore, when configuring the `AppData` class for testing, always use the factory-based overload of `ConfigureForTesting`: `AppData.ConfigureForTesting(() => new MockFileSystem());` instead of `AppData.ConfigureForTesting(new MockFileSystem());` to ensure each test gets its own isolated `MockFileSystem` instance.**
   - **The `ConfigureForTesting` method should be called once, and the factory should be re-invoked for each test so that it gets a new instance for that thread without interfering with any other threads. The cached instance MUST be cleared for each test.**
   - **Every test must configure a new mock filesystem instance by re-invoking the factory.**
-  - **The `ConfigureForTesting` method's validation for mock file systems must be robust. The current string-based check (`TypeName.Contains("Mock") || TypeName.Contains("Test")`) is unreliable and can be bypassed by production file systems or incorrectly reject valid test implementations. Use interfaces or attributes for validation.**
+  - **The `ConfigureForTesting` method's validation for mock file systems must be robust. The current string-based check (`TypeName.Contains("Mock") || TypeName.Contains("Test")`) is unreliable and can be bypassed by production file systems or incorrectly reject valid test implementations. Use interfaces or attributes for validation. The validation should include:**
+    - **Explicit type checking**: First checks for the exact `System.IO.Abstractions.TestingHelpers.MockFileSystem` type from TestableIO
+    - **Namespace-based validation**: Checks if the filesystem is in testing-related namespaces like `TestingHelpers`, `Testing`, `Mock`, etc.
+    - **Production filesystem rejection**: Explicitly rejects the production `System.IO.Abstractions.FileSystem`
+    - **Refined naming patterns**: Uses `EndsWith` with proper suffixes instead of generic `Contains` checks, making it more precise
 - **Exception Handling:** Avoid catching generic exceptions (`Exception`). Instead, catch specific exception types or use a `when` clause to filter exceptions. For example, `catch (Exception ex) when (ex is not OperationCanceledException and not ThreadInterruptedException)`.
 - **.NET 9+ `System.Threading.Lock` Value Type Handling:** When testing code that uses `System.Threading.Lock` in .NET 9 or later, be aware that it is a value type. Avoid boxing it to `object` when performing type checks, as this can lead to unintended monitor-based locking. Instead, use `GetType()` to directly compare the type, e.g., `Type lockType = TestAppData.Lock.GetType(); Assert.AreEqual(typeof(Lock), lockType);`
 - **Sealed Class Virtual Member Rule:** A sealed class cannot have virtual members because sealed classes cannot be inherited from. If a class is sealed, any virtual members must be removed or the class must be unsealed.
+- **Timestamp Handling:** When creating timestamped backups, capture the timestamp (e.g., using `DateTime.Now`) *once before* any looping or collision detection logic. Avoid calling `DateTime.Now` repeatedly within loops to prevent inconsistent or identical timestamps.
 
 ## DEBUGGING
 
