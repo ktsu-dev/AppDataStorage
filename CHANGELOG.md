@@ -1,3 +1,8 @@
+## v1.15.8-pre.1 (prerelease)
+
+Changes since v1.15.7:
+
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
 ## v1.15.7 (patch)
 
 Changes since v1.15.6:
@@ -19,9 +24,7 @@ Changes since v1.15.6:
 - Fix test failures and improve exception handling in AppDataTests ([@matt-edmondson](https://github.com/matt-edmondson))
 ## v1.15.7-pre.1 (prerelease)
 
-Changes since v1.15.6:
-
-- Update: - ktsu.StrongPaths to 1.3.2 - ktsu.ToStringJsonConverter to 1.2.4 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+Incremental prerelease update.
 ## v1.15.6 (patch)
 
 Changes since v1.15.5:
