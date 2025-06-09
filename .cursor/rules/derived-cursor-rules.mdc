@@ -12,6 +12,10 @@ This file defines all project rules, coding standards, workflow guidelines, refe
 - PowerShell
 - .NET
 - Git
+- TestableIO.System.IO.Abstractions
+- TestableIO.System.IO.Abstractions.TestingHelpers
+- TestableIO.System.IO.Abstractions.Wrappers
+- dotnet-reportgenerator-globaltool
 
 ## PROJECT DOCUMENTATION & CONTEXT SYSTEM
 
@@ -30,12 +34,54 @@ This file defines all project rules, coding standards, workflow guidelines, refe
 - Ensure proper error handling and logging.
 - Use clear and concise code.
 - Maintain consistent formatting.
+- When using `System.IO.Abstractions`, ensure the correct namespace is referenced.
+- When exposing mock filesystem functionality for testing, use the "Test-Only Configuration" pattern (Option 3) to avoid exposing internal implementation details and maintain better encapsulation.  Specifically:
+  - Make the `FileSystem` property internal get-only.
+  - Create a `ConfigureForTesting()` method that accepts a `Func<IFileSystem>` factory, validates that it is a mock or test filesystem, and sets the internal `FileSystem` property. The factory approach ensures thread safety during concurrent tests.
+  - Add a `ResetFileSystem()` method to reset the `FileSystem` to the default implementation.
+  - Use `ThreadLocal<IFileSystem>` to ensure each test thread gets its own filesystem instance for thread safety during concurrent tests.
+  - **Important Consideration:** `ThreadLocal` stores a reference to the `MockFileSystem` instance, not a copy of the object. Ensure thread safety within the `MockFileSystem` implementation itself if mutable state is involved.
+  - **For concurrent/parallel tests, always use the factory pattern for `ConfigureForTesting()` to ensure each test gets its own isolated `MockFileSystem` instance. Therefore, when configuring the `AppData` class for testing, always use the factory-based overload of `ConfigureForTesting`: `AppData.ConfigureForTesting(() => new MockFileSystem());` instead of `AppData.ConfigureForTesting(new MockFileSystem());` to ensure each test gets its own isolated `MockFileSystem` instance.**
+  - **The `ConfigureForTesting` method should be called once, and the factory should be re-invoked for each test so that it gets a new instance for that thread without interfering with any other threads. The cached instance MUST be cleared for each test.**
+  - **Every test must configure a new mock filesystem instance by re-invoking the factory.**
+  - **The `ConfigureForTesting` method's validation for mock file systems must be robust. The current string-based check (`TypeName.Contains("Mock") || TypeName.Contains("Test")`) is unreliable and can be bypassed by production file systems or incorrectly reject valid test implementations. Use interfaces or attributes for validation. The validation should include:**
+    - **Explicit type checking**: First checks for the exact `System.IO.Abstractions.TestingHelpers.MockFileSystem` type from TestableIO
+    - **Namespace-based validation**: Checks if the filesystem is in testing-related namespaces like `TestingHelpers`, `Testing`, `Mock`, etc.
+    - **Production filesystem rejection**: Explicitly rejects the production `System.IO.Abstractions.FileSystem`
+    - **Refined naming patterns**: Uses `EndsWith` with proper suffixes instead of generic `Contains` checks, making it more precise
+- **Exception Handling:** Avoid catching generic exceptions (`Exception`). Instead, catch specific exception types or use a `when` clause to filter exceptions. For example, `catch (Exception ex) when (ex is not OperationCanceledException and not ThreadInterruptedException)`.
+- **.NET 9+ `System.Threading.Lock` Value Type Handling:** When testing code that uses `System.Threading.Lock` in .NET 9 or later, be aware that it is a value type. Avoid boxing it to `object` when performing type checks, as this can lead to unintended monitor-based locking. Instead, use `GetType()` to directly compare the type, e.g., `Type lockType = TestAppData.Lock.GetType(); Assert.AreEqual(typeof(Lock), lockType);`
+- **Sealed Class Virtual Member Rule:** A sealed class cannot have virtual members because sealed classes cannot be inherited from. If a class is sealed, any virtual members must be removed or the class must be unsealed.
+- **Timestamp Handling:** When creating timestamped backups, capture the timestamp (e.g., using `DateTime.Now`) *once before* any looping or collision detection logic. Avoid calling `DateTime.Now` repeatedly within loops to prevent inconsistent or identical timestamps.
+- **Test Constants:** Avoid using literal strings directly in tests. Define constants for frequently used values like `"Test data"`, `"test.txt"`, or `"custom_file.json"` to improve maintainability and readability.
+- **Path Handling:** Use `Path.Combine()` instead of hardcoding path delimiters (e.g., `\` or `/`) to ensure cross-platform compatibility.
+- **Enumeration Naming:** Enumeration type names should not have "Flags" or "Enum" suffixes (csharpsquid:S2344).
+- **Conditional Statements:** Mergeable "if" statements should be combined (csharpsquid:S1066).
 
 ## DEBUGGING
+
+- Use `dotnet build --verbosity normal` to get more detailed build error messages.
+- The following IDE and compiler errors cannot be automatically fixed using "Fix All in Solution":
+  - IDE1007 with code fixes: `CSharpSpellCheckCodeFixProvider`, `CSharpFullyQualifyCodeFixProvider`, `GenerateTypeCodeFixProvider`, `CSharpAddImportCodeFixProvider`
+  - CA1506: No associated code fix found.
+  - CA1812: No associated code fix found.
+  - CS0246 with code fixes: `CSharpMakeMethodAsynchronousCodeFixProvider` (didn't return a Fix All action), `CSharpGenerateVariableCodeFixProvider`
+  - CA1031: No associated code fix found.
+- **SonarScanner:** "You are running CI analysis while Automatic Analysis is enabled. Please consider disabling one or the other."
 
 ## WORKFLOW & RELEASE RULES
 
 - When generating changelogs, output the logs for the latest version to a separate file so it can be used as the body of the GitHub release.
+- Increase test coverage for all components. Specifically focus on:
+  - Error handling and edge cases, specifically around file operations.
+  - Complex backup scenarios, such as timestamped backups when multiple backups exist.
+  - Thread safety, including more complex concurrent scenarios.
+  - Configuration and initialization, considering different scenarios for app data paths.
+  - File system abstraction edge cases.
+  - JSON serialization edge cases.
+- **Code Quality:** Aim to reduce duplicated lines of code in new code. Pay particular attention to:
+  - `AppDataStorage.Test/StrongStringTests.cs`
+  - `AppDataStorage.Test/AppDataTests.cs`
 
 ## CHANGELOG MANAGEMENT
 
@@ -58,3 +104,15 @@ When creating a GitHub release with `New-GitHubRelease`, the module automaticall
 3. Falls back to the full changelog if necessary
 
 You can customize the latest changelog file path using the `LatestChangelogFile` parameter in `Get-BuildConfiguration`.
+
+## TEST GUIDELINES
+
+- **ArgumentNullException Testing:** Use helper methods to test for `ArgumentNullException` in tests. This includes creating helper methods such as `AssertArgumentNullException(Action action, string message = ShouldThrowWhenAppDataIsNullMessage)` which takes an Action and an optional message.
+
+### Reducing Duplication in Tests
+
+- **Save-and-Assert Pattern**: Create helper methods for tests that create, save, and assert file existence.
+- **Save-and-LoadOrCreate Pattern**: Create helper methods for tests that save data and then load it back to verify content.
+- **File Cleanup Pattern**: Create helper methods for tests that delete files and check for their absence.
+- **Property Equality Testing**: Create helper methods for tests that verify data equality after save/load cycles.
+- **Test Data Creation with Same Content**: Create helper methods for creating `TestAppData` with `TestDataString`.
