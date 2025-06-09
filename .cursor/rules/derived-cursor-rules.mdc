@@ -46,6 +46,7 @@ This file defines all project rules, coding standards, workflow guidelines, refe
   - **Every test must configure a new mock filesystem instance by re-invoking the factory.**
 - **Exception Handling:** Avoid catching generic exceptions (`Exception`). Instead, catch specific exception types or use a `when` clause to filter exceptions. For example, `catch (Exception ex) when (ex is not OperationCanceledException and not ThreadInterruptedException)`.
 - **.NET 9+ `System.Threading.Lock` Value Type Handling:** When testing code that uses `System.Threading.Lock` in .NET 9 or later, be aware that it is a value type. Avoid boxing it to `object` when performing type checks, as this can lead to unintended monitor-based locking. Instead, use `GetType()` to directly compare the type, e.g., `Type lockType = TestAppData.Lock.GetType(); Assert.AreEqual(typeof(Lock), lockType);`
+- **Sealed Class Virtual Member Rule:** A sealed class cannot have virtual members because sealed classes cannot be inherited from. If a class is sealed, any virtual members must be removed or the class must be unsealed.
 
 ## DEBUGGING
 

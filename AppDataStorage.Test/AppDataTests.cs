@@ -1330,8 +1330,8 @@ internal sealed class FieldTestAppData : AppData<FieldTestAppData>
 	public void SetPrivateField(string value) => PrivateField = value;
 }
 
-internal class InheritanceTestAppData : AppData<InheritanceTestAppData>
+internal sealed class InheritanceTestAppData : AppData<InheritanceTestAppData>
 {
 	public string BaseData { get; set; } = "base";
-	public virtual string VirtualData { get; set; } = "virtual";
+	public string VirtualData { get; set; } = "virtual";
 }
