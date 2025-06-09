@@ -2,7 +2,21 @@
 
 Changes since v1.15.6:
 
+- Refactor AppDataTests to reduce code duplication and enhance test clarity ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance test coverage and improve exception handling ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix test failures and enhance exception handling in AppDataTests ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add SpecStory configuration files and update project settings ([@matt-edmondson](https://github.com/matt-edmondson))
+- Improve validation for mock file systems in ConfigureForTesting method ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor filesystem testing setup for thread safety and isolation ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor CI workflow and update derived cursor rules ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance GitHub Actions workflow for .NET setup ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance validation and timestamp handling in derived cursor rules ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor test methods to reduce code duplication and improve readability ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor AppDataTests to eliminate code duplication and improve maintainability ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update derived cursor rules and fix test compilation errors ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor AppDataTests to improve maintainability and readability ([@matt-edmondson](https://github.com/matt-edmondson))
+- Enhance test coverage and fix serialization exception handling ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix test failures and improve exception handling in AppDataTests ([@matt-edmondson](https://github.com/matt-edmondson))
 ## v1.15.7-pre.1 (prerelease)
 
 Changes since v1.15.6:
