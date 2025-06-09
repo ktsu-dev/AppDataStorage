@@ -74,6 +74,9 @@ This file defines all project rules, coding standards, workflow guidelines, refe
   - Configuration and initialization, considering different scenarios for app data paths.
   - File system abstraction edge cases.
   - JSON serialization edge cases.
+- **Code Quality:** Aim to reduce duplicated lines of code in new code. Pay particular attention to:
+  - `AppDataStorage.Test/StrongStringTests.cs`
+  - `AppDataStorage.Test/AppDataTests.cs`
 
 ## CHANGELOG MANAGEMENT
 

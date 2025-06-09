@@ -37,30 +37,63 @@ public sealed class AppDataTests
 		public string Data { get; set; } = string.Empty;
 	}
 
+	private static void AssertFileExists(AbsoluteFilePath filePath, string message = "File should exist.")
+	{
+		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), message);
+	}
+
+	private static void AssertFileDoesNotExist(AbsoluteFilePath filePath, string message = "File should not exist.")
+	{
+		Assert.IsFalse(AppData.FileSystem.File.Exists(filePath), message);
+	}
+
+	private static void AssertDirectoryExists(AbsoluteDirectoryPath dirPath, string message = "Directory should exist.")
+	{
+		Assert.IsTrue(AppData.FileSystem.Directory.Exists(dirPath), message);
+	}
+
+	private static void AssertDirectoryDoesNotExist(AbsoluteDirectoryPath dirPath, string message = "Directory should not exist.")
+	{
+		Assert.IsFalse(AppData.FileSystem.Directory.Exists(dirPath), message);
+	}
+
+	private static void AssertBackupFileDoesNotExist(AbsoluteFilePath mainFilePath, string message = "Backup file should not exist.")
+	{
+		AbsoluteFilePath backupFilePath = AppData.MakeBackupFilePath(mainFilePath);
+		AssertFileDoesNotExist(backupFilePath, message);
+	}
+
+	private static TestAppData CreateTestAppDataWithContent(string content)
+	{
+		return new TestAppData { Data = content };
+	}
+
+	private static void WriteTextAndAssertFileExists(TestAppData appData, string text)
+	{
+		AppData.WriteText(appData, text);
+		AssertFileExists(appData.FilePath, "File was not created.");
+	}
+
 	[TestMethod]
 	public void TestSaveCreatesFile()
 	{
-		using TestAppData appData = new()
-		{ Data = "Test data" };
+		using TestAppData appData = CreateTestAppDataWithContent("Test data");
 		appData.Save();
 
-		AbsoluteFilePath filePath = appData.FilePath;
-		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File was not created.");
+		AssertFileExists(appData.FilePath, "File was not created.");
 	}
 
 	[TestMethod]
 	public void TestSaveCleansBackupFile()
 	{
-		using TestAppData appData = new()
-		{ Data = "Test data" };
+		using TestAppData appData = CreateTestAppDataWithContent("Test data");
 		appData.Save();
 
-		string backupFilePath = appData.FilePath + ".bk";
-		Assert.IsFalse(AppData.FileSystem.File.Exists(backupFilePath), "Backup file should not exist initially.");
+		AssertBackupFileDoesNotExist(appData.FilePath, "Backup file should not exist initially.");
 
 		appData.Save();
 
-		Assert.IsFalse(AppData.FileSystem.File.Exists(backupFilePath), "Backup file should get cleaned up.");
+		AssertBackupFileDoesNotExist(appData.FilePath, "Backup file should get cleaned up.");
 	}
 
 	[TestMethod]
@@ -68,22 +101,22 @@ public sealed class AppDataTests
 	{
 		AbsoluteFilePath filePath = (AppData.Path / "test.txt".As<FileName>()).As<AbsoluteFilePath>();
 		AbsoluteDirectoryPath dirPath = filePath.DirectoryPath;
-		Assert.IsFalse(AppData.FileSystem.Directory.Exists(dirPath), "Directory should not exist initially.");
+		AssertDirectoryDoesNotExist(dirPath, "Directory should not exist initially.");
 
 		AppData.EnsureDirectoryExists(filePath);
 
-		Assert.IsTrue(AppData.FileSystem.Directory.Exists(dirPath), "Directory was not created.");
+		AssertDirectoryExists(dirPath, "Directory was not created.");
 	}
 
 	[TestMethod]
 	public void TestEnsureDirectoryExistsForDirectoryPath()
 	{
 		AbsoluteDirectoryPath dirPath = (AppData.Path / "testDir".As<RelativeDirectoryPath>()).As<AbsoluteDirectoryPath>();
-		Assert.IsFalse(AppData.FileSystem.Directory.Exists(dirPath), "Directory should not exist initially.");
+		AssertDirectoryDoesNotExist(dirPath, "Directory should not exist initially.");
 
 		AppData.EnsureDirectoryExists(dirPath);
 
-		Assert.IsTrue(AppData.FileSystem.Directory.Exists(dirPath), "Directory was not created.");
+		AssertDirectoryExists(dirPath, "Directory was not created.");
 	}
 
 	[TestMethod]
@@ -105,32 +138,25 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestWriteTextCreatesFile()
 	{
-		using TestAppData appData = new()
-		{ Data = "Test data" };
-		AppData.WriteText(appData, "Test data");
-
-		AbsoluteFilePath filePath = appData.FilePath;
-		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File was not created.");
+		using TestAppData appData = CreateTestAppDataWithContent("Test data");
+		WriteTextAndAssertFileExists(appData, "Test data");
 	}
 
 	[TestMethod]
 	public void TestWriteTextCreatesBackupFileOnOverwrite()
 	{
-		using TestAppData appData = new()
-		{ Data = "Test data" };
+		using TestAppData appData = CreateTestAppDataWithContent("Test data");
 		AppData.WriteText(appData, "Initial data");
 
 		AppData.WriteText(appData, "Updated data");
 
-		AbsoluteFilePath backupFilePath = AppData.MakeBackupFilePath(appData.FilePath);
-		Assert.IsFalse(AppData.FileSystem.File.Exists(backupFilePath), "Backup file should be cleaned up after save.");
+		AssertBackupFileDoesNotExist(appData.FilePath, "Backup file should be cleaned up after save.");
 	}
 
 	[TestMethod]
 	public void TestReadTextReturnsCorrectData()
 	{
-		using TestAppData appData = new()
-		{ Data = "Test data" };
+		using TestAppData appData = CreateTestAppDataWithContent("Test data");
 		AppData.WriteText(appData, "Test data");
 
 		string text = AppData.ReadText(appData);
@@ -140,8 +166,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestReadTextRestoresFromBackupIfMainFileMissing()
 	{
-		using TestAppData appData = new()
-		{ Data = "Test data" };
+		using TestAppData appData = CreateTestAppDataWithContent("Test data");
 		AppData.WriteText(appData, "Test data");
 
 		AbsoluteFilePath backupFilePath = AppData.MakeBackupFilePath(appData.FilePath);
@@ -150,7 +175,7 @@ public sealed class AppDataTests
 
 		string text = AppData.ReadText(appData);
 		Assert.AreEqual("Test data", text, "Read text does not match backup text.");
-		Assert.IsTrue(AppData.FileSystem.File.Exists(appData.FilePath), "Main file should be restored from backup.");
+		AssertFileExists(appData.FilePath, "Main file should be restored from backup.");
 	}
 
 	[TestMethod]
@@ -167,17 +192,15 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestSaveIfRequiredSavesDataAfterDebounceTime()
 	{
-		using TestAppData appData = new()
-		{ Data = "Test data" };
+		using TestAppData appData = CreateTestAppDataWithContent("Test data");
 		appData.QueueSave();
 		Thread.Sleep(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100)); // Wait for more than debounce time
 
 		appData.SaveIfRequired();
 
-		AbsoluteFilePath filePath = appData.FilePath;
-		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File was not saved.");
+		AssertFileExists(appData.FilePath, "File was not saved.");
 
-		TestAppData? fileContents = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(filePath), AppData.JsonSerializerOptions);
+		TestAppData? fileContents = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(appData.FilePath), AppData.JsonSerializerOptions);
 		Assert.IsNotNull(fileContents, "Saved data should be deserialized correctly.");
 		Assert.AreEqual("Test data", fileContents.Data, "Saved data does not match.");
 	}
@@ -185,39 +208,33 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestSaveIfRequiredDoesNotSaveBeforeDebounceTime()
 	{
-		using TestAppData appData = new()
-		{ Data = "Test data" };
+		using TestAppData appData = CreateTestAppDataWithContent("Test data");
 		appData.QueueSave();
 
 		appData.SaveIfRequired();
 
-		AbsoluteFilePath filePath = appData.FilePath;
-		Assert.IsFalse(AppData.FileSystem.File.Exists(filePath), "File should not be saved due to debounce.");
+		AssertFileDoesNotExist(appData.FilePath, "File should not be saved due to debounce.");
 	}
 
 	[TestMethod]
 	public void TestDisposeSavesDataIfSaveQueued()
 	{
-		TestAppData appData = new()
-		{ Data = "Test data" };
+		TestAppData appData = CreateTestAppDataWithContent("Test data");
 		appData.QueueSave();
 
 		appData.Dispose();
 
-		AbsoluteFilePath filePath = appData.FilePath;
-		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File should be saved upon disposal.");
+		AssertFileExists(appData.FilePath, "File should be saved upon disposal.");
 	}
 
 	[TestMethod]
 	public void TestDisposeDoesNotSaveIfNoSaveQueued()
 	{
-		TestAppData appData = new()
-		{ Data = "Test data" };
+		TestAppData appData = CreateTestAppDataWithContent("Test data");
 
 		appData.Dispose();
 
-		AbsoluteFilePath filePath = appData.FilePath;
-		Assert.IsFalse(AppData.FileSystem.File.Exists(filePath), "File should not be saved if no save was queued.");
+		AssertFileDoesNotExist(appData.FilePath, "File should not be saved if no save was queued.");
 	}
 
 	[TestMethod]
@@ -270,8 +287,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestMultipleSavesOnlyWriteOnceWithinDebouncePeriod()
 	{
-		using TestAppData appData = new()
-		{ Data = "Data1" };
+		using TestAppData appData = CreateTestAppDataWithContent("Data1");
 		appData.Save();
 
 		appData.Data = "Data2";
