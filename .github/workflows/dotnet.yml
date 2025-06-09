@@ -171,6 +171,12 @@ jobs:
           submodules: recursive
           persist-credentials: true
           token: ${{ github.token }}
+      - name: Setup .NET SDK ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}.x
+          cache: true
+          cache-dependency-path: "**/*.csproj"
       - name: Determine Target Commit for Analysis
         shell: pwsh
         run: |
