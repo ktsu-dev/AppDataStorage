@@ -1305,6 +1305,276 @@ public sealed class AppDataTests
 		Assert.AreEqual("modified base", loaded.BaseData);
 		Assert.AreEqual("modified virtual", loaded.VirtualData);
 	}
+
+	[TestMethod]
+	public void TestReadTextFallsBackToBackupFile()
+	{
+		AppData.ConfigureForTesting(() =>
+		{
+			MockFileSystem mockFileSystem = new();
+			string filePath = Path.Combine(AppData.Path.ToString(), "test_app_data.json");
+			string backupPath = filePath + ".bk";
+
+			// Setup backup file but not main file to test fallback
+			mockFileSystem.AddFile(backupPath, new MockFileData("backup content"));
+
+			return mockFileSystem;
+		});
+		AppData.ClearCachedFileSystem();
+
+		using TestAppData appData = new();
+
+		string result = AppData.ReadText(appData);
+		Assert.AreEqual("backup content", result);
+	}
+
+	[TestMethod]
+	public void TestMultipleTimestampedBackupsCreation()
+	{
+		AppData.ConfigureForTesting(() =>
+		{
+			MockFileSystem mockFileSystem = new();
+
+			// Use the proper AppData path structure for TestAppData
+			string appDataPath = Path.Combine(AppData.Path.ToString(), "test_app_data.json");
+			string baseBackupPath = appDataPath + ".bk";
+
+			// Pre-create multiple timestamped backups to test collision handling
+			for (int i = 0; i < 5; i++)
+			{
+				string timestampedPath = $"{baseBackupPath}.{DateTime.Now:yyyyMMdd_HHmmss}";
+				if (i > 0)
+				{
+					timestampedPath += $"_{i}";
+				}
+				mockFileSystem.AddFile(timestampedPath, new MockFileData("old backup"));
+			}
+
+			// Add the current backup file
+			mockFileSystem.AddFile(baseBackupPath, new MockFileData("current backup"));
+
+			return mockFileSystem;
+		});
+		AppData.ClearCachedFileSystem();
+
+		using TestAppData appData = new();
+
+		// This should trigger the backup collision handling logic
+		string result = AppData.ReadText(appData);
+		Assert.AreEqual("current backup", result);
+	}
+
+	[TestMethod]
+	public void TestExtremeConcurrentSaveOperations()
+	{
+		List<Task> tasks = [];
+		ConcurrentBag<Exception> exceptions = [];
+		int taskCount = 100; // More intensive concurrency test
+
+		for (int i = 0; i < taskCount; i++)
+		{
+			int taskId = i;
+			tasks.Add(Task.Run(() =>
+			{
+				try
+				{
+					AppData.ConfigureForTesting(() => new MockFileSystem());
+					AppData.ClearCachedFileSystem();
+
+					using TestAppData appData = new()
+					{ Data = $"Concurrent data {taskId} at {DateTime.Now:HH:mm:ss.fff}" };
+
+					// Add some random delay to increase chance of race conditions
+					Thread.Sleep(Random.Shared.Next(1, 10));
+
+					appData.Save();
+
+					// Verify by reading back
+					string savedData = AppData.ReadText(appData);
+					Assert.IsTrue(savedData.Contains($"Concurrent data {taskId}"));
+				}
+				catch (Exception ex) when (ex is not OperationCanceledException and not ThreadInterruptedException)
+				{
+					exceptions.Add(ex);
+				}
+			}));
+		}
+
+		Task.WaitAll([.. tasks]);
+		Assert.AreEqual(0, exceptions.Count, $"Extreme concurrent operations failed: {string.Join(", ", exceptions.Select(e => e.Message))}");
+	}
+
+	[TestMethod]
+	public void TestSaveWithJsonSerializationException()
+	{
+		using JsonSerializationFailureAppData appData = new();
+
+		Assert.ThrowsException<NotSupportedException>(appData.Save);
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateWithDeepRecursiveCorruption()
+	{
+		AppData.ConfigureForTesting(() =>
+		{
+			MockFileSystem mockFileSystem = new();
+			string filePath = @"C:\AppData\test_app_data.json";
+			string backupPath = @"C:\AppData\test_app_data.json.bk";
+
+			// Add corrupt main file and corrupt backup
+			mockFileSystem.AddFile(filePath, new MockFileData("{ invalid json"));
+			mockFileSystem.AddFile(backupPath, new MockFileData("{ also invalid"));
+
+			return mockFileSystem;
+		});
+		AppData.ClearCachedFileSystem();
+
+		// Should handle recursive corruption gracefully and create new instance
+		using TestAppData loaded = TestAppData.LoadOrCreate();
+		Assert.IsNotNull(loaded);
+		Assert.AreEqual(string.Empty, loaded.Data);
+	}
+
+	[TestMethod]
+	public void TestFileSystemEdgeCaseEmptyPaths()
+	{
+		AppData.EnsureDirectoryExists((AbsoluteFilePath)string.Empty);
+		AppData.EnsureDirectoryExists((AbsoluteDirectoryPath)string.Empty);
+
+		// Should not throw and handle gracefully
+		Assert.IsTrue(true); // If we get here, the method handled empty paths correctly
+	}
+
+	[TestMethod]
+	public void TestConfigureForTestingWithNonMockFileSystem()
+	{
+		// Should throw when trying to use a non-mock filesystem
+		Assert.ThrowsException<InvalidOperationException>(() => AppData.ConfigureForTesting(() => new FileSystem()));
+	}
+
+	[TestMethod]
+	public void TestFileNameGenerationEdgeCases()
+	{
+		// Test with complex class names
+		using VeryLongComplexClassNameForTestingAppData appData = new();
+		string fileName = appData.FileName.ToString();
+		Assert.IsTrue(fileName.Contains("very_long_complex_class_name_for_testing_app_data"));
+		Assert.IsTrue(fileName.EndsWith(".json"));
+	}
+
+	[TestMethod]
+	public void TestDisposeMultipleTimesWithSaveQueued()
+	{
+		AppData.ConfigureForTesting(() => new MockFileSystem());
+		AppData.ClearCachedFileSystem();
+
+		using TestAppData appData = new() { Data = "Test dispose" };
+		appData.QueueSave();
+
+		// Dispose multiple times
+		appData.Dispose();
+		appData.Dispose();
+		appData.Dispose();
+
+		// Should handle multiple disposes gracefully
+		Assert.IsTrue(true);
+	}
+
+	[TestMethod]
+	public void TestSaveDebounceTimingPrecision()
+	{
+		AppData.ConfigureForTesting(() => new MockFileSystem());
+		AppData.ClearCachedFileSystem();
+
+		using TestAppData appData = new() { Data = "Debounce test" };
+
+		// Queue save and check timing immediately
+		appData.QueueSave();
+		Assert.IsTrue(appData.IsSaveQueued());
+		Assert.IsFalse(appData.IsDoubounceTimeElapsed());
+
+		// Wait for debounce time + buffer
+		Thread.Sleep(appData.SaveDebounceTime.Add(TimeSpan.FromMilliseconds(100)));
+
+		Assert.IsTrue(appData.IsDoubounceTimeElapsed());
+	}
+
+	[TestMethod]
+	public void TestComplexDirectoryNestingWithSpecialCharacters()
+	{
+		AppData.ConfigureForTesting(() => new MockFileSystem());
+		AppData.ClearCachedFileSystem();
+
+		RelativeDirectoryPath complexPath = @"level1\level2 with spaces\level3-with-dashes\level4_with_underscores".As<RelativeDirectoryPath>();
+		FileName complexFileName = "file with spaces & special chars.json".As<FileName>();
+
+		using TestAppData appData = TestAppData.LoadOrCreate(complexPath, complexFileName);
+		appData.Data = "Complex path test";
+		appData.Save();
+
+		Assert.IsTrue(appData.FilePath.ToString().Contains("level1"));
+		Assert.IsTrue(appData.FilePath.ToString().Contains("level4_with_underscores"));
+		Assert.IsTrue(appData.FilePath.ToString().Contains("file with spaces & special chars.json"));
+	}
+
+	[TestMethod]
+	public void TestLargeDataHandlingWithBackups()
+	{
+		AppData.ConfigureForTesting(() => new MockFileSystem());
+		AppData.ClearCachedFileSystem();
+
+		// Create very large data (1MB+)
+		string largeData = new('X', 1_000_000);
+
+		using TestAppData appData = new() { Data = largeData };
+		appData.Save();
+
+		// Modify and save again to test backup handling with large files
+		appData.Data = new string('Y', 1_000_000);
+		appData.Save();
+
+		using TestAppData loaded = TestAppData.LoadOrCreate();
+		Assert.AreEqual(1_000_000, loaded.Data.Length);
+		Assert.IsTrue(loaded.Data.All(c => c == 'Y'));
+	}
+
+	[TestMethod]
+	public void TestThreadLocalFileSystemIsolation()
+	{
+		ConcurrentBag<IFileSystem> fileSystems = [];
+		List<Task> tasks = [];
+
+		for (int i = 0; i < 10; i++)
+		{
+			tasks.Add(Task.Run(() =>
+			{
+				AppData.ConfigureForTesting(() => new MockFileSystem());
+				AppData.ClearCachedFileSystem();
+
+				IFileSystem fs = AppData.FileSystem;
+				fileSystems.Add(fs);
+			}));
+		}
+
+		Task.WaitAll([.. tasks]);
+
+		// Each thread should have gotten its own filesystem instance
+		List<IFileSystem> distinctFileSystems = [.. fileSystems.Distinct()];
+		Assert.AreEqual(10, distinctFileSystems.Count, "Each thread should have its own filesystem instance");
+	}
+
+	[TestMethod]
+	public void TestAppDomainPathGeneration()
+	{
+		string appDomain = AppData.AppDomain.ToString();
+		string appDataPath = AppData.AppDataPath.ToString();
+		string fullPath = AppData.Path.ToString();
+
+		Assert.IsFalse(string.IsNullOrEmpty(appDomain));
+		Assert.IsFalse(string.IsNullOrEmpty(appDataPath));
+		Assert.IsTrue(fullPath.Contains(appDomain));
+		Assert.IsTrue(fullPath.Contains(appDataPath));
+	}
 }
 
 internal sealed class CircularRefAppData : AppData<CircularRefAppData>
@@ -1334,4 +1604,15 @@ internal sealed class InheritanceTestAppData : AppData<InheritanceTestAppData>
 {
 	public string BaseData { get; set; } = "base";
 	public string VirtualData { get; set; } = "virtual";
+}
+
+internal sealed class JsonSerializationFailureAppData : AppData<JsonSerializationFailureAppData>
+{
+	// Property that will cause JSON serialization to fail - using a delegate which can't be serialized
+	public Action ProblematicProperty { get; set; } = () => { };
+}
+
+internal sealed class VeryLongComplexClassNameForTestingAppData : AppData<VeryLongComplexClassNameForTestingAppData>
+{
+	public string Data { get; set; } = string.Empty;
 }
