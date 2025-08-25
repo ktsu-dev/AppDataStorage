@@ -1,3 +1,6 @@
+## v1.15.8
+
+No significant changes detected since v1.15.8.
 ## v1.15.8 (patch)
 
 Changes since v1.15.7:
@@ -9,9 +12,7 @@ Changes since v1.15.7:
 Changes since v1.15.8-pre.1:
 ## v1.15.8-pre.1 (prerelease)
 
-Changes since v1.15.7:
-
-- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+Incremental prerelease update.
 ## v1.15.7 (patch)
 
 Changes since v1.15.6:
