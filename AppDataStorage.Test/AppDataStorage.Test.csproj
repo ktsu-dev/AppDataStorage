@@ -1,6 +1,17 @@
-﻿<Project Sdk="ktsu.Sdk.Test">
+﻿<Project>
+  <Sdk Name="MStest.Sdk" />
+  <Sdk Name="ktsu.Sdk" />
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <TargetFramework>net9.0</TargetFramework>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
+    <TestingPlatformShowTestsFailureDetails>true</TestingPlatformShowTestsFailureDetails>
+  </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AppDataStorage\AppDataStorage.csproj" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.TestingHelpers" />
   </ItemGroup>
 

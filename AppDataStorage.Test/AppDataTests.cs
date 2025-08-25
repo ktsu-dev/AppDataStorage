@@ -12,8 +12,7 @@ using System.Net.Sockets;
 using System.Text.Json;
 
 using ktsu.CaseConverter;
-using ktsu.Extensions;
-using ktsu.StrongPaths;
+using ktsu.Semantics.Paths;
 
 [TestClass]
 public sealed class AppDataTests
@@ -84,15 +83,15 @@ public sealed class AppDataTests
 
 	// Helper method to create test file path
 	private static AbsoluteFilePath CreateTestFilePath() =>
-		(AppData.Path / TestFileName.As<FileName>()).As<AbsoluteFilePath>();
+		(AppData.Path / FileName.Create(TestFileName)).As<AbsoluteFilePath>();
 
 	// Helper method to create test directory path
 	private static AbsoluteDirectoryPath CreateTestDirectoryPath() =>
-		(AppData.Path / "testDir".As<RelativeDirectoryPath>()).As<AbsoluteDirectoryPath>();
+		(AppData.Path / RelativeDirectoryPath.Create("testDir")).As<AbsoluteDirectoryPath>();
 
 	// Helper method to create nested directory path
 	private static AbsoluteDirectoryPath CreateNestedDirectoryPath() =>
-		(AppData.Path / "nested/dir/structure".As<RelativeDirectoryPath>()).As<AbsoluteDirectoryPath>();
+		(AppData.Path / RelativeDirectoryPath.Create("nested/dir/structure")).As<AbsoluteDirectoryPath>();
 
 	// Helper method to test directory creation
 	private static void TestDirectoryCreation(AbsoluteDirectoryPath dirPath, string? initialMessage = null, string? createdMessage = null)
@@ -105,14 +104,14 @@ public sealed class AppDataTests
 	// Helper method to test file path directory creation
 	private static void TestFilePathDirectoryCreation(AbsoluteFilePath filePath)
 	{
-		AbsoluteDirectoryPath dirPath = filePath.DirectoryPath;
+		AbsoluteDirectoryPath dirPath = filePath.AbsoluteDirectoryPath;
 		TestDirectoryCreation(dirPath);
 	}
 
 	// Helper method to test null argument exceptions
 	private static void AssertArgumentNullException(Action action, string message = ShouldThrowWhenAppDataIsNullMessage)
 	{
-		Assert.ThrowsException<ArgumentNullException>(action, message);
+		Assert.ThrowsExactly<ArgumentNullException>(action, message);
 	}
 
 	// Helper method to assert AppData instance is not null
@@ -435,7 +434,7 @@ public sealed class AppDataTests
 	public void TestSaveThrowsExceptionIfSerializationFails()
 	{
 		using FaultyAppData appData = new();
-		Assert.ThrowsException<NotSupportedException>(appData.Save);
+		Assert.ThrowsExactly<NotSupportedException>(appData.Save);
 	}
 
 	internal sealed class FaultyAppData : AppData<FaultyAppData>
@@ -538,7 +537,7 @@ public sealed class AppDataTests
 		MockFileData mockFile = ((MockFileSystem)AppData.FileSystem).GetFile(appData.FilePath);
 		mockFile.AllowedFileShare = FileShare.None;
 
-		Assert.ThrowsException<IOException>(appData.Save);
+		Assert.ThrowsExactly<IOException>(appData.Save);
 
 		AbsoluteFilePath backupFilePath = AppData.MakeBackupFilePath(appData.FilePath);
 		Assert.IsFalse(AppData.FileSystem.File.Exists(backupFilePath), "Backup file should not exist if save fails.");
@@ -566,15 +565,15 @@ public sealed class AppDataTests
 	{
 		TestAppData appData = TestAppData.LoadOrCreate();
 
-		AbsoluteDirectoryPath dirPath = appData.FilePath.DirectoryPath;
+		AbsoluteDirectoryPath dirPath = appData.FilePath.AbsoluteDirectoryPath;
 		Assert.IsTrue(AppData.FileSystem.Directory.Exists(dirPath), "Directory should be created if it doesn't exist.");
 	}
 
 	[TestMethod]
 	public void TestEnsureDirectoryExistsHandlesRelativePaths()
 	{
-		RelativeDirectoryPath relativeDirPath = Path.Combine("relative", "dir").As<RelativeDirectoryPath>();
-		AbsoluteDirectoryPath absoluteDirPath = (AppData.Path / relativeDirPath).As<AbsoluteDirectoryPath>();
+		RelativeDirectoryPath relativeDirPath = RelativeDirectoryPath.Create(Path.Combine("relative", "dir"));
+		AbsoluteDirectoryPath absoluteDirPath = AppData.Path / relativeDirPath;
 		Assert.IsFalse(AppData.FileSystem.Directory.Exists(absoluteDirPath), DirectoryShouldNotExistInitiallyMessage);
 
 		AppData.EnsureDirectoryExists(absoluteDirPath);
@@ -585,7 +584,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestLoadOrCreateWithSubdirectory()
 	{
-		RelativeDirectoryPath subdirectory = "subdir".As<RelativeDirectoryPath>();
+		RelativeDirectoryPath subdirectory = RelativeDirectoryPath.Create("subdir");
 		TestAppData appData = TestAppData.LoadOrCreate(subdirectory);
 
 		AssertAppDataNotNull(appData);
@@ -595,7 +594,7 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestLoadOrCreateWithFileName()
 	{
-		FileName fileName = CustomFileName.As<FileName>();
+		FileName fileName = FileName.Create(CustomFileName);
 		TestAppData appData = TestAppData.LoadOrCreate(fileName);
 
 		AssertAppDataNotNull(appData);
@@ -605,8 +604,8 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestLoadOrCreateWithSubdirectoryAndFileName()
 	{
-		RelativeDirectoryPath subdirectory = "subdir".As<RelativeDirectoryPath>();
-		FileName fileName = CustomFileName.As<FileName>();
+		RelativeDirectoryPath subdirectory = RelativeDirectoryPath.Create("subdir");
+		FileName fileName = FileName.Create(CustomFileName);
 		TestAppData appData = TestAppData.LoadOrCreate(subdirectory, fileName);
 
 		AssertAppDataNotNull(appData);
@@ -659,13 +658,13 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestConfigureForTestingWithInvalidFileSystem()
 	{
-		Assert.ThrowsException<InvalidOperationException>(() => AppData.ConfigureForTesting(() => new FileSystem()), "Should throw when trying to configure with a non-mock file system");
+		Assert.ThrowsExactly<InvalidOperationException>(() => AppData.ConfigureForTesting(() => new FileSystem()), "Should throw when trying to configure with a non-mock file system");
 	}
 
 	[TestMethod]
 	public void TestConfigureForTestingWithNullFactory()
 	{
-		Assert.ThrowsException<ArgumentNullException>(() => AppData.ConfigureForTesting(null!), "Should throw when configuring with null factory");
+		Assert.ThrowsExactly<ArgumentNullException>(() => AppData.ConfigureForTesting(null!), "Should throw when configuring with null factory");
 	}
 
 	[TestMethod]
@@ -692,7 +691,7 @@ public sealed class AppDataTests
 	public void TestWriteTextWithNullText()
 	{
 		using TestAppData appData = new();
-		Assert.ThrowsException<ArgumentNullException>(() => AppData.WriteText(appData, null!), "Should throw when text is null");
+		Assert.ThrowsExactly<ArgumentNullException>(() => AppData.WriteText(appData, null!), "Should throw when text is null");
 	}
 
 	[TestMethod]
@@ -717,7 +716,7 @@ public sealed class AppDataTests
 	public void TestFileNameWithOverride()
 	{
 		using TestAppData appData = new();
-		appData.FileNameOverride = "custom_name.json".As<FileName>();
+		appData.FileNameOverride = FileName.Create("custom_name.json");
 
 		Assert.AreEqual("custom_name.json", appData.FileName.ToString(), "File name should use override when set");
 	}
@@ -726,8 +725,8 @@ public sealed class AppDataTests
 	public void TestFilePathWithSubdirectoryAndFileName()
 	{
 		using TestAppData appData = new();
-		appData.Subdirectory = "custom_dir".As<RelativeDirectoryPath>();
-		appData.FileNameOverride = CustomFileName.As<FileName>();
+		appData.Subdirectory = RelativeDirectoryPath.Create("custom_dir");
+		appData.FileNameOverride = FileName.Create(CustomFileName);
 
 		string expectedPath = (AppData.Path / appData.Subdirectory / appData.FileNameOverride).ToString();
 		Assert.AreEqual(expectedPath, appData.FilePath.ToString(), "File path should include both subdirectory and custom filename");
@@ -773,7 +772,7 @@ public sealed class AppDataTests
 	public void TestSaveCreatesIntermediateDirectories()
 	{
 		using TestAppData appData = new();
-		appData.Subdirectory = "level1/level2/level3".As<RelativeDirectoryPath>();
+		appData.Subdirectory = RelativeDirectoryPath.Create("level1/level2/level3");
 
 		appData.Data = "Test data for nested directories";
 		appData.Save();
@@ -785,8 +784,8 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestMultipleInstancesWithDifferentSubdirectories()
 	{
-		using TestAppData appData1 = TestAppData.LoadOrCreate("subdir1".As<RelativeDirectoryPath>());
-		using TestAppData appData2 = TestAppData.LoadOrCreate("subdir2".As<RelativeDirectoryPath>());
+		using TestAppData appData1 = TestAppData.LoadOrCreate(RelativeDirectoryPath.Create("subdir1"));
+		using TestAppData appData2 = TestAppData.LoadOrCreate(RelativeDirectoryPath.Create("subdir2"));
 
 		appData1.Data = "Data for instance 1";
 		appData2.Data = "Data for instance 2";
@@ -806,8 +805,8 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestMultipleInstancesWithDifferentFileNames()
 	{
-		using TestAppData appData1 = TestAppData.LoadOrCreate("file1.json".As<FileName>());
-		using TestAppData appData2 = TestAppData.LoadOrCreate("file2.json".As<FileName>());
+		using TestAppData appData1 = TestAppData.LoadOrCreate(FileName.Create("file1.json"));
+		using TestAppData appData2 = TestAppData.LoadOrCreate(FileName.Create("file2.json"));
 
 		appData1.Data = "Data for file 1";
 		appData2.Data = "Data for file 2";
@@ -1137,7 +1136,7 @@ public sealed class AppDataTests
 		AppData.ClearCachedFileSystem();
 
 		// IOException should propagate through since ReadText only catches FileNotFoundException
-		Assert.ThrowsException<IOException>(() => AppData.ReadText(appData));
+		Assert.ThrowsExactly<IOException>(() => AppData.ReadText(appData));
 	}
 
 	[TestMethod]
@@ -1255,8 +1254,8 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestSubdirectoryAndFileNameCombinations()
 	{
-		RelativeDirectoryPath subdirectory = "custom/sub/dir".As<RelativeDirectoryPath>();
-		FileName fileName = CustomFileName.As<FileName>();
+		RelativeDirectoryPath subdirectory = RelativeDirectoryPath.Create("custom/sub/dir");
+		FileName fileName = FileName.Create(CustomFileName);
 
 		using TestAppData appData = TestAppData.LoadOrCreate(subdirectory, fileName);
 
@@ -1271,9 +1270,9 @@ public sealed class AppDataTests
 	public void TestEnsureDirectoryExistsWithDeepNesting()
 	{
 		string deepDirPathString = Path.Combine(AppData.Path.ToString(), "level1", "level2", "level3", "level4", "level5");
-		AbsoluteDirectoryPath deepDirPath = deepDirPathString.As<AbsoluteDirectoryPath>();
+		AbsoluteDirectoryPath deepDirPath = AbsoluteDirectoryPath.Create(deepDirPathString);
 		string deepFilePathString = Path.Combine(deepDirPathString, TestFileName);
-		AbsoluteFilePath deepFilePath = deepFilePathString.As<AbsoluteFilePath>();
+		AbsoluteFilePath deepFilePath = AbsoluteFilePath.Create(deepFilePathString);
 
 		AppData.EnsureDirectoryExists(deepFilePath);
 
@@ -1459,7 +1458,7 @@ public sealed class AppDataTests
 	{
 		using JsonSerializationFailureAppData appData = new();
 
-		Assert.ThrowsException<NotSupportedException>(appData.Save);
+		Assert.ThrowsExactly<NotSupportedException>(appData.Save);
 	}
 
 	[TestMethod]
@@ -1488,8 +1487,8 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestFileSystemEdgeCaseEmptyPaths()
 	{
-		AppData.EnsureDirectoryExists((AbsoluteFilePath)string.Empty);
-		AppData.EnsureDirectoryExists((AbsoluteDirectoryPath)string.Empty);
+		AppData.EnsureDirectoryExists(AbsoluteFilePath.Create(string.Empty));
+		AppData.EnsureDirectoryExists(AbsoluteDirectoryPath.Create(string.Empty));
 
 		// Should not throw and handle gracefully
 		Assert.IsTrue(true); // If we get here, the method handled empty paths correctly
@@ -1499,7 +1498,7 @@ public sealed class AppDataTests
 	public void TestConfigureForTestingWithNonMockFileSystem()
 	{
 		// Should throw when trying to use a non-mock filesystem
-		Assert.ThrowsException<InvalidOperationException>(() => AppData.ConfigureForTesting(() => new FileSystem()));
+		Assert.ThrowsExactly<InvalidOperationException>(() => AppData.ConfigureForTesting(() => new FileSystem()));
 	}
 
 	[TestMethod]
@@ -1555,8 +1554,8 @@ public sealed class AppDataTests
 		AppData.ConfigureForTesting(() => new MockFileSystem());
 		AppData.ClearCachedFileSystem();
 
-		RelativeDirectoryPath complexPath = Path.Combine("level1", "level2 with spaces", "level3-with-dashes", "level4_with_underscores").As<RelativeDirectoryPath>();
-		FileName complexFileName = "file with spaces & special chars.json".As<FileName>();
+		RelativeDirectoryPath complexPath = RelativeDirectoryPath.Create(Path.Combine("level1", "level2 with spaces", "level3-with-dashes", "level4_with_underscores"));
+		FileName complexFileName = FileName.Create("file with spaces & special chars.json");
 
 		using TestAppData appData = TestAppData.LoadOrCreate(complexPath, complexFileName);
 		appData.Data = "Complex path test";

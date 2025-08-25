@@ -9,9 +9,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using ktsu.CaseConverter;
-using ktsu.Extensions;
-using ktsu.StrongPaths;
-using ktsu.ToStringJsonConverter;
+using ktsu.RoundTripStringJsonConverter;
+using ktsu.Semantics.Paths;
 
 /// <summary>
 /// Provides static helper methods and properties for managing application data storage.
@@ -26,12 +25,12 @@ public static class AppData
 	/// <summary>
 	/// Gets the application domain as a relative directory path.
 	/// </summary>
-	internal static RelativeDirectoryPath AppDomain => System.AppDomain.CurrentDomain.FriendlyName.As<RelativeDirectoryPath>();
+	internal static RelativeDirectoryPath AppDomain => RelativeDirectoryPath.Create(System.AppDomain.CurrentDomain.FriendlyName);
 
 	/// <summary>
 	/// Gets the application data path as an absolute directory path.
 	/// </summary>
-	internal static AbsoluteDirectoryPath AppDataPath => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create).As<AbsoluteDirectoryPath>();
+	internal static AbsoluteDirectoryPath AppDataPath => AbsoluteDirectoryPath.Create(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create));
 
 	/// <summary>
 	/// Gets the JSON serializer options used for serializing and deserializing app data.
@@ -44,7 +43,7 @@ public static class AppData
 		Converters =
 		{
 			new JsonStringEnumConverter(),
-			new ToStringJsonConverterFactory(),
+			new RoundTripStringJsonConverterFactory(),
 		}
 	};
 
@@ -100,7 +99,7 @@ public static class AppData
 			return;
 		}
 
-		AbsoluteDirectoryPath dirPath = path.DirectoryPath;
+		AbsoluteDirectoryPath dirPath = path.AbsoluteDirectoryPath;
 		if (!string.IsNullOrEmpty(dirPath))
 		{
 			EnsureDirectoryExists(dirPath);
@@ -144,8 +143,13 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> or <paramref name="text"/> is null.</exception>
 	public static void WriteText<T>(T appData, string text) where T : AppData<T>, new()
 	{
+#if !NET6_0_OR_GREATER
+		ArgumentNullExceptionPolyfill.ThrowIfNull(appData);
+		ArgumentNullExceptionPolyfill.ThrowIfNull(text);
+#else
 		ArgumentNullException.ThrowIfNull(appData);
 		ArgumentNullException.ThrowIfNull(text);
+#endif
 
 		lock (AppData<T>.Lock)
 		{
@@ -178,7 +182,11 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> is null.</exception>
 	public static string ReadText<T>(T appData) where T : AppData<T>, new()
 	{
+#if !NET6_0_OR_GREATER
+		ArgumentNullExceptionPolyfill.ThrowIfNull(appData);
+#else
 		ArgumentNullException.ThrowIfNull(appData);
+#endif
 
 		lock (AppData<T>.Lock)
 		{
@@ -221,7 +229,11 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> is null.</exception>
 	public static void QueueSave<T>(this T appData) where T : AppData<T>, new()
 	{
+#if !NET6_0_OR_GREATER
+		ArgumentNullExceptionPolyfill.ThrowIfNull(appData);
+#else
 		ArgumentNullException.ThrowIfNull(appData);
+#endif
 
 		lock (AppData<T>.Lock)
 		{
@@ -238,7 +250,12 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> is null.</exception>
 	public static void SaveIfRequired<T>(this T appData) where T : AppData<T>, new()
 	{
+#if !NET6_0_OR_GREATER
+		ArgumentNullExceptionPolyfill.ThrowIfNull(appData);
+#else
 		ArgumentNullException.ThrowIfNull(appData);
+#endif
+
 		lock (AppData<T>.Lock)
 		{
 			//debounce the save requests and avoid saving multiple times per frame or multiple frames in a row
@@ -270,7 +287,11 @@ public static class AppData
 	/// </example>
 	public static void ConfigureForTesting(Func<IFileSystem> fileSystemFactory)
 	{
+#if !NET6_0_OR_GREATER
+		ArgumentNullExceptionPolyfill.ThrowIfNull(fileSystemFactory);
+#else
 		ArgumentNullException.ThrowIfNull(fileSystemFactory);
+#endif
 
 		// Validate that the factory produces mock/test file systems by testing it once
 		IFileSystem testInstance = fileSystemFactory();
@@ -290,7 +311,11 @@ public static class AppData
 	/// <returns>True if the file system is a test/mock implementation; otherwise, false.</returns>
 	private static bool IsTestFileSystem(IFileSystem fileSystem)
 	{
+#if !NET6_0_OR_GREATER
+		ArgumentNullExceptionPolyfill.ThrowIfNull(fileSystem);
+#else
 		ArgumentNullException.ThrowIfNull(fileSystem);
+#endif
 
 		Type fileSystemType = fileSystem.GetType();
 
@@ -361,7 +386,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// <summary>
 	/// Gets the file name for the app data file.
 	/// </summary>
-	internal FileName FileName => FileNameOverride ?? $"{typeof(T).Name.ToSnakeCase()}.json".As<FileName>();
+	internal FileName FileName => FileNameOverride ?? FileName.Create($"{typeof(T).Name.ToSnakeCase()}.json");
 
 	internal RelativeDirectoryPath? Subdirectory { get; set; }
 
@@ -408,12 +433,12 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// <summary>
 	/// Gets the lock object used for synchronizing access to the app data.
 	/// </summary>
-#if NET8_0
-	[JsonIgnore]
-	public static object Lock { get; } = new();
-#else
+#if NET9_0_OR_GREATER
 	[JsonIgnore]
 	public static Lock Lock { get; } = new();
+#else
+	[JsonIgnore]
+	public static object Lock { get; } = new();
 #endif
 
 	internal bool IsSaveQueued()

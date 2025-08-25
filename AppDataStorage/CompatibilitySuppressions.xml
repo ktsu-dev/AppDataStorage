@@ -1,10 +1,88 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
-<Suppressions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:ktsu.AppDataStorage.AppData`1.get_Lock</Target>
     <Left>lib/net8.0/ktsu.AppDataStorage.dll</Left>
     <Right>lib/net9.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>M:ktsu.AppDataStorage.AppData.QueueSave``1(``0)&lt;0&gt;:[T:System.Runtime.CompilerServices.NullableAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>M:ktsu.AppDataStorage.AppData.ReadText``1(``0)&lt;0&gt;:[T:System.Runtime.CompilerServices.NullableAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>M:ktsu.AppDataStorage.AppData.SaveIfRequired``1(``0)&lt;0&gt;:[T:System.Runtime.CompilerServices.NullableAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>M:ktsu.AppDataStorage.AppData.WriteText``1(``0,System.String)&lt;0&gt;:[T:System.Runtime.CompilerServices.NullableAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>M:ktsu.AppDataStorage.AppData`1.LoadOrCreate(ktsu.Semantics.Paths.FileName)$0:[T:System.Runtime.CompilerServices.NullableAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>M:ktsu.AppDataStorage.AppData`1.LoadOrCreate(ktsu.Semantics.Paths.RelativeDirectoryPath,ktsu.Semantics.Paths.FileName)-&gt;T:[T:System.Runtime.CompilerServices.NullableAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>M:ktsu.AppDataStorage.AppData`1.LoadOrCreate(ktsu.Semantics.Paths.RelativeDirectoryPath,ktsu.Semantics.Paths.FileName):[T:System.Runtime.CompilerServices.NullableContextAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>M:ktsu.AppDataStorage.AppData`1.LoadOrCreate(ktsu.Semantics.Paths.RelativeDirectoryPath)$0:[T:System.Runtime.CompilerServices.NullableAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>T:ktsu.AppDataStorage.AppData:[T:System.Runtime.CompilerServices.NullableAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>T:ktsu.AppDataStorage.AppData:[T:System.Runtime.CompilerServices.NullableContextAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>T:ktsu.AppDataStorage.AppData`1:[T:System.Runtime.CompilerServices.NullableAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>T:ktsu.AppDataStorage.AppData`1:[T:System.Runtime.CompilerServices.NullableContextAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0016</DiagnosticId>
+    <Target>T:ktsu.AppDataStorage.AppData`1&lt;0&gt;:[T:System.Runtime.CompilerServices.NullableAttribute]</Target>
+    <Left>lib/net7.0/ktsu.AppDataStorage.dll</Left>
+    <Right>lib/net8.0/ktsu.AppDataStorage.dll</Right>
   </Suppression>
 </Suppressions>
