@@ -1,5 +1,3 @@
-## v1.15.9 (patch)
+## v1.15.9
 
-Changes since v1.15.8:
-
-- Remove deprecated files and update AppData configuration ([@matt-edmondson](https://github.com/matt-edmondson))
+No significant changes detected since v1.15.9.
