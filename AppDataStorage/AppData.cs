@@ -50,7 +50,7 @@ public static class AppData
 	/// <summary>
 	/// Thread-local factory for creating file system instances to ensure test isolation.
 	/// </summary>
-	private static readonly ThreadLocal<Func<IFileSystem>?> ThreadLocalFileSystemFactory = new();
+	private static Func<IFileSystem>? FileSystemFactory;
 
 	/// <summary>
 	/// Thread-local storage for file system instances to ensure each test gets its own persistent instance.
@@ -72,9 +72,9 @@ public static class AppData
 			}
 
 			// If we have a factory but no instance yet, create one and cache it
-			if (ThreadLocalFileSystemFactory.Value is not null)
+			if (FileSystemFactory is not null)
 			{
-				ThreadLocalFileSystem.Value = ThreadLocalFileSystemFactory.Value();
+				ThreadLocalFileSystem.Value = FileSystemFactory();
 				return ThreadLocalFileSystem.Value;
 			}
 
@@ -143,13 +143,8 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> or <paramref name="text"/> is null.</exception>
 	public static void WriteText<T>(T appData, string text) where T : AppData<T>, new()
 	{
-#if !NET6_0_OR_GREATER
-		ArgumentNullExceptionPolyfill.ThrowIfNull(appData);
-		ArgumentNullExceptionPolyfill.ThrowIfNull(text);
-#else
-		ArgumentNullException.ThrowIfNull(appData);
-		ArgumentNullException.ThrowIfNull(text);
-#endif
+		Guard.NotNull(appData);
+		Guard.NotNull(text);
 
 		lock (AppData<T>.Lock)
 		{
@@ -182,11 +177,7 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> is null.</exception>
 	public static string ReadText<T>(T appData) where T : AppData<T>, new()
 	{
-#if !NET6_0_OR_GREATER
-		ArgumentNullExceptionPolyfill.ThrowIfNull(appData);
-#else
-		ArgumentNullException.ThrowIfNull(appData);
-#endif
+		Guard.NotNull(appData);
 
 		lock (AppData<T>.Lock)
 		{
@@ -229,11 +220,7 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> is null.</exception>
 	public static void QueueSave<T>(this T appData) where T : AppData<T>, new()
 	{
-#if !NET6_0_OR_GREATER
-		ArgumentNullExceptionPolyfill.ThrowIfNull(appData);
-#else
-		ArgumentNullException.ThrowIfNull(appData);
-#endif
+		Guard.NotNull(appData);
 
 		lock (AppData<T>.Lock)
 		{
@@ -250,11 +237,7 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> is null.</exception>
 	public static void SaveIfRequired<T>(this T appData) where T : AppData<T>, new()
 	{
-#if !NET6_0_OR_GREATER
-		ArgumentNullExceptionPolyfill.ThrowIfNull(appData);
-#else
-		ArgumentNullException.ThrowIfNull(appData);
-#endif
+		Guard.NotNull(appData);
 
 		lock (AppData<T>.Lock)
 		{
@@ -287,11 +270,7 @@ public static class AppData
 	/// </example>
 	public static void ConfigureForTesting(Func<IFileSystem> fileSystemFactory)
 	{
-#if !NET6_0_OR_GREATER
-		ArgumentNullExceptionPolyfill.ThrowIfNull(fileSystemFactory);
-#else
-		ArgumentNullException.ThrowIfNull(fileSystemFactory);
-#endif
+		Guard.NotNull(fileSystemFactory);
 
 		// Validate that the factory produces mock/test file systems by testing it once
 		IFileSystem testInstance = fileSystemFactory();
@@ -300,7 +279,7 @@ public static class AppData
 			throw new InvalidOperationException("ConfigureForTesting factory can only create mock or test file systems. Use dependency injection for production scenarios.");
 		}
 
-		ThreadLocalFileSystemFactory.Value = fileSystemFactory;
+		FileSystemFactory = fileSystemFactory;
 	}
 
 	/// <summary>
@@ -311,11 +290,7 @@ public static class AppData
 	/// <returns>True if the file system is a test/mock implementation; otherwise, false.</returns>
 	private static bool IsTestFileSystem(IFileSystem fileSystem)
 	{
-#if !NET6_0_OR_GREATER
-		ArgumentNullExceptionPolyfill.ThrowIfNull(fileSystem);
-#else
-		ArgumentNullException.ThrowIfNull(fileSystem);
-#endif
+		Guard.NotNull(fileSystem);
 
 		Type fileSystemType = fileSystem.GetType();
 
@@ -370,7 +345,7 @@ public static class AppData
 	/// </example>
 	public static void ResetFileSystem()
 	{
-		ThreadLocalFileSystemFactory.Value = null;
+		FileSystemFactory = null;
 		ThreadLocalFileSystem.Value = null;
 	}
 }

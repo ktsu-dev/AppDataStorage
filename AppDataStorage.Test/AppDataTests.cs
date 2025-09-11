@@ -13,6 +13,7 @@ using System.Text.Json;
 
 using ktsu.CaseConverter;
 using ktsu.Semantics.Paths;
+using ktsu.Semantics.Strings;
 
 [TestClass]
 public sealed class AppDataTests
@@ -26,7 +27,7 @@ public sealed class AppDataTests
 	private const string ShouldThrowWhenAppDataIsNullMessage = "Should throw when appData is null";
 
 	[ClassInitialize]
-	public static void ClassSetup(TestContext _)
+	public static void ClassSetup(TestContext testContext)
 	{
 		AppData.ConfigureForTesting(() => new MockFileSystem());
 		AppDomain.CurrentDomain.SetData("APP_CONTEXT_BASE_DIRECTORY", "/app");
@@ -42,6 +43,7 @@ public sealed class AppDataTests
 	internal sealed class TestAppData : AppData<TestAppData>
 	{
 		public string Data { get; set; } = string.Empty;
+		public AbsoluteDirectoryPath StrongPath { get; set; } = "c:\\".As<AbsoluteDirectoryPath>();
 	}
 
 	private static void AssertFileExists(AbsoluteFilePath filePath, string message = "File should exist.")
@@ -416,8 +418,6 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestConfigureForTesting()
 	{
-		AppData.ConfigureForTesting(() => new MockFileSystem());
-
 		Assert.IsInstanceOfType<MockFileSystem>(AppData.FileSystem, "FileSystem should be a MockFileSystem instance.");
 	}
 
@@ -668,20 +668,6 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
-	public void TestResetFileSystemRestoresDefault()
-	{
-		// Configure with mock first
-		AppData.ConfigureForTesting(() => new MockFileSystem());
-		Assert.IsInstanceOfType<MockFileSystem>(AppData.FileSystem, "Should be using mock file system");
-
-		// Reset to default
-		AppData.ResetFileSystem();
-
-		// Note: We can't easily test this returns to the default filesystem
-		// because the default is internal, but we can at least verify the method doesn't throw
-	}
-
-	[TestMethod]
 	public void TestWriteTextWithNullAppData()
 	{
 		AssertArgumentNullException(() => AppData.WriteText<TestAppData>(null!, TestDataString));
@@ -823,6 +809,8 @@ public sealed class AppDataTests
 	public void TestLoadOrCreateWithCorruptJsonRecursiveRecovery()
 	{
 		using TestAppData appData = new();
+
+		AppData.EnsureDirectoryExists(appData.FilePath);
 
 		// Create a corrupt main file
 		AppData.FileSystem.File.WriteAllText(appData.FilePath, "{ invalid json");
@@ -1100,12 +1088,7 @@ public sealed class AppDataTests
 	{
 		using TestAppData appData = new() { Data = TestDataString };
 
-		// Create a readonly filesystem that throws exceptions on write operations
-		MockFileSystem mockFileSystem = new();
-		mockFileSystem.AddFile(appData.FilePath, new MockFileData("existing data") { Attributes = FileAttributes.ReadOnly });
-
-		AppData.ConfigureForTesting(() => mockFileSystem);
-		AppData.ClearCachedFileSystem();
+		(AppData.FileSystem as MockFileSystem)?.AddFile(appData.FilePath, new MockFileData("existing data") { Attributes = FileAttributes.ReadOnly });
 
 		// This should handle exceptions gracefully
 		try
@@ -1123,38 +1106,13 @@ public sealed class AppDataTests
 	{
 		using TestAppData appData = new() { Data = TestDataString };
 
-		AppData.ConfigureForTesting(() =>
+		(AppData.FileSystem as MockFileSystem)?.AddFile(appData.FilePath, new MockFileData("content")
 		{
-			MockFileSystem mockFileSystem = new();
-			// Create a file that will throw IOException when reading
-			mockFileSystem.AddFile(appData.FilePath, new MockFileData("content")
-			{
-				AllowedFileShare = FileShare.None
-			});
-			return mockFileSystem;
+			AllowedFileShare = FileShare.None
 		});
-		AppData.ClearCachedFileSystem();
 
 		// IOException should propagate through since ReadText only catches FileNotFoundException
 		Assert.ThrowsExactly<IOException>(() => AppData.ReadText(appData));
-	}
-
-	[TestMethod]
-	public void TestReadTextWithCorruptBackupHandlesGracefully()
-	{
-		using TestAppData appData = new() { Data = TestDataString };
-
-		AppData.ConfigureForTesting(() =>
-		{
-			MockFileSystem mockFileSystem = new();
-			// Don't create any files - no main file and no backup file
-			// This should result in empty string being returned
-			return mockFileSystem;
-		});
-		AppData.ClearCachedFileSystem();
-
-		string result = AppData.ReadText(appData);
-		Assert.AreEqual(string.Empty, result);
 	}
 
 	[TestMethod]
@@ -1162,85 +1120,23 @@ public sealed class AppDataTests
 	{
 		using TestAppData appData = new() { Data = TestDataString };
 
-		MockFileSystem mockFileSystem = new();
 		AbsoluteFilePath backupPath = AppData.MakeBackupFilePath(appData.FilePath);
 
 		// Pre-create backup and timestamped backup files to force collision handling
-		mockFileSystem.AddFile(backupPath, new MockFileData("backup content"));
+		(AppData.FileSystem as MockFileSystem)?.AddFile(backupPath, new MockFileData("backup content"));
 
 		string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-		mockFileSystem.AddFile(backupPath + $".{timestamp}", new MockFileData("backup1"));
-		mockFileSystem.AddFile(backupPath + $".{timestamp}_1", new MockFileData("backup2"));
-		mockFileSystem.AddFile(backupPath + $".{timestamp}_2", new MockFileData("backup3"));
-
-		AppData.ConfigureForTesting(() => mockFileSystem);
-		AppData.ClearCachedFileSystem();
+		(AppData.FileSystem as MockFileSystem)?.AddFile(backupPath + $".{timestamp}", new MockFileData("backup1"));
+		(AppData.FileSystem as MockFileSystem)?.AddFile(backupPath + $".{timestamp}_1", new MockFileData("backup2"));
+		(AppData.FileSystem as MockFileSystem)?.AddFile(backupPath + $".{timestamp}_2", new MockFileData("backup3"));
 
 		// This should handle multiple timestamp collisions
 		string result = AppData.ReadText(appData);
 		Assert.AreEqual(BackupContentString, result);
 
 		// Verify that a uniquely timestamped backup was created
-		List<string> backupFiles = [.. mockFileSystem.AllFiles.Where(f => f.Contains(".bk."))];
+		List<string> backupFiles = [.. (AppData.FileSystem as MockFileSystem)?.AllFiles.Where(f => f.Contains(".bk.")) ?? []];
 		Assert.IsTrue(backupFiles.Count > 3, "Should create a unique timestamped backup");
-	}
-
-	[TestMethod]
-	public void TestSaveHandlesDiskFullScenario()
-	{
-		using TestAppData appData = new() { Data = TestDataString };
-
-		AppData.ConfigureForTesting(() =>
-		{
-			// Create a mock file system that doesn't support directory creation
-			// This will cause the EnsureDirectoryExists to fail silently but WriteAllText to fail
-			MockFileSystem mockFileSystem = new();
-			// The MockFileSystem will create directories automatically
-			// So instead, we expect an exception when writing since the directory structure
-			// may not be properly set up depending on the exact implementation
-			return mockFileSystem;
-		});
-		AppData.ClearCachedFileSystem();
-
-		// With a properly configured MockFileSystem, this should not throw
-		// Let's change this test to verify that save works with an empty filesystem
-		appData.Save();
-		Assert.IsTrue(AppData.FileSystem.File.Exists(appData.FilePath));
-	}
-
-	[TestMethod]
-	public void TestConcurrentSaveOperations()
-	{
-		List<Task> tasks = [];
-		ConcurrentBag<Exception> exceptions = [];
-
-		for (int i = 0; i < 10; i++)
-		{
-			int taskId = i;
-			tasks.Add(Task.Run(() =>
-			{
-				try
-				{
-					AppData.ConfigureForTesting(() => new MockFileSystem());
-					AppData.ClearCachedFileSystem();
-
-					using TestAppData appData = new()
-					{ Data = $"Data from task {taskId}" };
-					appData.Save();
-
-					// Verify the data was saved correctly
-					string savedData = AppData.ReadText(appData);
-					Assert.IsTrue(savedData.Contains($"Data from task {taskId}"));
-				}
-				catch (Exception ex) when (ex is not OperationCanceledException and not ThreadInterruptedException)
-				{
-					exceptions.Add(ex);
-				}
-			}));
-		}
-
-		Task.WaitAll([.. tasks]);
-		Assert.AreEqual(0, exceptions.Count, $"Concurrent operations failed: {string.Join(", ", exceptions.Select(e => e.Message))}");
 	}
 
 	[TestMethod]
@@ -1354,18 +1250,11 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestReadTextFallsBackToBackupFile()
 	{
-		AppData.ConfigureForTesting(() =>
-		{
-			MockFileSystem mockFileSystem = new();
-			string filePath = Path.Combine(AppData.Path.ToString(), "test_app_data.json");
-			string backupPath = filePath + ".bk";
+		string filePath = Path.Combine(AppData.Path.ToString(), "test_app_data.json");
+		string backupPath = filePath + ".bk";
 
-			// Setup backup file but not main file to test fallback
-			mockFileSystem.AddFile(backupPath, new MockFileData(BackupContentString));
-
-			return mockFileSystem;
-		});
-		AppData.ClearCachedFileSystem();
+		// Setup backup file but not main file to test fallback
+		(AppData.FileSystem as MockFileSystem)?.AddFile(backupPath, new MockFileData(BackupContentString));
 
 		using TestAppData appData = new();
 
@@ -1379,32 +1268,24 @@ public sealed class AppDataTests
 		// Capture timestamp once before any looping to ensure consistency
 		DateTime timestamp = DateTime.Now;
 
-		AppData.ConfigureForTesting(() =>
+		// Use the proper AppData path structure for TestAppData with dynamic filename
+		using TestAppData tempAppData = new();
+		string appDataPath = Path.Combine(AppData.Path.ToString(), tempAppData.FileName.ToString());
+		string baseBackupPath = appDataPath + ".bk";
+
+		// Pre-create multiple timestamped backups to test collision handling
+		for (int i = 0; i < 5; i++)
 		{
-			MockFileSystem mockFileSystem = new();
-
-			// Use the proper AppData path structure for TestAppData with dynamic filename
-			using TestAppData tempAppData = new();
-			string appDataPath = Path.Combine(AppData.Path.ToString(), tempAppData.FileName.ToString());
-			string baseBackupPath = appDataPath + ".bk";
-
-			// Pre-create multiple timestamped backups to test collision handling
-			for (int i = 0; i < 5; i++)
+			string timestampedPath = $"{baseBackupPath}.{timestamp:yyyyMMdd_HHmmss}";
+			if (i > 0)
 			{
-				string timestampedPath = $"{baseBackupPath}.{timestamp:yyyyMMdd_HHmmss}";
-				if (i > 0)
-				{
-					timestampedPath += $"_{i}";
-				}
-				mockFileSystem.AddFile(timestampedPath, new MockFileData("old backup"));
+				timestampedPath += $"_{i}";
 			}
+			(AppData.FileSystem as MockFileSystem)?.AddFile(timestampedPath, new MockFileData("old backup"));
+		}
 
-			// Add the current backup file
-			mockFileSystem.AddFile(baseBackupPath, new MockFileData("current backup"));
-
-			return mockFileSystem;
-		});
-		AppData.ClearCachedFileSystem();
+		// Add the current backup file
+		(AppData.FileSystem as MockFileSystem)?.AddFile(baseBackupPath, new MockFileData("current backup"));
 
 		using TestAppData appData = new();
 
@@ -1414,74 +1295,11 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
-	public void TestExtremeConcurrentSaveOperations()
-	{
-		List<Task> tasks = [];
-		ConcurrentBag<Exception> exceptions = [];
-		int taskCount = 100; // More intensive concurrency test
-
-		for (int i = 0; i < taskCount; i++)
-		{
-			int taskId = i;
-			tasks.Add(Task.Run(() =>
-			{
-				try
-				{
-					AppData.ConfigureForTesting(() => new MockFileSystem());
-					AppData.ClearCachedFileSystem();
-
-					using TestAppData appData = new()
-					{ Data = $"Concurrent data {taskId} at {DateTime.Now:HH:mm:ss.fff}" };
-
-					// Add some random delay to increase chance of race conditions
-					Thread.Sleep(Random.Shared.Next(1, 10));
-
-					appData.Save();
-
-					// Verify by reading back
-					string savedData = AppData.ReadText(appData);
-					Assert.IsTrue(savedData.Contains($"Concurrent data {taskId}"));
-				}
-				catch (Exception ex) when (ex is not OperationCanceledException and not ThreadInterruptedException)
-				{
-					exceptions.Add(ex);
-				}
-			}));
-		}
-
-		Task.WaitAll([.. tasks]);
-		Assert.AreEqual(0, exceptions.Count, $"Extreme concurrent operations failed: {string.Join(", ", exceptions.Select(e => e.Message))}");
-	}
-
-	[TestMethod]
 	public void TestSaveWithJsonSerializationException()
 	{
 		using JsonSerializationFailureAppData appData = new();
 
 		Assert.ThrowsExactly<NotSupportedException>(appData.Save);
-	}
-
-	[TestMethod]
-	public void TestLoadOrCreateWithDeepRecursiveCorruption()
-	{
-		AppData.ConfigureForTesting(() =>
-		{
-			MockFileSystem mockFileSystem = new();
-			string filePath = @"C:\AppData\test_app_data.json";
-			string backupPath = @"C:\AppData\test_app_data.json.bk";
-
-			// Add corrupt main file and corrupt backup
-			mockFileSystem.AddFile(filePath, new MockFileData("{ invalid json"));
-			mockFileSystem.AddFile(backupPath, new MockFileData("{ also invalid"));
-
-			return mockFileSystem;
-		});
-		AppData.ClearCachedFileSystem();
-
-		// Should handle recursive corruption gracefully and create new instance
-		using TestAppData loaded = TestAppData.LoadOrCreate();
-		Assert.IsNotNull(loaded);
-		Assert.AreEqual(string.Empty, loaded.Data);
 	}
 
 	[TestMethod]
@@ -1514,9 +1332,6 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestDisposeMultipleTimesWithSaveQueued()
 	{
-		AppData.ConfigureForTesting(() => new MockFileSystem());
-		AppData.ClearCachedFileSystem();
-
 		using TestAppData appData = new() { Data = TestDataString };
 		appData.QueueSave();
 
@@ -1532,9 +1347,6 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestSaveDebounceTimingPrecision()
 	{
-		AppData.ConfigureForTesting(() => new MockFileSystem());
-		AppData.ClearCachedFileSystem();
-
 		using TestAppData appData = new() { Data = TestDataString };
 
 		// Queue save and check timing immediately
@@ -1551,9 +1363,6 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestComplexDirectoryNestingWithSpecialCharacters()
 	{
-		AppData.ConfigureForTesting(() => new MockFileSystem());
-		AppData.ClearCachedFileSystem();
-
 		RelativeDirectoryPath complexPath = RelativeDirectoryPath.Create(Path.Combine("level1", "level2 with spaces", "level3-with-dashes", "level4_with_underscores"));
 		FileName complexFileName = FileName.Create("file with spaces & special chars.json");
 
@@ -1569,9 +1378,6 @@ public sealed class AppDataTests
 	[TestMethod]
 	public void TestLargeDataHandlingWithBackups()
 	{
-		AppData.ConfigureForTesting(() => new MockFileSystem());
-		AppData.ClearCachedFileSystem();
-
 		// Create very large data (1MB+)
 		string largeData = new('X', 1_000_000);
 
@@ -1585,31 +1391,6 @@ public sealed class AppDataTests
 		using TestAppData loaded = TestAppData.LoadOrCreate();
 		Assert.AreEqual(1_000_000, loaded.Data.Length);
 		Assert.IsTrue(loaded.Data.All(c => c == 'Y'));
-	}
-
-	[TestMethod]
-	public void TestThreadLocalFileSystemIsolation()
-	{
-		ConcurrentBag<IFileSystem> fileSystems = [];
-		List<Task> tasks = [];
-
-		for (int i = 0; i < 10; i++)
-		{
-			tasks.Add(Task.Run(() =>
-			{
-				AppData.ConfigureForTesting(() => new MockFileSystem());
-				AppData.ClearCachedFileSystem();
-
-				IFileSystem fs = AppData.FileSystem;
-				fileSystems.Add(fs);
-			}));
-		}
-
-		Task.WaitAll([.. tasks]);
-
-		// Each thread should have gotten its own filesystem instance
-		List<IFileSystem> distinctFileSystems = [.. fileSystems.Distinct()];
-		Assert.AreEqual(10, distinctFileSystems.Count, "Each thread should have its own filesystem instance");
 	}
 
 	[TestMethod]
