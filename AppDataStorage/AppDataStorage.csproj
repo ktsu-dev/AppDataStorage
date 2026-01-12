@@ -8,6 +8,7 @@
     <PackageReference Include="ktsu.CaseConverter" />
     <PackageReference Include="ktsu.RoundTripStringJsonConverter" />
     <PackageReference Include="ktsu.Semantics.Paths" />
+  <PackageReference Include="Polyfill" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
   </ItemGroup>
