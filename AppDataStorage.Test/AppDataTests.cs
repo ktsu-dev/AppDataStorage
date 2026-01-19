@@ -2,6 +2,8 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
+[assembly: Parallelize(Scope = ExecutionScope.MethodLevel)]
+
 namespace ktsu.AppDataStorage.Test;
 
 using System;
@@ -158,7 +160,7 @@ public sealed class AppDataTests
 	{
 		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "File should exist before reading content.");
 		string actualContent = AppData.FileSystem.File.ReadAllText(filePath);
-		Assert.IsTrue(actualContent.Contains(expectedContent), message);
+		Assert.Contains(expectedContent, actualContent, message);
 	}
 
 	[TestMethod]
@@ -262,7 +264,7 @@ public sealed class AppDataTests
 
 		appData.QueueSave();
 
-		Assert.IsTrue(appData.SaveQueuedTime >= beforeQueueTime, "SaveQueuedTime was not set correctly.");
+		Assert.IsGreaterThanOrEqualTo(beforeQueueTime, appData.SaveQueuedTime, "SaveQueuedTime was not set correctly.");
 	}
 
 	[TestMethod]
@@ -427,7 +429,7 @@ public sealed class AppDataTests
 		using TestAppData appData = new();
 		string json = JsonSerializer.Serialize(appData, AppData.JsonSerializerOptions);
 
-		Assert.IsTrue(json.Contains("\"Data\""), "Serialized JSON should include fields.");
+		Assert.Contains("\"Data\"", json, "Serialized JSON should include fields.");
 	}
 
 	[TestMethod]
@@ -641,7 +643,7 @@ public sealed class AppDataTests
 		TestAppData.QueueSave();
 
 		TestAppData appData = TestAppData.Get();
-		Assert.IsTrue(appData.SaveQueuedTime >= beforeQueueTime, "SaveQueuedTime was not set correctly.");
+		Assert.IsGreaterThanOrEqualTo(beforeQueueTime, appData.SaveQueuedTime, "SaveQueuedTime was not set correctly.");
 	}
 
 	[TestMethod]
@@ -726,7 +728,7 @@ public sealed class AppDataTests
 		Assert.IsTrue(options.WriteIndented, "Should have WriteIndented set to true");
 		Assert.IsTrue(options.IncludeFields, "Should have IncludeFields set to true");
 		Assert.IsNotNull(options.ReferenceHandler, "Should have ReferenceHandler configured");
-		Assert.IsTrue(options.Converters.Count > 0, "Should have converters configured");
+		Assert.IsNotEmpty(options.Converters, "Should have converters configured");
 	}
 
 	[TestMethod]
@@ -751,7 +753,7 @@ public sealed class AppDataTests
 
 		// Check that a timestamped backup exists
 		string[] timestampedBackups = AppData.FileSystem.Directory.GetFiles(appData.FilePath.DirectoryPath.ToString(), "*.bk.*");
-		Assert.IsTrue(timestampedBackups.Length > 0, "Should have created a timestamped backup");
+		Assert.IsNotEmpty(timestampedBackups, "Should have created a timestamped backup");
 	}
 
 	[TestMethod]
@@ -801,8 +803,8 @@ public sealed class AppDataTests
 		appData2.Save();
 
 		Assert.AreNotEqual(appData1.FilePath, appData2.FilePath, "Instances should have different file paths");
-		Assert.IsTrue(appData1.FilePath.ToString().Contains("file1.json"), "First instance should use custom filename");
-		Assert.IsTrue(appData2.FilePath.ToString().Contains("file2.json"), "Second instance should use custom filename");
+		Assert.Contains("file1.json", appData1.FilePath.ToString(), "First instance should use custom filename");
+		Assert.Contains("file2.json", appData2.FilePath.ToString(), "Second instance should use custom filename");
 	}
 
 	[TestMethod]
@@ -879,7 +881,7 @@ public sealed class AppDataTests
 			thread.Join(TimeSpan.FromSeconds(30)); // Timeout after 30 seconds
 		}
 
-		Assert.AreEqual(0, exceptions.Count, $"No exceptions should occur during concurrent access. Exceptions: {string.Join(", ", exceptions.Select(e => e.Message))}");
+		Assert.IsEmpty(exceptions, $"No exceptions should occur during concurrent access. Exceptions: {string.Join(", ", exceptions.Select(e => e.Message))}");
 	}
 
 	[TestMethod]
@@ -986,7 +988,7 @@ public sealed class AppDataTests
 			thread.Join();
 		}
 
-		Assert.AreEqual(3, fileSystemInstances.Count, "Each thread should access FileSystem");
+		Assert.HasCount(3, fileSystemInstances, "Each thread should access FileSystem");
 	}
 
 	[TestMethod]
@@ -1079,8 +1081,8 @@ public sealed class AppDataTests
 		appData.Save();
 
 		DateTime afterSave = DateTime.UtcNow;
-		Assert.IsTrue(appData.LastSaveTime >= beforeSave, "LastSaveTime should be updated after save");
-		Assert.IsTrue(appData.LastSaveTime <= afterSave, "LastSaveTime should not be in the future");
+		Assert.IsGreaterThanOrEqualTo(beforeSave, appData.LastSaveTime, "LastSaveTime should be updated after save");
+		Assert.IsLessThanOrEqualTo(afterSave, appData.LastSaveTime, "LastSaveTime should not be in the future");
 	}
 
 	[TestMethod]
@@ -1136,7 +1138,7 @@ public sealed class AppDataTests
 
 		// Verify that a uniquely timestamped backup was created
 		List<string> backupFiles = [.. (AppData.FileSystem as MockFileSystem)?.AllFiles.Where(f => f.Contains(".bk.")) ?? []];
-		Assert.IsTrue(backupFiles.Count > 3, "Should create a unique timestamped backup");
+		Assert.IsGreaterThan(3, backupFiles.Count, "Should create a unique timestamped backup");
 	}
 
 	[TestMethod]
@@ -1308,8 +1310,7 @@ public sealed class AppDataTests
 		AppData.EnsureDirectoryExists(AbsoluteFilePath.Create(string.Empty));
 		AppData.EnsureDirectoryExists(AbsoluteDirectoryPath.Create(string.Empty));
 
-		// Should not throw and handle gracefully
-		Assert.IsTrue(true); // If we get here, the method handled empty paths correctly
+		// Should not throw and handle gracefully - if we get here, the method handled empty paths correctly
 	}
 
 	[TestMethod]
@@ -1325,8 +1326,8 @@ public sealed class AppDataTests
 		// Test with complex class names
 		using VeryLongComplexClassNameForTestingAppData appData = new();
 		string fileName = appData.FileName.ToString();
-		Assert.IsTrue(fileName.Contains("very_long_complex_class_name_for_testing_app_data"));
-		Assert.IsTrue(fileName.EndsWith(".json"));
+		Assert.Contains("very_long_complex_class_name_for_testing_app_data", fileName);
+		Assert.EndsWith(".json", fileName);
 	}
 
 	[TestMethod]
@@ -1340,8 +1341,7 @@ public sealed class AppDataTests
 		appData.Dispose();
 		appData.Dispose();
 
-		// Should handle multiple disposes gracefully
-		Assert.IsTrue(true);
+		// Should handle multiple disposes gracefully - if we get here, the method succeeded
 	}
 
 	[TestMethod]
@@ -1370,9 +1370,9 @@ public sealed class AppDataTests
 		appData.Data = "Complex path test";
 		appData.Save();
 
-		Assert.IsTrue(appData.FilePath.ToString().Contains("level1"));
-		Assert.IsTrue(appData.FilePath.ToString().Contains("level4_with_underscores"));
-		Assert.IsTrue(appData.FilePath.ToString().Contains("file with spaces & special chars.json"));
+		Assert.Contains("level1", appData.FilePath.ToString());
+		Assert.Contains("level4_with_underscores", appData.FilePath.ToString());
+		Assert.Contains("file with spaces & special chars.json", appData.FilePath.ToString());
 	}
 
 	[TestMethod]
@@ -1400,10 +1400,10 @@ public sealed class AppDataTests
 		string appDataPath = AppData.AppDataPath.ToString();
 		string fullPath = AppData.Path.ToString();
 
-		Assert.IsFalse(string.IsNullOrEmpty(appDomain));
-		Assert.IsFalse(string.IsNullOrEmpty(appDataPath));
-		Assert.IsTrue(fullPath.Contains(appDomain));
-		Assert.IsTrue(fullPath.Contains(appDataPath));
+		Assert.IsNotEmpty(appDomain);
+		Assert.IsNotEmpty(appDataPath);
+		Assert.Contains(appDomain, fullPath);
+		Assert.Contains(appDataPath, fullPath);
 	}
 }
 

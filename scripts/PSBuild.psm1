@@ -1470,14 +1470,14 @@ function Invoke-DotNetTest {
     New-Item -Path $testResultsPath -ItemType Directory -Force | Out-Null
 
     # Run tests with both coverage collection and TRX logging for SonarQube
-    "dotnet test --configuration $Configuration /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=`"coverage.opencover.xml`" --results-directory `"$testResultsPath`" --logger `"trx;LogFileName=TestResults.trx`"" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetTest"
+    "dotnet test --configuration $Configuration --coverage --coverage-output-format xml --coverage-output `"coverage.xml`" --results-directory `"$testResultsPath`" --report-trx --report-trx-filename TestResults.trx" | Invoke-ExpressionWithLogging | Write-InformationStream -Tags "Invoke-DotNetTest"
     Assert-LastExitCode "Tests failed"
 
     # Find and copy coverage file to expected location for SonarQube
-    $coverageFiles = @(Get-ChildItem -Path . -Recurse -Filter "coverage.opencover.xml" -ErrorAction SilentlyContinue)
+    $coverageFiles = @(Get-ChildItem -Path . -Recurse -Filter "coverage.xml" -ErrorAction SilentlyContinue)
     if ($coverageFiles.Count -gt 0) {
         $latestCoverageFile = $coverageFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        $targetCoverageFile = Join-Path $CoverageOutputPath "coverage.opencover.xml"
+        $targetCoverageFile = Join-Path $CoverageOutputPath "coverage.xml"
         Copy-Item -Path $latestCoverageFile.FullName -Destination $targetCoverageFile -Force
         Write-Information "Coverage file copied to: $targetCoverageFile" -Tags "Invoke-DotNetTest"
     } else {

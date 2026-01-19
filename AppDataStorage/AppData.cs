@@ -2,6 +2,10 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("ktsu.AppDataStorage.Test")]
+
 namespace ktsu.AppDataStorage;
 
 using System.IO.Abstractions;
@@ -86,7 +90,7 @@ public static class AppData
 	/// <summary>
 	/// The default file system implementation used when no thread-local override is set.
 	/// </summary>
-	private static readonly IFileSystem DefaultFileSystem = new FileSystem();
+	private static IFileSystem DefaultFileSystem { get; } = new FileSystem();
 
 	/// <summary>
 	/// Ensures that the directory for the specified file path exists.
@@ -143,8 +147,8 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> or <paramref name="text"/> is null.</exception>
 	public static void WriteText<T>(T appData, string text) where T : AppData<T>, new()
 	{
-		Guard.NotNull(appData);
-		Guard.NotNull(text);
+		Ensure.NotNull(appData);
+		Ensure.NotNull(text);
 
 		lock (AppData<T>.Lock)
 		{
@@ -177,7 +181,7 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> is null.</exception>
 	public static string ReadText<T>(T appData) where T : AppData<T>, new()
 	{
-		Guard.NotNull(appData);
+		Ensure.NotNull(appData);
 
 		lock (AppData<T>.Lock)
 		{
@@ -220,7 +224,7 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> is null.</exception>
 	public static void QueueSave<T>(this T appData) where T : AppData<T>, new()
 	{
-		Guard.NotNull(appData);
+		Ensure.NotNull(appData);
 
 		lock (AppData<T>.Lock)
 		{
@@ -237,7 +241,7 @@ public static class AppData
 	/// <exception cref="ArgumentNullException">Thrown when <paramref name="appData"/> is null.</exception>
 	public static void SaveIfRequired<T>(this T appData) where T : AppData<T>, new()
 	{
-		Guard.NotNull(appData);
+		Ensure.NotNull(appData);
 
 		lock (AppData<T>.Lock)
 		{
@@ -270,7 +274,7 @@ public static class AppData
 	/// </example>
 	public static void ConfigureForTesting(Func<IFileSystem> fileSystemFactory)
 	{
-		Guard.NotNull(fileSystemFactory);
+		Ensure.NotNull(fileSystemFactory);
 
 		// Validate that the factory produces mock/test file systems by testing it once
 		IFileSystem testInstance = fileSystemFactory();
@@ -290,7 +294,7 @@ public static class AppData
 	/// <returns>True if the file system is a test/mock implementation; otherwise, false.</returns>
 	private static bool IsTestFileSystem(IFileSystem fileSystem)
 	{
-		Guard.NotNull(fileSystem);
+		Ensure.NotNull(fileSystem);
 
 		Type fileSystemType = fileSystem.GetType();
 
