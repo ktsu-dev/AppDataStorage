@@ -1,12 +1,8 @@
-## v1.15.12-pre.2 (prerelease)
+## v1.15.12 (patch)
 
-Changes since v1.15.12-pre.1:
+Changes since v1.15.11:
 
-- Bump Polyfill from 8.8.0 to 9.7.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
-- Bump the ktsu group with 1 update ([@dependabot[bot]](https://github.com/dependabot[bot]))
-- Bump Polyfill from 9.7.2 to 9.7.3 ([@dependabot[bot]](https://github.com/dependabot[bot]))
-- Bump Polyfill from 9.7.1 to 9.7.2 ([@dependabot[bot]](https://github.com/dependabot[bot]))
-- Bump the microsoft group with 1 update ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Update .NET version to 10.0 and adjust related configurations ([@matt-edmondson](https://github.com/matt-edmondson))
 ## v1.15.12-pre.1 (prerelease)
 
 Changes since v1.15.11:
