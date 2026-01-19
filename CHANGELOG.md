@@ -1,3 +1,8 @@
+## v1.15.13-pre.1 (prerelease)
+
+Changes since v1.15.12:
+
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
 ## v1.15.12 (patch)
 
 Changes since v1.15.11:
@@ -6,11 +11,7 @@ Changes since v1.15.11:
 - Add [DoNotParallelize] attribute to TestSaveIfRequiredStaticMethod to prevent parallel execution ([@matt-edmondson](https://github.com/matt-edmondson))
 ## v1.15.12-pre.1 (prerelease)
 
-Changes since v1.15.11:
-
-- Bump the microsoft group with 1 update ([@dependabot[bot]](https://github.com/dependabot[bot]))
-- Remove redundant Microsoft.Testing.Extensions.CodeCoverage reference ([@matt-edmondson](https://github.com/matt-edmondson))
-- Bump the microsoft group with 1 update ([@dependabot[bot]](https://github.com/dependabot[bot]))
+Incremental prerelease update.
 ## v1.15.11 (patch)
 
 Changes since v1.15.10:

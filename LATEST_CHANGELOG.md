@@ -1,6 +1,5 @@
-## v1.15.12 (patch)
+## v1.15.13-pre.1 (prerelease)
 
-Changes since v1.15.11:
+Changes since v1.15.12:
 
-- Update .NET version to 10.0 and adjust related configurations ([@matt-edmondson](https://github.com/matt-edmondson))
-- Add [DoNotParallelize] attribute to TestSaveIfRequiredStaticMethod to prevent parallel execution ([@matt-edmondson](https://github.com/matt-edmondson))
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
