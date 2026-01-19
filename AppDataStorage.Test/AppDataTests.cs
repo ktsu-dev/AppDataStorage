@@ -647,8 +647,11 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
+	[DoNotParallelize]
 	public void TestSaveIfRequiredStaticMethod()
 	{
+		// This test uses the static singleton which is shared across tests,
+		// so it cannot run in parallel with other tests that use TestAppData.Get()
 		TestAppData.QueueSave();
 		Thread.Sleep(TestAppData.Get().SaveDebounceTime + TimeSpan.FromMilliseconds(100));
 
