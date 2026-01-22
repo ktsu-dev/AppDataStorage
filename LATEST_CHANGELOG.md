@@ -1,5 +1,5 @@
-## v1.15.13-pre.2 (prerelease)
+## v1.15.13-pre.3 (prerelease)
 
-Changes since v1.15.13-pre.1:
+Changes since v1.15.13-pre.2:
 
-- Bump Polyfill from 9.7.3 to 9.7.4 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump Polyfill from 9.7.4 to 9.7.5 ([@dependabot[bot]](https://github.com/dependabot[bot]))
