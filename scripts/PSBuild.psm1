@@ -1465,6 +1465,21 @@ function Invoke-DotNetTest {
 
     Write-StepHeader "Running Tests with Coverage" -Tags "Invoke-DotNetTest"
 
+    # Check if there are any test projects in the solution
+    $testProjects = @(Get-ChildItem -Recurse -Filter "*.csproj" | Where-Object {
+        $_.Name -match "\.Test\.csproj$" -or
+        $_.Directory.Name -match "\.Test$" -or
+        $_.Directory.Name -eq "Test" -or
+        (Select-String -Path $_.FullName -Pattern "<IsTestProject>true</IsTestProject>" -Quiet)
+    })
+
+    if ($testProjects.Count -eq 0) {
+        Write-Information "No test projects found in solution. Skipping test execution." -Tags "Invoke-DotNetTest"
+        return
+    }
+
+    Write-Information "Found $($testProjects.Count) test project(s)" -Tags "Invoke-DotNetTest"
+
     # Ensure the TestResults directory exists
     $testResultsPath = Join-Path $CoverageOutputPath "TestResults"
     New-Item -Path $testResultsPath -ItemType Directory -Force | Out-Null
