@@ -1,8 +1,10 @@
-## v1.15.13-pre.7 (prerelease)
+## v1.15.13-pre.8 (prerelease)
 
-Changes since v1.15.13-pre.6:
+Changes since v1.15.13-pre.7:
 
-- Bump Polyfill from 9.7.5 to 9.7.6 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Sync .gitignore ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Merge remote-tracking branch 'refs/remotes/origin/main' ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 ## v1.15.13-pre.7 (prerelease)
 
 Changes since v1.15.13-pre.6:
