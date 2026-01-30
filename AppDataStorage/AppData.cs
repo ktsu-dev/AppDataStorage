@@ -2,10 +2,6 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-using System.Runtime.CompilerServices;
-
-[assembly: InternalsVisibleTo("ktsu.AppDataStorage.Test")]
-
 namespace ktsu.AppDataStorage;
 
 using System.IO.Abstractions;
