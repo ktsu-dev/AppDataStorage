@@ -1,6 +1,5 @@
-## v1.15.13 (patch)
+## v1.15.14-pre.1 (prerelease)
 
-Changes since v1.15.12:
+Changes since v1.15.13:
 
-- Refactor assembly visibility: remove InternalsVisibleTo attribute from AppData.cs and add AssemblyInfo.cs ([@matt-edmondson](https://github.com/matt-edmondson))
-- Remove .github\workflows\project.yml ([@matt-edmondson](https://github.com/matt-edmondson))
+- Bump the ktsu group with 6 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
