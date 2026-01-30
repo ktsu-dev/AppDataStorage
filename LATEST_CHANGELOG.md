@@ -1,6 +1,6 @@
-## v1.15.13-pre.10 (prerelease)
+## v1.15.13 (patch)
 
-Changes since v1.15.13-pre.9:
+Changes since v1.15.12:
 
-- Bump Polyfill from 9.7.6 to 9.7.7 ([@dependabot[bot]](https://github.com/dependabot[bot]))
-- Bump the ktsu group with 5 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Refactor assembly visibility: remove InternalsVisibleTo attribute from AppData.cs and add AssemblyInfo.cs ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove .github\workflows\project.yml ([@matt-edmondson](https://github.com/matt-edmondson))
