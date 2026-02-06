@@ -1,3 +1,6 @@
+## v1.15.14
+
+No significant changes detected since v1.15.14.
 ## v1.15.14 (patch)
 
 Changes since v1.15.13:
@@ -67,9 +70,7 @@ Changes since v1.15.14-pre.1:
 - Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
 ## v1.15.14-pre.1 (prerelease)
 
-Changes since v1.15.13:
-
-- Bump the ktsu group with 6 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+Incremental prerelease update.
 ## v1.15.13 (patch)
 
 Changes since v1.15.12:
