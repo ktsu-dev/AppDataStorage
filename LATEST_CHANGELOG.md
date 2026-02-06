@@ -1,6 +1,5 @@
-## v1.15.14-pre.11 (prerelease)
+## v1.15.14 (patch)
 
-Changes since v1.15.14-pre.10:
+Changes since v1.15.13:
 
-- Sync scripts\update-winget-manifests.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Merge remote-tracking branch 'refs/remotes/origin/main' ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Fix SDK name typo and remove unnecessary testing platform properties ([@matt-edmondson](https://github.com/matt-edmondson))
