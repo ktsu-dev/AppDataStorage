@@ -1,6 +1,6 @@
 ## v1.15.14
 
-No significant changes detected since v1.15.14.
+Changes since v1.15.14:
 ## v1.15.14 (patch)
 
 Changes since v1.15.13:
