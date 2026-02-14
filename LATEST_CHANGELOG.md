@@ -1,6 +1,4 @@
-## v1.15.16 (patch)
+## v1.15.16
 
-Changes since v1.15.15:
-
-- Remove legacy build scripts ([@matt-edmondson](https://github.com/matt-edmondson))
+No significant changes detected since v1.15.16.
 
