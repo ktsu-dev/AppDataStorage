@@ -1,7 +1,6 @@
-## v1.15.15 (patch)
+## v1.15.16 (patch)
 
-Changes since v1.15.14:
+Changes since v1.15.15:
 
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Remove legacy build scripts ([@matt-edmondson](https://github.com/matt-edmondson))
 
