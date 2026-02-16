@@ -1,3 +1,10 @@
+## v1.15.18 (patch)
+
+Changes since v1.15.17:
+
+- Merge remote-tracking branch 'refs/remotes/origin/main' ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+
 ## v1.15.17 (patch)
 
 Changes since v1.15.16:
@@ -6,11 +13,7 @@ Changes since v1.15.16:
 
 ## v1.15.17-pre.1 (prerelease)
 
-Changes since v1.15.16:
-
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+No significant changes detected since v1.15.17.
 
 ## v1.15.16 (patch)
 

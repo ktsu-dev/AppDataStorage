@@ -1,6 +1,7 @@
-## v1.15.17 (patch)
+## v1.15.18 (patch)
 
-Changes since v1.15.16:
+Changes since v1.15.17:
 
-- Update permissions in dotnet.yml and correct SonarLint project settings ([@matt-edmondson](https://github.com/matt-edmondson))
+- Merge remote-tracking branch 'refs/remotes/origin/main' ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
