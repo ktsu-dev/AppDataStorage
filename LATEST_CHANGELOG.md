@@ -1,8 +1,6 @@
-## v1.15.17-pre.1 (prerelease)
+## v1.15.17 (patch)
 
 Changes since v1.15.16:
 
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Update permissions in dotnet.yml and correct SonarLint project settings ([@matt-edmondson](https://github.com/matt-edmondson))
 
