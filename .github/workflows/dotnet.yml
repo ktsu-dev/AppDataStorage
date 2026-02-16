@@ -28,7 +28,8 @@ concurrency:
   cancel-in-progress: true
 
 # Default permissions
-permissions: read-all
+permissions:
+  contents: read
 
 env:
   DOTNET_VERSION: "10.0" # Only needed for actions/setup-dotnet

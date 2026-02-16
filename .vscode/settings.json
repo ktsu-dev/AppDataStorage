@@ -1,6 +1,6 @@
 {
   "sonarlint.connectedMode.project": {
-    "connectionId": "ktsu-io",
-    "projectKey": "ktsu-io_AppDataStorage"
+    "connectionId": "ktsu-dev",
+    "projectKey": "ktsu-dev_AppDataStorage"
   }
 }
