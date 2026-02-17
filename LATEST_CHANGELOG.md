@@ -1,4 +1,6 @@
-## v1.15.18
+## v1.15.19 (patch)
 
-No significant changes detected since v1.15.18.
+Changes since v1.15.18:
+
+- Add SonarQube exclusions configuration to workflow ([@matt-edmondson](https://github.com/matt-edmondson))
 
