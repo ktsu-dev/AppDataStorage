@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build Commands
 
-```powershell
+```bash
 # Restore, build, and test (standard workflow)
 dotnet restore
 dotnet build
@@ -64,16 +64,27 @@ data.Save();
 - Debounced saves via `QueueSave()` / `SaveIfRequired()` (3-second debounce)
 - Automatic backup files (`.bk` suffix) with timestamped collision handling
 - Safe write pattern: write to `.tmp`, backup existing, move `.tmp` to final
+- Lazy singleton access via `Get()` backed by `Lazy<T>`
+- `LoadOrCreate()` overloads support custom subdirectories and file names
+- Corrupt file recovery: falls back to `.bk` backup, then creates a fresh instance
+- Process exit handler ensures queued saves are flushed via `IDisposable`
 
 ### Testing
 
-Tests use `MockFileSystem` from `System.IO.Abstractions.TestingHelpers`:
+Tests use `MockFileSystem` from `System.IO.Abstractions.TestingHelpers` with thread-local isolation:
 
 ```csharp
+// In ClassInitialize - set up factory (each thread gets its own MockFileSystem)
 AppData.ConfigureForTesting(() => new MockFileSystem());
-// ... run tests ...
-AppData.ResetFileSystem(); // Cleanup
+
+// In TestInitialize - clear cached instance for test isolation
+AppData.ClearCachedFileSystem();
+
+// In cleanup
+AppData.ResetFileSystem();
 ```
+
+Tests run with `[Parallelize(Scope = ExecutionScope.MethodLevel)]` for parallel execution. Tests using the shared singleton (`Get()`) must be marked `[DoNotParallelize]`.
 
 ## CI/CD
 

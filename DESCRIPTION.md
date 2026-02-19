@@ -1,1 +1,1 @@
-Application data management library using JSON serialization to save and load data in the user's app data folder.
+A .NET library for persistent application data storage using JSON serialization. Provides a simple inherit-and-use pattern with automatic file management, thread-safe operations, debounced saves, backup recovery, and singleton access. Stores data in the user's app data folder with support for custom subdirectories and file names.

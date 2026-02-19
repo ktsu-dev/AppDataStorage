@@ -1,0 +1,1 @@
+.NET;C#;dotnet;csharp;app data;application data;storage;persistence;JSON;serialization;settings;configuration;file system;backup;thread safety;debounce;singleton;System.Text.Json;System.IO.Abstractions;testable;MIT License
