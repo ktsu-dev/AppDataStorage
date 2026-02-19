@@ -1,7 +1,6 @@
-## v1.15.20 (patch)
+## v1.15.21 (patch)
 
-Changes since v1.15.19:
+Changes since v1.15.20:
 
-- Bump Polyfill from 9.8.1 to 9.9.0 ([@dependabot[bot]](https://github.com/dependabot[bot]))
-- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Add project configuration and documentation updates ([@matt-edmondson](https://github.com/matt-edmondson))
 
