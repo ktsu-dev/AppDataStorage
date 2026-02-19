@@ -268,17 +268,17 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
-	public void TestSaveIfRequiredSavesDataAfterDebounceTime()
+	public async Task TestSaveIfRequiredSavesDataAfterDebounceTime()
 	{
 		using TestAppData appData = CreateTestAppDataWithContent(TestDataString);
 		appData.QueueSave();
-		Thread.Sleep(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100)); // Wait for more than debounce time
+		await Task.Delay(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100)).ConfigureAwait(false); // Wait for more than debounce time
 
 		appData.SaveIfRequired();
 
 		AssertFileExists(appData.FilePath, "File was not saved.");
 
-		TestAppData? fileContents = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(appData.FilePath), AppData.JsonSerializerOptions);
+		TestAppData? fileContents = JsonSerializer.Deserialize<TestAppData>(await AppData.FileSystem.File.ReadAllTextAsync(appData.FilePath).ConfigureAwait(false), AppData.JsonSerializerOptions);
 		Assert.IsNotNull(fileContents, "Saved data should be deserialized correctly.");
 		Assert.AreEqual(TestDataString, fileContents.Data, "Saved data does not match.");
 	}
@@ -337,14 +337,14 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
-	public void TestIsDebounceTimeElapsedReturnsCorrectValue()
+	public async Task TestIsDebounceTimeElapsedReturnsCorrectValue()
 	{
 		using TestAppData appData = CreateTestAppData();
 
 		appData.QueueSave();
 		Assert.IsFalse(appData.IsDoubounceTimeElapsed(), "Debounce should not have elapsed immediately after QueueSave.");
 
-		Thread.Sleep(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100));
+		await Task.Delay(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
 
 		Assert.IsTrue(appData.IsDoubounceTimeElapsed(), "Debounce should have elapsed after waiting.");
 	}
@@ -363,7 +363,7 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
-	public void TestMultipleSavesOnlyWriteOnceWithinDebouncePeriod()
+	public async Task TestMultipleSavesOnlyWriteOnceWithinDebouncePeriod()
 	{
 		using TestAppData appData = CreateTestAppDataWithContent("Data1");
 		appData.Save();
@@ -372,14 +372,14 @@ public sealed class AppDataTests
 		appData.QueueSave();
 		appData.SaveIfRequired();
 
-		TestAppData? fileContent = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(appData.FilePath), AppData.JsonSerializerOptions);
+		TestAppData? fileContent = JsonSerializer.Deserialize<TestAppData>(await AppData.FileSystem.File.ReadAllTextAsync(appData.FilePath).ConfigureAwait(false), AppData.JsonSerializerOptions);
 		Assert.IsNotNull(fileContent, "File should not be empty after save.");
 		Assert.AreEqual("Data1", fileContent.Data, "Data should not be updated due to debounce.");
 
-		Thread.Sleep(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100));
+		await Task.Delay(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
 		appData.SaveIfRequired();
 
-		fileContent = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(appData.FilePath), AppData.JsonSerializerOptions);
+		fileContent = JsonSerializer.Deserialize<TestAppData>(await AppData.FileSystem.File.ReadAllTextAsync(appData.FilePath).ConfigureAwait(false), AppData.JsonSerializerOptions);
 		Assert.IsNotNull(fileContent, "File should not be empty after debounce period.");
 		Assert.AreEqual("Data2", fileContent.Data, "Data should be updated after debounce period.");
 	}
@@ -481,7 +481,7 @@ public sealed class AppDataTests
 	{
 		AbsoluteFilePath path = null!;
 		AppData.EnsureDirectoryExists(path);
-		// No exception should be thrown
+		Assert.IsNotNull(AppData.Path, "AppData path should remain valid after handling null file path.");
 	}
 
 	[TestMethod]
@@ -489,7 +489,7 @@ public sealed class AppDataTests
 	{
 		AbsoluteFilePath path = new();
 		AppData.EnsureDirectoryExists(path);
-		// No exception should be thrown
+		Assert.IsNotNull(AppData.Path, "AppData path should remain valid after handling empty file path.");
 	}
 
 	[TestMethod]
@@ -497,7 +497,7 @@ public sealed class AppDataTests
 	{
 		AbsoluteDirectoryPath path = null!;
 		AppData.EnsureDirectoryExists(path);
-		// No exception should be thrown
+		Assert.IsNotNull(AppData.Path, "AppData path should remain valid after handling null directory path.");
 	}
 
 	[TestMethod]
@@ -505,7 +505,7 @@ public sealed class AppDataTests
 	{
 		AbsoluteDirectoryPath path = new();
 		AppData.EnsureDirectoryExists(path);
-		// No exception should be thrown
+		Assert.IsNotNull(AppData.Path, "AppData path should remain valid after handling empty directory path.");
 	}
 
 	[TestMethod]
@@ -648,12 +648,12 @@ public sealed class AppDataTests
 
 	[TestMethod]
 	[DoNotParallelize]
-	public void TestSaveIfRequiredStaticMethod()
+	public async Task TestSaveIfRequiredStaticMethod()
 	{
 		// This test uses the static singleton which is shared across tests,
 		// so it cannot run in parallel with other tests that use TestAppData.Get()
 		TestAppData.QueueSave();
-		Thread.Sleep(TestAppData.Get().SaveDebounceTime + TimeSpan.FromMilliseconds(100));
+		await Task.Delay(TestAppData.Get().SaveDebounceTime + TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
 
 		TestAppData.SaveIfRequired();
 
@@ -1104,6 +1104,9 @@ public sealed class AppDataTests
 		{
 			// Expected behavior when file is readonly
 		}
+
+		string content = AppData.FileSystem.File.ReadAllText(appData.FilePath);
+		Assert.AreEqual("existing data", content, "Original file content should be preserved after failed write attempt.");
 	}
 
 	[TestMethod]
@@ -1313,7 +1316,7 @@ public sealed class AppDataTests
 		AppData.EnsureDirectoryExists(AbsoluteFilePath.Create(string.Empty));
 		AppData.EnsureDirectoryExists(AbsoluteDirectoryPath.Create(string.Empty));
 
-		// Should not throw and handle gracefully - if we get here, the method handled empty paths correctly
+		Assert.IsNotNull(AppData.Path, "AppData path should remain valid after handling empty paths.");
 	}
 
 	[TestMethod]
@@ -1344,11 +1347,11 @@ public sealed class AppDataTests
 		appData.Dispose();
 		appData.Dispose();
 
-		// Should handle multiple disposes gracefully - if we get here, the method succeeded
+		AssertFileExists(appData.FilePath, "Queued save should be flushed on first dispose.");
 	}
 
 	[TestMethod]
-	public void TestSaveDebounceTimingPrecision()
+	public async Task TestSaveDebounceTimingPrecision()
 	{
 		using TestAppData appData = new() { Data = TestDataString };
 
@@ -1358,7 +1361,7 @@ public sealed class AppDataTests
 		Assert.IsFalse(appData.IsDoubounceTimeElapsed());
 
 		// Wait for debounce time + buffer
-		Thread.Sleep(appData.SaveDebounceTime.Add(TimeSpan.FromMilliseconds(100)));
+		await Task.Delay(appData.SaveDebounceTime.Add(TimeSpan.FromMilliseconds(100))).ConfigureAwait(false);
 
 		Assert.IsTrue(appData.IsDoubounceTimeElapsed());
 	}
