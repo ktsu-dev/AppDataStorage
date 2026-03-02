@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="ktsu.Semantics.Paths" Version="1.0.33" />
+    <PackageVersion Include="ktsu.Semantics.Paths" Version="1.0.34" />
     <PackageVersion Include="ktsu.RoundTripStringJsonConverter" Version="1.0.10" />
     <PackageVersion Include="ktsu.CaseConverter" Version="1.3.12" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
