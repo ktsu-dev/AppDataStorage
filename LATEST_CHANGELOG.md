@@ -1,6 +1,6 @@
-## v1.16.8 (patch)
+## v1.16.9 (patch)
 
-Changes since v1.16.7:
+Changes since v1.16.8:
 
-- Bump Polyfill from 9.24.0 to 10.0.0 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump MSTest.Sdk from 4.1.0 to 4.2.1 ([@dependabot[bot]](https://github.com/dependabot[bot]))
 
