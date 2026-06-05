@@ -1,6 +1,4 @@
-## v1.16.20 (patch)
+## v1.16.20
 
-Changes since v1.16.19:
-
-- Bump Polyfill from 10.7.2 to 10.8.0 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+No significant changes detected since v1.16.20.
 
