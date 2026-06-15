@@ -2,6 +2,5 @@
 
 Changes since v1.16.23:
 
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Remove serena/cursor files ([@matt-edmondson](https://github.com/matt-edmondson))
 
