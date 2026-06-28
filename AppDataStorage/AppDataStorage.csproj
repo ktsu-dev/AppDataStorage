@@ -11,5 +11,8 @@
     <PackageReference Include="Polyfill" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
-  </ItemGroup>
+  
+    <PackageReference Include="Testably.Abstractions.FileSystem.Interface" />
+    <PackageReference Include="ktsu.Semantics.Strings" />
+    <PackageReference Include="System.Text.Json" /></ItemGroup>
 </Project>
