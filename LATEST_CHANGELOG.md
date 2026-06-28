@@ -1,7 +1,7 @@
-## v1.16.24 (patch)
+## v1.16.25 (patch)
 
-Changes since v1.16.23:
+Changes since v1.16.24:
 
-- Update package references in project files for improved functionality ([@matt-edmondson](https://github.com/matt-edmondson))
-- Remove serena/cursor files ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
