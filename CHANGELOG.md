@@ -2,6 +2,7 @@
 
 Changes since v1.16.32:
 
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
 - Bump the ktsu group with 3 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
 - Bump the ktsu group with 11 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
 - Bump the ktsu group with 3 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
