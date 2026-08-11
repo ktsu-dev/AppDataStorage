@@ -1,6 +1,6 @@
-## v1.16.33 (patch)
+## v1.16.34 (patch)
 
-Changes since v1.16.32:
+Changes since v1.16.33:
 
-- chore: update ktsu.Sdk to 2.21.1 [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+- Bump the ktsu group with 2 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
 
