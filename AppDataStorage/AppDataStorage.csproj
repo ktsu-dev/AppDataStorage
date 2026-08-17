@@ -8,11 +8,16 @@
     <PackageReference Include="ktsu.CaseConverter" />
     <PackageReference Include="ktsu.RoundTripStringJsonConverter" />
     <PackageReference Include="ktsu.Semantics.Paths" />
-    <PackageReference Include="Polyfill" />
+    <PackageReference Include="Polyfill" PrivateAssets="all" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
   
     <PackageReference Include="Testably.Abstractions.FileSystem.Interface" />
     <PackageReference Include="ktsu.Semantics.Strings" />
-    <PackageReference Include="System.Text.Json" /></ItemGroup>
+    <PackageReference Include="System.Text.Json" />
+    <!-- KTSU0001 (ktsu.Sdk 2.27.0+) requires System.Memory on netstandard2.1 as well, and
+         System.Threading.Tasks.Extensions on netstandard2.0. -->
+    <PackageReference Include="System.Memory" Condition="'$(TargetFramework)' == 'netstandard2.0' or '$(TargetFramework)' == 'netstandard2.1'" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+  </ItemGroup>
 </Project>
