@@ -8,7 +8,7 @@
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.AppDataStorage?label=Downloads&logo=nuget)](https://nuget.org/packages/ktsu.AppDataStorage)
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ktsu-dev/AppDataStorage?label=Commits&logo=github)](https://github.com/ktsu-dev/AppDataStorage/commits/main)
 [![GitHub contributors](https://img.shields.io/github/contributors/ktsu-dev/AppDataStorage?label=Contributors&logo=github)](https://github.com/ktsu-dev/AppDataStorage/graphs/contributors)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/AppDataStorage/dotnet.yml?label=Build&logo=github)](https://github.com/ktsu-dev/AppDataStorage/actions)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/AppDataStorage/dotnet.yml?branch=main&label=Build&logo=github)](https://github.com/ktsu-dev/AppDataStorage/actions)
 
 ## Introduction
 
