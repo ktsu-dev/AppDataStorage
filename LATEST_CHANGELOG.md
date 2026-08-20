@@ -1,6 +1,6 @@
-## v1.16.39 (patch)
+## v1.16.40 (patch)
 
-Changes since v1.16.38:
+Changes since v1.16.39:
 
-- Bump the ktsu group with 13 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- test: pin semantic string serialization shape [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
 
