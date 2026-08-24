@@ -1,4 +1,6 @@
-## v1.16.42
+## v1.16.43 (patch)
 
-No significant changes detected since v1.16.42.
+Changes since v1.16.42:
+
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
 
