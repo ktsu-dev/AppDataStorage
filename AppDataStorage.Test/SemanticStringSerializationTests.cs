@@ -25,10 +25,16 @@ public sealed class SemanticStringSerializationTests
 {
 	public sealed record Label : SemanticString<Label> { }
 
+	// An absolute directory path that is valid on the host operating system. These tests never touch
+	// the disk, the file system is mocked, but AbsoluteDirectoryPath still validates the shape of
+	// what it is given, and a drive letter is not an absolute path on Linux.
+	private static readonly AbsoluteDirectoryPath SampleDirectory =
+		(OperatingSystem.IsWindows() ? "C:/temp" : "/tmp").As<AbsoluteDirectoryPath>();
+
 	private sealed class PathAppData : AppData<PathAppData>
 	{
 		public string Data { get; set; } = string.Empty;
-		public AbsoluteDirectoryPath Path { get; set; } = "C:/temp".As<AbsoluteDirectoryPath>();
+		public AbsoluteDirectoryPath Path { get; set; } = SampleDirectory;
 		public Label Name { get; set; } = "widget".As<Label>();
 	}
 
@@ -68,7 +74,7 @@ public sealed class SemanticStringSerializationTests
 
 		using PathAppData loaded = AppData<PathAppData>.LoadOrCreate();
 
-		Assert.AreEqual("C:/temp".As<AbsoluteDirectoryPath>(), loaded.Path);
+		Assert.AreEqual(SampleDirectory, loaded.Path);
 		Assert.AreEqual("widget".As<Label>(), loaded.Name);
 	}
 }

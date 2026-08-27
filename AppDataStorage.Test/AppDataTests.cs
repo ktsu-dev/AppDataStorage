@@ -40,10 +40,16 @@ public sealed class AppDataTests
 		AppData.ClearCachedFileSystem();
 	}
 
+	// An absolute directory path that is valid on the host operating system. A drive letter is not
+	// an absolute path on Linux, and AbsoluteDirectoryPath validates the shape even though these
+	// tests never touch the disk.
+	private static readonly AbsoluteDirectoryPath SampleDirectory =
+		(OperatingSystem.IsWindows() ? "C:/" : "/").As<AbsoluteDirectoryPath>();
+
 	internal sealed class TestAppData : AppData<TestAppData>
 	{
 		public string Data { get; set; } = string.Empty;
-		public AbsoluteDirectoryPath StrongPath { get; set; } = "c:\\".As<AbsoluteDirectoryPath>();
+		public AbsoluteDirectoryPath StrongPath { get; set; } = SampleDirectory;
 	}
 
 	private static void AssertFileExists(AbsoluteFilePath filePath, string message = "File should exist.")
