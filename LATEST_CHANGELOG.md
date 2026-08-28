@@ -1,8 +1,6 @@
-## v1.16.45 (patch)
+## v1.16.46 (patch)
 
-Changes since v1.16.44:
+Changes since v1.16.45:
 
-- test: use an absolute path the host recognises [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
-- ci: make the SonarQube quality gate opt in [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
-- ci: adopt the unified dotnet workflow [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
 
