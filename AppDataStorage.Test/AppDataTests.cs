@@ -367,6 +367,20 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
+	public void TestLoadOrCreateHandlesNullJsonFile()
+	{
+		AbsoluteFilePath filePath = TestAppData.Get().FilePath;
+		AppData.EnsureDirectoryExists(filePath);
+		AppData.FileSystem.File.WriteAllText(filePath, "null");
+
+		TestAppData appData = TestAppData.LoadOrCreate();
+
+		AssertAppDataNotNull(appData, "LoadOrCreate should recover if file deserializes to null.");
+		Assert.AreEqual(string.Empty, appData.Data, "Data should be default if loaded from a null json file.");
+		Assert.IsTrue(AppData.FileSystem.File.Exists(filePath), "Recovery should recreate a valid settings file.");
+	}
+
+	[TestMethod]
 	public async Task TestMultipleSavesOnlyWriteOnceWithinDebouncePeriod()
 	{
 		using TestAppData appData = CreateTestAppDataWithContent("Data1");

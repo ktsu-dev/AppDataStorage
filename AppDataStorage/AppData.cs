@@ -515,7 +515,8 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 
 			try
 			{
-				newAppData = JsonSerializer.Deserialize<T>(jsonString, AppData.JsonSerializerOptions)!;
+				newAppData = JsonSerializer.Deserialize<T>(jsonString, AppData.JsonSerializerOptions)
+					?? throw new JsonException("Deserialized settings file to null.");
 				newAppData.Subdirectory = subdirectory;
 				newAppData.FileNameOverride = fileName;
 				return newAppData;
