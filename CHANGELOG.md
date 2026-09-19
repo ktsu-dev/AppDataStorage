@@ -1,3 +1,7 @@
+## v1.17.6
+
+No significant changes detected since v1.17.6.
+
 ## v1.17.6 (patch)
 
 Changes since v1.17.5:
