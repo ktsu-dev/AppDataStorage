@@ -4,8 +4,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="ktsu.Semantics.Paths" Version="5.5.1" />
-    <PackageVersion Include="ktsu.RoundTripStringJsonConverter" Version="1.0.66" />
-    <PackageVersion Include="ktsu.CaseConverter" Version="1.4.5" />
+    <PackageVersion Include="ktsu.RoundTripStringJsonConverter" Version="1.0.67" />
+    <PackageVersion Include="ktsu.CaseConverter" Version="1.4.6" />
     <PackageVersion Include="Polyfill" Version="11.4.0" />
     <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
