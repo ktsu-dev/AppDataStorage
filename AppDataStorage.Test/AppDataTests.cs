@@ -261,6 +261,54 @@ public sealed class AppDataTests
 		AssertFileExists(appData.FilePath, "Main file should be restored from backup.");
 	}
 
+	// The on-disk state left by a process killed between WriteText's Delete of the main file and its
+	// Move of the temp file into place: main gone, temp holding the save that was in flight, backup
+	// holding the content before it.
+	private static void SetUpInterruptedWrite(TestAppData appData, string inFlight, string previous)
+	{
+		AppData.FileSystem.File.WriteAllText(AppData.MakeTempFilePath(appData.FilePath), inFlight);
+		AppData.FileSystem.File.WriteAllText(AppData.MakeBackupFilePath(appData.FilePath), previous);
+		AppData.FileSystem.File.Delete(appData.FilePath);
+	}
+
+	[TestMethod]
+	public void TestReadTextRecoversTheInterruptedWriteRatherThanTheStaleBackup()
+	{
+		const string inFlight = "Newest data that was being saved";
+		const string previous = "Original data";
+		using TestAppData appData = CreateTestAppDataWithContent(TestDataString);
+		AppData.WriteText(appData, TestDataString);
+		SetUpInterruptedWrite(appData, inFlight, previous);
+
+		string text = AppData.ReadText(appData);
+
+		Assert.AreEqual(inFlight, text, "The newest save should be recovered, not the stale backup.");
+		AssertFileExists(appData.FilePath, "Main file should be restored from the interrupted write.");
+	}
+
+	[TestMethod]
+	public void TestReadTextArchivesTheRecoveredTempFileRatherThanLeavingItOrphaned()
+	{
+		using TestAppData appData = CreateTestAppDataWithContent(TestDataString);
+		AppData.WriteText(appData, TestDataString);
+		SetUpInterruptedWrite(appData, "Newest data that was being saved", "Original data");
+		AbsoluteFilePath tempFilePath = AppData.MakeTempFilePath(appData.FilePath);
+
+		AppData.ReadText(appData);
+
+		Assert.IsFalse(
+			AppData.FileSystem.File.Exists(tempFilePath),
+			"The consumed temp file should not be left orphaned on disk.");
+
+		string directory = AppData.FileSystem.Path.GetDirectoryName(appData.FilePath)!;
+		string tempFileName = AppData.FileSystem.Path.GetFileName(tempFilePath);
+		Assert.IsTrue(
+			Array.Exists(
+				AppData.FileSystem.Directory.GetFiles(directory),
+				file => AppData.FileSystem.Path.GetFileName(file).StartsWith(tempFileName + ".", StringComparison.Ordinal)),
+			"The recovered temp file should be archived under a timestamped name, not deleted.");
+	}
+
 	[TestMethod]
 	public void TestQueueSaveSetsSaveQueuedTime()
 	{

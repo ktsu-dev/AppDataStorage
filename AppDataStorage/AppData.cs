@@ -186,28 +186,53 @@ public static class AppData
 			}
 			catch (FileNotFoundException)
 			{
-				AbsoluteFilePath bkFilePath = MakeBackupFilePath(appData.FilePath);
-				if (FileSystem.File.Exists(bkFilePath))
+				// WriteText deletes the main file before moving the temp file into its place. A
+				// process killed in that window leaves the main file gone, the temp file holding the
+				// content of the save that was in flight, and the backup holding the content before
+				// it. The temp file is therefore the newer of the two candidates and is tried first;
+				// recovering the backup instead silently discards the newest save.
+				if (TryRestoreFrom(MakeTempFilePath(appData.FilePath), appData.FilePath)
+					|| TryRestoreFrom(MakeBackupFilePath(appData.FilePath), appData.FilePath))
 				{
-					FileSystem.File.Copy(bkFilePath, appData.FilePath);
-
-					// Create a unique timestamped backup filename
-					string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-					AbsoluteFilePath timestampedBackup = bkFilePath.WithSuffix($".{timestamp}");
-					int counter = 0;
-					while (FileSystem.File.Exists(timestampedBackup))
-					{
-						counter++;
-						timestampedBackup = bkFilePath.WithSuffix($".{timestamp}_{counter}");
-					}
-
-					FileSystem.File.Move(bkFilePath, timestampedBackup);
 					return ReadText(appData);
 				}
 			}
 
 			return string.Empty;
 		}
+	}
+
+	/// <summary>
+	/// Restores <paramref name="filePath"/> from <paramref name="candidate"/> if the candidate exists,
+	/// then archives the candidate under a unique timestamped name.
+	/// </summary>
+	/// <param name="candidate">The recovery candidate to restore from.</param>
+	/// <param name="filePath">The app data file path to restore.</param>
+	/// <returns>True if the candidate existed and the file was restored; otherwise false.</returns>
+	private static bool TryRestoreFrom(AbsoluteFilePath candidate, AbsoluteFilePath filePath)
+	{
+		if (!FileSystem.File.Exists(candidate))
+		{
+			return false;
+		}
+
+		FileSystem.File.Copy(candidate, filePath);
+
+		// Archiving rather than deleting keeps the recovered content for inspection, and moving it
+		// out of the way is what stops a candidate that turns out to be unreadable from being
+		// promoted again on the next attempt: LoadOrCreate deletes a file it cannot deserialize and
+		// reads again, which would otherwise restore the same bad content forever.
+		string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+		AbsoluteFilePath archived = candidate.WithSuffix($".{timestamp}");
+		int counter = 0;
+		while (FileSystem.File.Exists(archived))
+		{
+			counter++;
+			archived = candidate.WithSuffix($".{timestamp}_{counter}");
+		}
+
+		FileSystem.File.Move(candidate, archived);
+		return true;
 	}
 
 	/// <summary>
