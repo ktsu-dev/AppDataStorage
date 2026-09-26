@@ -9,6 +9,7 @@ using System.Collections.Concurrent;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 using ktsu.CaseConverter;
@@ -472,6 +473,35 @@ public sealed class AppDataTests
 		appData.Dispose();
 
 		Assert.IsTrue(appData.IsDisposeRegistered, "IsDisposeRegistered should remain true after multiple disposals.");
+	}
+
+	// Kept out of the test body so the instance cannot survive in a local slot the JIT has not yet
+	// reported dead, which would make the weak reference stay alive for reasons unrelated to the
+	// event handler.
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	private static WeakReference RegisterQueueSaveAndDispose()
+	{
+		TestAppData appData = new();
+		appData.QueueSave();
+		Assert.IsTrue(appData.IsDisposeRegistered, "QueueSave should have registered the process-exit handler.");
+		appData.Dispose();
+		return new WeakReference(appData);
+	}
+
+	[TestMethod]
+	public void TestDisposeReleasesTheProcessExitHandlerSoTheInstanceCanBeCollected()
+	{
+		// The handler closes over the instance and AppDomain.CurrentDomain lives for the whole
+		// process, so failing to unsubscribe roots every instance that ever queued a save. That is
+		// invisible for a single Get() singleton but unbounded for a process that churns instances
+		// through LoadOrCreate.
+		WeakReference reference = RegisterQueueSaveAndDispose();
+
+		GC.Collect();
+		GC.WaitForPendingFinalizers();
+		GC.Collect();
+
+		Assert.IsFalse(reference.IsAlive, "A disposed instance should not still be rooted by the ProcessExit handler.");
 	}
 
 	[TestMethod]

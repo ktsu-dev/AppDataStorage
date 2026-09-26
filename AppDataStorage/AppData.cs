@@ -356,6 +356,11 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 {
 	private bool disposedValue;
 
+	// Held so the handler can be removed again. AppDomain.CurrentDomain lives for the process, so a
+	// handler closing over this instance roots it until the process ends; without a reference to the
+	// exact delegate there is no way to unsubscribe, and disposing the instance would not release it.
+	private EventHandler? processExitHandler;
+
 	/// <summary>
 	/// Gets the file name for the app data file.
 	/// </summary>
@@ -454,7 +459,8 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 			if (!IsDisposeRegistered)
 			{
 				IsDisposeRegistered = true;
-				AppDomain.CurrentDomain.ProcessExit += (sender, e) => Dispose();
+				processExitHandler = (sender, e) => Dispose();
+				AppDomain.CurrentDomain.ProcessExit += processExitHandler;
 			}
 		}
 	}
@@ -472,6 +478,17 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 				if (disposing && IsSaveQueued())
 				{
 					Save();
+				}
+
+				// Release the process-exit root. Unconditional rather than under `disposing`, because
+				// it touches only AppDomain.CurrentDomain, which outlives every instance and is safe
+				// to reach from a finalizer. IsDisposeRegistered deliberately stays true: it records
+				// that this instance has been registered, and leaving it set stops a later
+				// EnsureDisposeOnExit re-rooting an already-disposed instance.
+				if (processExitHandler is not null)
+				{
+					AppDomain.CurrentDomain.ProcessExit -= processExitHandler;
+					processExitHandler = null;
 				}
 
 				disposedValue = true;
