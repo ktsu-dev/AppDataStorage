@@ -62,6 +62,7 @@ data.Save();
 - Files stored in `%APPDATA%/{AppDomain.FriendlyName}/` as `{class_name_snake_case}.json`
 - Thread-safe with lock objects (uses `Lock` type on .NET 9+, `object` on earlier versions)
 - Debounced saves via `QueueSave()` / `SaveIfRequired()` (3-second debounce)
+- Whether a save is outstanding is the `HasQueuedSave` flag, set by `QueueSave()` and cleared by a successful `Save()`. It is not `SaveQueuedTime > LastSaveTime`: `DateTime.UtcNow` advances in whole microseconds on macOS, so a queue straight after a save can read the same instant and would be dropped
 - Automatic backup files (`.bk` suffix) with timestamped collision handling
 - Safe write pattern: write to `.tmp`, backup existing, move `.tmp` to final
 - Lazy singleton access via `Get()` backed by `Lazy<T>`

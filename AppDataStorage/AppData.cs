@@ -248,6 +248,7 @@ public static class AppData
 		lock (AppData<T>.Lock)
 		{
 			appData.SaveQueuedTime = DateTime.UtcNow;
+			appData.HasQueuedSave = true;
 			appData.EnsureDisposeOnExit();
 		}
 	}
@@ -424,6 +425,20 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	internal DateTime SaveQueuedTime { get; set; } = DateTime.MinValue;
 
 	/// <summary>
+	/// Gets or sets a value indicating whether a save has been queued and not yet written.
+	/// </summary>
+	/// <remarks>
+	/// This is a flag rather than a comparison of <see cref="SaveQueuedTime"/> against <see cref="LastSaveTime"/>,
+	/// because two reads of <see cref="DateTime.UtcNow"/> are not guaranteed to differ. On macOS the clock
+	/// advances in whole microseconds, so a <c>QueueSave</c> issued straight after a
+	/// <see cref="Save"/> can read the same instant, compare as "not after the last save", and be dropped:
+	/// never written by <c>SaveIfRequired</c> and not flushed on dispose either. The wall
+	/// clock can also be set back, which would drop a queued save the same way. Whether a save is outstanding
+	/// is a fact about the order of two calls, not about the time either one happened at.
+	/// </remarks>
+	internal bool HasQueuedSave { get; set; }
+
+	/// <summary>
 	/// Gets the debounce time for saving the app data.
 	/// </summary>
 	internal TimeSpan SaveDebounceTime { get; } = TimeSpan.FromSeconds(3);
@@ -448,7 +463,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	{
 		lock (Lock)
 		{
-			return SaveQueuedTime > LastSaveTime;
+			return HasQueuedSave;
 		}
 	}
 
@@ -470,6 +485,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 			string jsonString = JsonSerializer.Serialize(this, typeof(T), AppData.JsonSerializerOptions);
 			AppData.WriteText((T)this, jsonString);
 			LastSaveTime = DateTime.UtcNow;
+			HasQueuedSave = false;
 		}
 	}
 

@@ -390,6 +390,32 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
+	public void TestQueueSaveIsNotLostWhenTheClockHasNotAdvancedSinceTheLastSave()
+	{
+		using TestAppData appData = CreateTestAppData();
+		appData.Save();
+
+		// Stand in for a clock that reads the same instant for the save and the queue that follows it,
+		// which is what DateTime.UtcNow does on macOS when both land inside one microsecond. A later
+		// LastSaveTime is the same situation with the wall clock set back.
+		appData.LastSaveTime = DateTime.MaxValue;
+		appData.QueueSave();
+
+		Assert.IsTrue(appData.IsSaveQueued(), "A save queued after the last save must be outstanding whatever the clock reads.");
+	}
+
+	[TestMethod]
+	public void TestSaveClearsQueuedSave()
+	{
+		using TestAppData appData = CreateTestAppData();
+		appData.QueueSave();
+
+		appData.Save();
+
+		Assert.IsFalse(appData.IsSaveQueued(), "Saving should satisfy the queued save.");
+	}
+
+	[TestMethod]
 	public async Task TestIsDebounceTimeElapsedReturnsCorrectValue()
 	{
 		using TestAppData appData = CreateTestAppData();
