@@ -14,6 +14,6 @@
     <PackageVersion Include="TestableIO.System.IO.Abstractions.Wrappers" Version="22.2.0" />
     <PackageVersion Include="ktsu.Semantics.Strings" Version="5.10.0" />
     <PackageVersion Include="System.Text.Json" Version="10.0.12" />
-    <PackageVersion Include="Testably.Abstractions.FileSystem.Interface" Version="10.3.0" />
+    <PackageVersion Include="Testably.Abstractions.FileSystem.Interface" Version="10.4.0" />
   </ItemGroup>
 </Project>
