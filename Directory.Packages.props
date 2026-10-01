@@ -9,7 +9,7 @@
     <PackageVersion Include="Polyfill" Version="11.4.1" />
     <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
-    <PackageVersion Include="TestableIO.System.IO.Abstractions" Version="22.2.0" />
+    <PackageVersion Include="TestableIO.System.IO.Abstractions" Version="22.3.0" />
     <PackageVersion Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="22.3.0" />
     <PackageVersion Include="TestableIO.System.IO.Abstractions.Wrappers" Version="22.2.0" />
     <PackageVersion Include="ktsu.Semantics.Strings" Version="5.10.0" />
