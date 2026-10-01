@@ -1,7 +1,7 @@
-## v1.18.1-pre.1 (prerelease)
+## v1.18.1-pre.2 (prerelease)
 
-Changes since v1.18.0:
+Changes since v1.18.1-pre.1:
 
-- Bump Testably.Abstractions.FileSystem.Interface from 10.3.0 to 10.4.0 ([@dependabot[bot]](https://github.com/dependabot[bot]))
-- Bump the ktsu group with 4 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions.Wrappers from 22.2.0 to 22.3.0 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Bump TestableIO.System.IO.Abstractions from 22.2.0 to 22.3.0 ([@dependabot[bot]](https://github.com/dependabot[bot]))
 
