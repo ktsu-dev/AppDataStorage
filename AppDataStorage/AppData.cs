@@ -220,19 +220,32 @@ public static class AppData
 
 		// Archiving rather than deleting keeps the recovered content for inspection, and moving it
 		// out of the way is what stops a candidate that turns out to be unreadable from being
-		// promoted again on the next attempt: LoadOrCreate deletes a file it cannot deserialize and
+		// promoted again on the next attempt: LoadOrCreate archives a file it cannot deserialize and
 		// reads again, which would otherwise restore the same bad content forever.
+		_ = Archive(candidate, string.Empty);
+		return true;
+	}
+
+	/// <summary>
+	/// Moves <paramref name="filePath"/> aside under a unique timestamped name, so its content
+	/// survives without being read again in its place.
+	/// </summary>
+	/// <param name="filePath">The file to archive.</param>
+	/// <param name="label">A suffix naming why the file was archived, such as ".corrupt", or empty.</param>
+	/// <returns>The path the file was archived to.</returns>
+	internal static AbsoluteFilePath Archive(AbsoluteFilePath filePath, string label)
+	{
 		string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-		AbsoluteFilePath archived = candidate.WithSuffix($".{timestamp}");
+		AbsoluteFilePath archived = filePath.WithSuffix($"{label}.{timestamp}");
 		int counter = 0;
 		while (FileSystem.File.Exists(archived))
 		{
 			counter++;
-			archived = candidate.WithSuffix($".{timestamp}_{counter}");
+			archived = filePath.WithSuffix($"{label}.{timestamp}_{counter}");
 		}
 
-		FileSystem.File.Move(candidate, archived);
-		return true;
+		FileSystem.File.Move(filePath, archived);
+		return archived;
 	}
 
 	/// <summary>
@@ -581,9 +594,11 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 			}
 			catch (JsonException)
 			{
-				// file was corrupt or could not be deserialized
-				// delete and try load a backup
-				AppData.FileSystem.File.Delete(newAppData.FilePath);
+				// The file could not be read as T, whether from corruption, a hand edit or a model
+				// change in an app update. It is usually the only copy of the user's data, since a
+				// successful save removes the backup, so it is archived rather than deleted. The
+				// retry then finds it missing and falls back to a temp or backup file, or defaults.
+				_ = AppData.Archive(newAppData.FilePath, ".corrupt");
 				return LoadOrCreate(subdirectory, fileName);
 			}
 		}

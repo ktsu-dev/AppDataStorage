@@ -442,6 +442,24 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
+	public void TestLoadOrCreateArchivesAnUnreadableFileInsteadOfDeletingIt()
+	{
+		using TestAppData original = CreateTestAppDataWithContent("years of user settings");
+		original.Save();
+		AbsoluteFilePath filePath = original.FilePath;
+		string unreadable = AppData.FileSystem.File.ReadAllText(filePath).Replace("{", "{,", StringComparison.Ordinal);
+		AppData.FileSystem.File.WriteAllText(filePath, unreadable);
+
+		TestAppData appData = TestAppData.LoadOrCreate();
+
+		Assert.AreEqual(string.Empty, appData.Data, "Data should be default if the file could not be read.");
+
+		string[] archived = AppData.FileSystem.Directory.GetFiles(filePath.AbsoluteDirectoryPath.ToString(), $"{Path.GetFileName(filePath.ToString())}.corrupt.*");
+		Assert.AreEqual(1, archived.Length, "The unreadable file must be kept, not deleted.");
+		Assert.AreEqual(unreadable, AppData.FileSystem.File.ReadAllText(archived[0]), "The archive must hold the original content.");
+	}
+
+	[TestMethod]
 	public void TestLoadOrCreateHandlesNullJsonFile()
 	{
 		AbsoluteFilePath filePath = TestAppData.Get().FilePath;
