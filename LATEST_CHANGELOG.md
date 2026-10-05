@@ -1,6 +1,6 @@
-## v1.18.1-pre.4 (prerelease)
+## v1.18.1 (patch)
 
-Changes since v1.18.1-pre.3:
+Changes since v1.18.0:
 
-- Bump Polyfill from 11.4.1 to 11.4.3 ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Archive a settings file that fails to deserialize instead of deleting it [patch] ([@Claude](https://github.com/Claude))
 
