@@ -1,6 +1,6 @@
-## v1.18.1 (patch)
+## v1.18.2-pre.1 (prerelease)
 
-Changes since v1.18.0:
+Changes since v1.18.1:
 
-- Archive a settings file that fails to deserialize instead of deleting it [patch] ([@Claude](https://github.com/Claude))
+- Bump the ktsu group with 1 update ([@dependabot[bot]](https://github.com/dependabot[bot]))
 
