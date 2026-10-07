@@ -3,8 +3,8 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="ktsu.Semantics.Paths" Version="5.11.0" />
-    <PackageVersion Include="ktsu.RoundTripStringJsonConverter" Version="1.0.73" />
+    <PackageVersion Include="ktsu.Semantics.Paths" Version="5.11.2" />
+    <PackageVersion Include="ktsu.RoundTripStringJsonConverter" Version="1.0.75" />
     <PackageVersion Include="ktsu.CaseConverter" Version="1.8.8" />
     <PackageVersion Include="Polyfill" Version="11.4.3" />
     <PackageVersion Include="System.Memory" Version="4.6.3" />
@@ -12,7 +12,7 @@
     <PackageVersion Include="TestableIO.System.IO.Abstractions" Version="22.3.0" />
     <PackageVersion Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="22.3.0" />
     <PackageVersion Include="TestableIO.System.IO.Abstractions.Wrappers" Version="22.3.0" />
-    <PackageVersion Include="ktsu.Semantics.Strings" Version="5.11.0" />
+    <PackageVersion Include="ktsu.Semantics.Strings" Version="5.11.2" />
     <PackageVersion Include="System.Text.Json" Version="10.0.12" />
     <PackageVersion Include="Testably.Abstractions.FileSystem.Interface" Version="10.4.0" />
   </ItemGroup>
