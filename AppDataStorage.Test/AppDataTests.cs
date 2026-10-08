@@ -475,7 +475,7 @@ public sealed class AppDataTests
 		Assert.AreEqual("d", appData.Data, "Data should be default if a value could not be read.");
 		Assert.IsNull(appData.Path, "Path should be default if a value could not be read.");
 		string[] archived = AppData.FileSystem.Directory.GetFiles(filePath.AbsoluteDirectoryPath.ToString(), $"{Path.GetFileName(filePath.ToString())}.corrupt.*");
-		Assert.AreEqual(1, archived.Length, "The rejected file must be archived, not left to fail again.");
+		Assert.HasCount(1, archived, "The rejected file must be archived, not left to fail again.");
 		Assert.AreEqual(rejected, AppData.FileSystem.File.ReadAllText(archived[0]), "The archive must hold the original content.");
 	}
 
