@@ -460,6 +460,57 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
+	public void TestLoadOrCreateRecoversFromAValueASemanticTypeRejects()
+	{
+		// Well-formed JSON whose path the semantic type rejects: the converter throws
+		// ArgumentException rather than JsonException.
+		const string rejected = "{\"Data\":\"keep\",\"Path\":\"not/absolute\"}";
+		using SemanticPathAppData probe = new();
+		AbsoluteFilePath filePath = probe.FilePath;
+		AppData.EnsureDirectoryExists(filePath);
+		AppData.FileSystem.File.WriteAllText(filePath, rejected);
+
+		SemanticPathAppData appData = SemanticPathAppData.LoadOrCreate();
+
+		Assert.AreEqual("d", appData.Data, "Data should be default if a value could not be read.");
+		Assert.IsNull(appData.Path, "Path should be default if a value could not be read.");
+		string[] archived = AppData.FileSystem.Directory.GetFiles(filePath.AbsoluteDirectoryPath.ToString(), $"{Path.GetFileName(filePath.ToString())}.corrupt.*");
+		Assert.AreEqual(1, archived.Length, "The rejected file must be archived, not left to fail again.");
+		Assert.AreEqual(rejected, AppData.FileSystem.File.ReadAllText(archived[0]), "The archive must hold the original content.");
+	}
+
+	[TestMethod]
+	public void TestGetRetriesAfterAFailedLoadInsteadOfRethrowingIt()
+	{
+		FlakyAppData.FailConstruction = true;
+		// new() wraps the constructor's exception in a TargetInvocationException.
+		Assert.Throws<Exception>(FlakyAppData.Get);
+
+		FlakyAppData.FailConstruction = false;
+		Assert.IsNotNull(FlakyAppData.Get(), "A failed load must not poison Get() for the rest of the process.");
+	}
+
+	internal sealed class SemanticPathAppData : AppData<SemanticPathAppData>
+	{
+		public string Data { get; set; } = "d";
+		public AbsoluteDirectoryPath? Path { get; set; }
+	}
+
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "Instantiated by AppData<T>.LoadOrCreate through the new() constraint.")]
+	internal sealed class FlakyAppData : AppData<FlakyAppData>
+	{
+		internal static bool FailConstruction { get; set; }
+
+		public FlakyAppData()
+		{
+			if (FailConstruction)
+			{
+				throw new InvalidOperationException("Simulated load failure.");
+			}
+		}
+	}
+
+	[TestMethod]
 	public void TestLoadOrCreateHandlesNullJsonFile()
 	{
 		AbsoluteFilePath filePath = TestAppData.Get().FilePath;
