@@ -425,7 +425,12 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// <summary>
 	/// Gets the internal state of the app data.
 	/// </summary>
-	internal static Lazy<T> InternalState { get; } = new(LoadOrCreate);
+	/// <remarks>
+	/// Publication-only, so a load that throws is retried by the next <see cref="Get"/> rather than
+	/// cached and rethrown for the rest of the process. <see cref="LoadOrCreate()"/> takes the lock,
+	/// so racing first calls still load one at a time, and only one result is ever published.
+	/// </remarks>
+	internal static Lazy<T> InternalState { get; } = new(LoadOrCreate, LazyThreadSafetyMode.PublicationOnly);
 
 	/// <summary>
 	/// Gets or sets the last save time of the app data.
@@ -592,10 +597,12 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 				newAppData.FileNameOverride = fileName;
 				return newAppData;
 			}
-			catch (JsonException)
+			catch (Exception ex) when (ex is JsonException or ArgumentException or FormatException or NotSupportedException)
 			{
 				// The file could not be read as T, whether from corruption, a hand edit or a model
-				// change in an app update. It is usually the only copy of the user's data, since a
+				// change in an app update. Well-formed JSON can fail too: a converter passes on the
+				// exception a semantic type throws for a value it rejects, such as a Windows path
+				// read on Linux. It is usually the only copy of the user's data, since a
 				// successful save removes the backup, so it is archived rather than deleted. The
 				// retry then finds it missing and falls back to a temp or backup file, or defaults.
 				_ = AppData.Archive(newAppData.FilePath, ".corrupt");
