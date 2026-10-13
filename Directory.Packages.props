@@ -6,7 +6,7 @@
     <PackageVersion Include="ktsu.Semantics.Paths" Version="5.12.1" />
     <PackageVersion Include="ktsu.RoundTripStringJsonConverter" Version="1.0.76" />
     <PackageVersion Include="ktsu.CaseConverter" Version="1.9.1" />
-    <PackageVersion Include="Polyfill" Version="11.4.3" />
+    <PackageVersion Include="Polyfill" Version="11.4.5" />
     <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
     <PackageVersion Include="TestableIO.System.IO.Abstractions" Version="22.3.0" />
