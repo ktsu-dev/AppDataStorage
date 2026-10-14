@@ -410,11 +410,16 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	internal FileName? FileNameOverride { get; set; }
 
 	/// <summary>
+	/// Gets or sets the absolute directory the app data file is stored in, or null to store it beneath <see cref="AppData.Path"/>.
+	/// </summary>
+	internal AbsoluteDirectoryPath? Root { get; set; }
+
+	/// <summary>
 	/// Gets the file path for the app data file.
 	/// </summary>
 	internal AbsoluteFilePath FilePath => Subdirectory is null
-		? AppData.Path / FileName
-		: AppData.Path / Subdirectory / FileName;
+		? (Root ?? AppData.Path) / FileName
+		: (Root ?? AppData.Path) / Subdirectory / FileName;
 
 	/// <summary>
 	/// Gets the current instance of the app data.
@@ -571,12 +576,45 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// <param name="subdirectory">The subdirectory where the app data file is located, or null to use the default location.</param>
 	/// <param name="fileName">The name of the app data file, or null to use the default file name.</param>
 	/// <returns>The loaded or newly created app data instance.</returns>
-	public static T LoadOrCreate(RelativeDirectoryPath? subdirectory, FileName? fileName)
+	public static T LoadOrCreate(RelativeDirectoryPath? subdirectory, FileName? fileName) => LoadOrCreate(root: null, subdirectory, fileName);
+
+	/// <summary>
+	/// Loads the app data from <paramref name="root"/> or creates a new instance there if the file does not exist.
+	/// </summary>
+	/// <remarks>
+	/// The file is stored directly in <paramref name="root"/>, without the application-domain folder that
+	/// <see cref="AppData.Path"/> adds. Instances of the same type loaded from different roots use different
+	/// files. The instance returned is not the one <see cref="Get"/> returns, so keep a reference to it.
+	/// This is a separate name rather than a <c>LoadOrCreate</c> overload because an overload taking a root
+	/// and a file name would make existing <c>LoadOrCreate(null, null)</c> calls ambiguous.
+	/// </remarks>
+	/// <param name="root">The absolute directory where the app data file is located.</param>
+	/// <param name="fileName">The name of the app data file, or null to use the default file name.</param>
+	/// <returns>The loaded or newly created app data instance.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="root"/> is null.</exception>
+	public static T LoadOrCreateIn(AbsoluteDirectoryPath root, FileName? fileName)
+	{
+		Ensure.NotNull(root);
+		return LoadOrCreate(root, subdirectory: null, fileName);
+	}
+
+	/// <summary>
+	/// Loads the app data from <paramref name="root"/> or creates a new instance there if the file does not exist.
+	/// </summary>
+	/// <inheritdoc cref="LoadOrCreateIn(AbsoluteDirectoryPath, FileName?)" path="/remarks"/>
+	/// <param name="root">The absolute directory where the app data file is located.</param>
+	/// <returns>The loaded or newly created app data instance.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="root"/> is null.</exception>
+	public static T LoadOrCreateIn(AbsoluteDirectoryPath root) => LoadOrCreateIn(root, fileName: null);
+
+	// Every public overload ends here, so loading, saving and recovery behave the same wherever the file lives.
+	private static T LoadOrCreate(AbsoluteDirectoryPath? root, RelativeDirectoryPath? subdirectory, FileName? fileName)
 	{
 		lock (Lock)
 		{
 			T newAppData = new()
 			{
+				Root = root,
 				Subdirectory = subdirectory,
 				FileNameOverride = fileName,
 			};
@@ -593,6 +631,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 			{
 				newAppData = JsonSerializer.Deserialize<T>(jsonString, AppData.JsonSerializerOptions)
 					?? throw new JsonException("Deserialized settings file to null.");
+				newAppData.Root = root;
 				newAppData.Subdirectory = subdirectory;
 				newAppData.FileNameOverride = fileName;
 				return newAppData;
@@ -606,7 +645,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 				// successful save removes the backup, so it is archived rather than deleted. The
 				// retry then finds it missing and falls back to a temp or backup file, or defaults.
 				_ = AppData.Archive(newAppData.FilePath, ".corrupt");
-				return LoadOrCreate(subdirectory, fileName);
+				return LoadOrCreate(root, subdirectory, fileName);
 			}
 		}
 	}
