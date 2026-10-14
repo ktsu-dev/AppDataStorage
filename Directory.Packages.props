@@ -13,7 +13,7 @@
     <PackageVersion Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="22.3.0" />
     <PackageVersion Include="TestableIO.System.IO.Abstractions.Wrappers" Version="22.3.0" />
     <PackageVersion Include="ktsu.Semantics.Strings" Version="5.12.1" />
-    <PackageVersion Include="System.Text.Json" Version="10.0.12" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.13" />
     <PackageVersion Include="Testably.Abstractions.FileSystem.Interface" Version="10.4.0" />
   </ItemGroup>
 </Project>
