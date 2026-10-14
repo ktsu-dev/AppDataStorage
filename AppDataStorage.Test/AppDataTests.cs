@@ -405,6 +405,37 @@ public sealed class AppDataTests
 	}
 
 	[TestMethod]
+	public void TestDisposeWritesAQueuedSaveWhenTheClockHasNotAdvancedSinceTheLastSave()
+	{
+		TestAppData appData = CreateTestAppDataWithContent("before");
+		appData.Save();
+		appData.LastSaveTime = DateTime.MaxValue;
+		appData.Data = "after";
+		appData.QueueSave();
+
+		appData.Dispose();
+
+		TestAppData? onDisk = JsonSerializer.Deserialize<TestAppData>(AppData.FileSystem.File.ReadAllText(appData.FilePath), AppData.JsonSerializerOptions);
+		Assert.AreEqual("after", onDisk?.Data, "Dispose should write the queued save whatever the clock read at the last save.");
+	}
+
+	[TestMethod]
+	public async Task TestSaveIfRequiredSavesAfterTheDebounceWhenTheWallClockStepsBack()
+	{
+		using TestAppData appData = CreateTestAppDataWithContent(TestDataString);
+		appData.QueueSave();
+
+		// Stand in for the wall clock being set back an hour after the queue: on the wall clock the
+		// queue is now an hour in the future, and the time since it is negative until the hour passes.
+		appData.SaveQueuedTime = DateTime.UtcNow + TimeSpan.FromHours(1);
+		await Task.Delay(appData.SaveDebounceTime + TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
+
+		appData.SaveIfRequired();
+
+		AssertFileExists(appData.FilePath, "The debounce should elapse on real time, not on a wall clock that was set back.");
+	}
+
+	[TestMethod]
 	public void TestSaveClearsQueuedSave()
 	{
 		using TestAppData appData = CreateTestAppData();
