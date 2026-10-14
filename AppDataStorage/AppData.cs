@@ -150,6 +150,15 @@ public static class AppData
 			AbsoluteFilePath tempFilePath = MakeTempFilePath(appData.FilePath);
 			AbsoluteFilePath bkFilePath = MakeBackupFilePath(appData.FilePath);
 			FileSystem.File.WriteAllText(tempFilePath, text);
+
+			// With no main file, a backup is not a copy of anything about to be replaced: it is left over
+			// from an interrupted write, and may be the only copy of the user's last good data. Deleting
+			// it below would lose that data without trace, so it is archived instead.
+			if (!FileSystem.File.Exists(appData.FilePath) && FileSystem.File.Exists(bkFilePath))
+			{
+				_ = Archive(bkFilePath, string.Empty);
+			}
+
 			try
 			{
 				FileSystem.File.Delete(bkFilePath);
@@ -203,16 +212,26 @@ public static class AppData
 	}
 
 	/// <summary>
-	/// Restores <paramref name="filePath"/> from <paramref name="candidate"/> if the candidate exists,
-	/// then archives the candidate under a unique timestamped name.
+	/// Restores <paramref name="filePath"/> from <paramref name="candidate"/> if the candidate exists
+	/// and has content, then archives the candidate under a unique timestamped name.
 	/// </summary>
 	/// <param name="candidate">The recovery candidate to restore from.</param>
 	/// <param name="filePath">The app data file path to restore.</param>
-	/// <returns>True if the candidate existed and the file was restored; otherwise false.</returns>
+	/// <returns>True if the candidate existed, had content, and the file was restored; otherwise false.</returns>
 	private static bool TryRestoreFrom(AbsoluteFilePath candidate, AbsoluteFilePath filePath)
 	{
 		if (!FileSystem.File.Exists(candidate))
 		{
+			return false;
+		}
+
+		// A power loss after WriteText's Delete of the main file but before its Move can leave the temp
+		// file's directory entry with no data behind it. Restoring that would read as "no file yet", so
+		// LoadOrCreate would save defaults and the next candidate, a valid backup, would never be tried.
+		// The empty candidate is archived rather than restored, and the next candidate gets its turn.
+		if (string.IsNullOrWhiteSpace(FileSystem.File.ReadAllText(candidate)))
+		{
+			_ = Archive(candidate, ".empty");
 			return false;
 		}
 
