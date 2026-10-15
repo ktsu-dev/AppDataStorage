@@ -309,6 +309,53 @@ public sealed class AppDataTests
 			"The recovered temp file should be archived under a timestamped name, not deleted.");
 	}
 
+	private static bool HasArchivedCopy(AbsoluteFilePath filePath)
+	{
+		string directory = AppData.FileSystem.Path.GetDirectoryName(filePath)!;
+		string fileName = AppData.FileSystem.Path.GetFileName(filePath);
+		return Array.Exists(
+			AppData.FileSystem.Directory.GetFiles(directory),
+			file => AppData.FileSystem.Path.GetFileName(file).StartsWith(fileName + ".", StringComparison.Ordinal));
+	}
+
+	// The on-disk state a power loss can leave after WriteText's Delete of the main file but before
+	// its Move: main gone, temp file present but empty, backup holding the last good data.
+	[TestMethod]
+	public void TestLoadOrCreateRecoversTheBackupWhenTheTempFileIsEmpty()
+	{
+		AbsoluteFilePath filePath;
+		using (TestAppData locator = new())
+		{
+			filePath = locator.FilePath;
+		}
+
+		AppData.EnsureDirectoryExists(filePath);
+		AppData.FileSystem.File.WriteAllText(AppData.MakeTempFilePath(filePath), string.Empty);
+		AppData.FileSystem.File.WriteAllText(AppData.MakeBackupFilePath(filePath), "{\"Data\":\"precious\"}");
+
+		using TestAppData appData = TestAppData.LoadOrCreate();
+
+		Assert.AreEqual("precious", appData.Data, "The backup should be recovered, not replaced with defaults.");
+		Assert.IsTrue(
+			HasArchivedCopy(AppData.MakeTempFilePath(filePath)),
+			"The empty temp file should be archived rather than restored.");
+	}
+
+	[TestMethod]
+	public void TestSaveArchivesABackupThatHasNoMainFileInsteadOfDeletingIt()
+	{
+		using TestAppData appData = new() { Data = TestDataString };
+		AbsoluteFilePath backupFilePath = AppData.MakeBackupFilePath(appData.FilePath);
+		AppData.EnsureDirectoryExists(appData.FilePath);
+		AppData.FileSystem.File.WriteAllText(backupFilePath, "{\"Data\":\"precious\"}");
+
+		appData.Save();
+
+		Assert.IsTrue(
+			HasArchivedCopy(backupFilePath),
+			"A backup that was never loaded should be archived, not deleted.");
+	}
+
 	[TestMethod]
 	public void TestQueueSaveSetsSaveQueuedTime()
 	{
