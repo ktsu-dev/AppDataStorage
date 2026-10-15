@@ -853,6 +853,79 @@ public sealed class AppDataTests
 		Assert.AreEqual(fileName, appData.FileNameOverride, "FileNameOverride should be set correctly.");
 	}
 
+	private static AbsoluteDirectoryPath CustomRoot(string name) => SampleDirectory / RelativeDirectoryPath.Create(name);
+
+	[TestMethod]
+	public void TestLoadOrCreateInStoresTheFileDirectlyInTheRoot()
+	{
+		AbsoluteDirectoryPath root = CustomRoot("custom_root");
+		using TestAppData appData = TestAppData.LoadOrCreateIn(root);
+		appData.Data = TestDataString;
+		appData.Save();
+
+		AbsoluteFilePath expected = root / appData.FileName;
+		Assert.AreEqual(expected, appData.FilePath, "The file should sit directly in the root, without the application-domain folder.");
+		AssertFileExists(expected, "The file should be saved under the custom root.");
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateInWithFileName()
+	{
+		AbsoluteDirectoryPath root = CustomRoot("custom_root");
+		FileName fileName = FileName.Create(CustomFileName);
+		using TestAppData appData = TestAppData.LoadOrCreateIn(root, fileName);
+
+		Assert.AreEqual(root / fileName, appData.FilePath, "The file name override should apply under the custom root.");
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateInDifferentRootsDoesNotShareAFile()
+	{
+		AbsoluteDirectoryPath rootA = CustomRoot("root_a");
+		AbsoluteDirectoryPath rootB = CustomRoot("root_b");
+
+		using (TestAppData a = TestAppData.LoadOrCreateIn(rootA))
+		{
+			a.Data = "A";
+			a.Save();
+		}
+
+		using (TestAppData b = TestAppData.LoadOrCreateIn(rootB))
+		{
+			Assert.AreEqual(string.Empty, b.Data, "A second root should not see the first root's data.");
+			b.Data = "B";
+			b.Save();
+		}
+
+		using TestAppData reloadedA = TestAppData.LoadOrCreateIn(rootA);
+		using TestAppData reloadedB = TestAppData.LoadOrCreateIn(rootB);
+		Assert.AreEqual("A", reloadedA.Data, "Saving under one root should not overwrite another root's file.");
+		Assert.AreEqual("B", reloadedB.Data, "Each root should load its own file.");
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateInRecoversFromBackup()
+	{
+		AbsoluteDirectoryPath root = CustomRoot("custom_root");
+		AbsoluteFilePath filePath;
+		using (TestAppData appData = TestAppData.LoadOrCreateIn(root))
+		{
+			appData.Data = "precious";
+			appData.Save();
+			filePath = appData.FilePath;
+		}
+
+		AppData.FileSystem.File.Move(filePath, AppData.MakeBackupFilePath(filePath));
+
+		using TestAppData recovered = TestAppData.LoadOrCreateIn(root);
+		Assert.AreEqual("precious", recovered.Data, "The backup under the custom root should be recovered.");
+		Assert.AreEqual(root, recovered.Root, "The recovered instance should keep its root, so it saves back to the same place.");
+	}
+
+	[TestMethod]
+	public void TestLoadOrCreateInWithNullRootThrows() =>
+		Assert.ThrowsExactly<ArgumentNullException>(() => TestAppData.LoadOrCreateIn(null!));
+
 	[TestMethod]
 	public void TestLoadOrCreateCreatesNewInstanceIfFileDoesNotExist()
 	{

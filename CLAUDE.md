@@ -66,7 +66,7 @@ data.Save();
 - Automatic backup files (`.bk` suffix) with timestamped collision handling
 - Safe write pattern: write to `.tmp`, backup existing, move `.tmp` to final
 - Lazy singleton access via `Get()` backed by `Lazy<T>`
-- `LoadOrCreate()` overloads support custom subdirectories and file names
+- `LoadOrCreate()` overloads support custom subdirectories and file names; `LoadOrCreateIn()` takes an absolute root directory
 - Corrupt file recovery: falls back to `.bk` backup, then creates a fresh instance
 - Process exit handler ensures queued saves are flushed via `IDisposable`
 

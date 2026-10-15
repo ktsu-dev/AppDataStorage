@@ -22,7 +22,7 @@
 - **Debounced Saves**: `QueueSave()` and `SaveIfRequired()` prevent frequent file writes with a 3-second debounce window.
 - **Thread-Safe Operations**: All file operations are synchronized with lock objects (uses `Lock` type on .NET 9+, `object` on earlier versions).
 - **Singleton Access**: `Get()` provides lazy-initialized, singleton-like access to your app data instance.
-- **Custom Storage Locations**: Support for custom subdirectories and file names via `LoadOrCreate()` overloads.
+- **Custom Storage Locations**: Support for custom subdirectories and file names via `LoadOrCreate()` overloads, and for an arbitrary absolute directory via `LoadOrCreateIn()`.
 - **File System Abstraction**: Uses `System.IO.Abstractions` for easy unit testing with mock file systems.
 - **Corrupt File Recovery**: Automatically falls back to backup files when the main data file is corrupt or missing.
 - **Dispose-on-Exit**: Registers for process exit to ensure queued saves are flushed before the application terminates.
@@ -117,6 +117,15 @@ var customData = MySettings.LoadOrCreate(FileName.Create("user_preferences.json"
 var specificData = MySettings.LoadOrCreate(
     RelativeDirectoryPath.Create("profiles"),
     FileName.Create("admin_settings.json"));
+```
+
+To store data somewhere other than the application data folder, pass an absolute directory to
+`LoadOrCreateIn()`. The file goes directly in that directory, and instances loaded from different
+directories use different files. The instance it returns is not the `Get()` singleton, so keep a
+reference to it.
+
+```csharp
+var isolated = MySettings.LoadOrCreateIn(AbsoluteDirectoryPath.Create("/srv/myapp/data"));
 ```
 
 ## Advanced Usage
@@ -217,6 +226,8 @@ Base class for app data storage. Inherit from this class to create persistable d
 | `LoadOrCreate(RelativeDirectoryPath?)` | `T` | Loads or creates with a custom subdirectory |
 | `LoadOrCreate(FileName?)` | `T` | Loads or creates with a custom file name |
 | `LoadOrCreate(RelativeDirectoryPath?, FileName?)` | `T` | Loads or creates with both custom subdirectory and file name |
+| `LoadOrCreateIn(AbsoluteDirectoryPath)` | `T` | Loads or creates directly in an absolute directory |
+| `LoadOrCreateIn(AbsoluteDirectoryPath, FileName?)` | `T` | Loads or creates directly in an absolute directory with a custom file name |
 | `Save()` | `void` | Serializes and saves the app data to its JSON file |
 | `QueueSave()` | `void` | Queues a debounced save for the singleton instance |
 | `SaveIfRequired()` | `void` | Saves the singleton instance if the debounce threshold has elapsed |
