@@ -1,10 +1,13 @@
-## v1.18.3-pre.2 (prerelease)
+## v1.19.0 (minor)
 
-Changes since v1.18.3-pre.1:
+Changes since v1.18.0:
 
-- Bump the system group with 1 update (dependabot[bot])
-- Bump Polyfill from 11.4.3 to 11.4.5 (dependabot[bot])
-- Bump the ktsu group with 3 updates (dependabot[bot])
+- Time the save debounce on a monotonic clock [patch] (matt-edmondson)
+- Add LoadOrCreateIn to load app data from an absolute root directory [minor] (matt-edmondson)
+- Recover the backup when the temp file left by a crash is empty [patch] (matt-edmondson)
+- Use Assert.HasCount for the archive count in the new test (Claude)
+- Recover from a saved value a semantic type rejects, and retry Get() after a failed load [patch] (Claude)
+- Archive a settings file that fails to deserialize instead of deleting it [patch] (Claude)
 
 ## v1.18.3-pre.1 (prerelease)
 
