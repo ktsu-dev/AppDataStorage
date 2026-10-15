@@ -2,6 +2,7 @@
 
 namespace ktsu.AppDataStorage;
 
+using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -280,6 +281,7 @@ public static class AppData
 		lock (AppData<T>.Lock)
 		{
 			appData.SaveQueuedTime = DateTime.UtcNow;
+			appData.SaveQueuedTimestamp = Stopwatch.GetTimestamp();
 			appData.HasQueuedSave = true;
 			appData.EnsureDisposeOnExit();
 		}
@@ -467,6 +469,17 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	internal DateTime SaveQueuedTime { get; set; } = DateTime.MinValue;
 
 	/// <summary>
+	/// Gets or sets the <see cref="Stopwatch.GetTimestamp"/> reading taken when the save was queued.
+	/// </summary>
+	/// <remarks>
+	/// The debounce is measured from this rather than from <see cref="SaveQueuedTime"/>, because the wall
+	/// clock can be set back by an NTP correction, a manual change or a VM resume. Measured on the wall
+	/// clock, the time since the queue then stays negative, and <c>SaveIfRequired</c> holds the save back
+	/// for as long as the clock went back. The stopwatch only moves forward.
+	/// </remarks>
+	internal long SaveQueuedTimestamp { get; set; }
+
+	/// <summary>
 	/// Gets or sets a value indicating whether a save has been queued and not yet written.
 	/// </summary>
 	/// <remarks>
@@ -513,7 +526,8 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	{
 		lock (Lock)
 		{
-			return (DateTime.UtcNow - SaveQueuedTime) > SaveDebounceTime;
+			double elapsedSeconds = (double)(Stopwatch.GetTimestamp() - SaveQueuedTimestamp) / Stopwatch.Frequency;
+			return elapsedSeconds > SaveDebounceTime.TotalSeconds;
 		}
 	}
 
