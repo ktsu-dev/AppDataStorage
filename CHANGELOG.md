@@ -731,7 +731,7 @@ Changes since v1.15.0:
 - Fix license (matt-edmondson)
 - Replace LICENSE file with LICENSE.md (matt-edmondson)
 - Update .NET workflow to trigger on main and develop branches (matt-edmondson)
-- Refactor AppData to use Lazy<T> for internal state (matt-edmondson)
+- Refactor AppData to use Lazy\<T\> for internal state (matt-edmondson)
 - Refactor tests and add null checks for deserialized data (matt-edmondson)
 - Update MSTest.TestFramework to version 3.7.0 (matt-edmondson)
 - dotnet-pipeline.yml renamed to dotnet-workflow.yml (matt-edmondson)
@@ -764,7 +764,7 @@ Changes since v1.15.0:
 - Update ToStringJsonConverter to 1.0.0 (matt-edmondson)
 - Update JSON conversion strategy in AppData (matt-edmondson)
 - Update docs and stabilize library version (matt-edmondson)
-- Refactor AppData<T> deserialization (matt-edmondson)
+- Refactor AppData\<T\> deserialization (matt-edmondson)
 - Disable SourceLink in project settings (matt-edmondson)
 - Enhanced testing with mock file systems (matt-edmondson)
 - Update Directory.Build.targets (matt-edmondson)
@@ -1414,7 +1414,7 @@ Changes since v1.15.0:
 - Fix license (matt-edmondson)
 - Replace LICENSE file with LICENSE.md (matt-edmondson)
 - Update .NET workflow to trigger on main and develop branches (matt-edmondson)
-- Refactor AppData to use Lazy<T> for internal state (matt-edmondson)
+- Refactor AppData to use Lazy\<T\> for internal state (matt-edmondson)
 - Refactor tests and add null checks for deserialized data (matt-edmondson)
 - Update MSTest.TestFramework to version 3.7.0 (matt-edmondson)
 - dotnet-pipeline.yml renamed to dotnet-workflow.yml (matt-edmondson)
@@ -1447,7 +1447,7 @@ Changes since v1.15.0:
 - Update ToStringJsonConverter to 1.0.0 (matt-edmondson)
 - Update JSON conversion strategy in AppData (matt-edmondson)
 - Update docs and stabilize library version (matt-edmondson)
-- Refactor AppData<T> deserialization (matt-edmondson)
+- Refactor AppData\<T\> deserialization (matt-edmondson)
 - Disable SourceLink in project settings (matt-edmondson)
 - Enhanced testing with mock file systems (matt-edmondson)
 - Update Directory.Build.targets (matt-edmondson)
@@ -2198,7 +2198,7 @@ Changes since v1.3.0:
 
 Changes since v1.2.0:
 
-- Refactor AppData to use Lazy<T> for internal state (matt-edmondson)
+- Refactor AppData to use Lazy\<T\> for internal state (matt-edmondson)
 
 ## v1.2.4 (patch)
 
@@ -2227,7 +2227,7 @@ Changes since v1.2.0:
 
 ## v1.2.0 (minor)
 
-Changes since 1.1.0:
+Changes since v1.1.57:
 
 - Refactor tests and add null checks for deserialized data (matt-edmondson)
 - Update MSTest.TestFramework to version 3.7.0 (matt-edmondson)
@@ -2240,23 +2240,6 @@ Changes since 1.1.0:
 - Refactor TestStrongStrings for proper resource disposal (matt-edmondson)
 - Update GitHub Action version in add-to-project job (matt-edmondson)
 - Refactor AppData class for robustness and flexibility (matt-edmondson)
-- Add new tests and update namespace in AppDataTests.cs (matt-edmondson)
-- Enhance AppData functionality and documentation (matt-edmondson)
-- Update README with Static Instance Access feature (matt-edmondson)
-- Enhance AppDataStorage docs and add new examples (matt-edmondson)
-- Add GitHub Actions workflow to automate issue and PR management for ktsu.dev project (matt-edmondson)
-- Update ktsu.ToStringJsonConverter package version to 1.0.26 (matt-edmondson)
-- Update ktsu.StrongPaths package version to 1.1.31 (matt-edmondson)
-- Update dependencies (matt-edmondson)
-- Update package versions in AppDataStorage.csproj (matt-edmondson)
-- Make test classes and records public; update NoWarn property (matt-edmondson)
-- Refactor visibility and enhance type conversion (matt-edmondson)
-- Migrate ktsu.io to ktsu namespace (matt-edmondson)
-- Update VERSION (matt-edmondson)
-- Migrate ktsu.io to ktsu namespace (matt-edmondson)
-- Fix a crash on first launch if you dont have the app data directory (matt-edmondson)
-- Update VERSION (matt-edmondson)
-- Take latest StrongPaths (matt-edmondson)
 
 ## v1.1.57 (patch)
 
@@ -2637,7 +2620,7 @@ Changes since v1.0.0-alpha.14:
 - Update ToStringJsonConverter to 1.0.0 (matt-edmondson)
 - Update JSON conversion strategy in AppData (matt-edmondson)
 - Update docs and stabilize library version (matt-edmondson)
-- Refactor AppData<T> deserialization (matt-edmondson)
+- Refactor AppData\<T\> deserialization (matt-edmondson)
 - Disable SourceLink in project settings (matt-edmondson)
 
 ## v1.0.0-alpha.14 (prerelease)
