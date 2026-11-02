@@ -51,10 +51,14 @@ public class MyAppData : AppData<MyAppData>
     public string Setting { get; set; } = "default";
 }
 
-// Load or create, then use static accessor
-var data = MyAppData.LoadOrCreate();
-var same = MyAppData.Get(); // Singleton-like access
-data.Save();
+// The shared instance: static QueueSave()/SaveIfRequired() act on this one
+var data = MyAppData.Get();
+data.Setting = "changed";
+MyAppData.QueueSave();
+
+// A separate copy, read from the same file: not the Get() instance, so save it through itself
+var copy = MyAppData.LoadOrCreate();
+copy.Save();
 ```
 
 ### Key Implementation Details
@@ -66,6 +70,7 @@ data.Save();
 - Automatic backup files (`.bk` suffix) with timestamped collision handling
 - Safe write pattern: write to `.tmp`, backup existing, move `.tmp` to final
 - Lazy singleton access via `Get()` backed by `Lazy<T>`
+- `LoadOrCreate()` reads the file into a new instance on every call and never returns the `Get()` singleton, so the two do not see each other's edits. The static `QueueSave()` / `SaveIfRequired()` act on `Get()` only
 - `LoadOrCreate()` overloads support custom subdirectories and file names; `LoadOrCreateIn()` takes an absolute root directory
 - Corrupt file recovery: falls back to `.bk` backup, then creates a fresh instance
 - Process exit handler ensures queued saves are flushed via `IDisposable`

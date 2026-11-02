@@ -86,6 +86,12 @@ var sameSettings = MySettings.Get();
 Console.WriteLine(sameSettings.Theme); // "dark"
 ```
 
+`Get()` and `LoadOrCreate()` are not the same object. `LoadOrCreate()` reads the file into a new instance
+every time it is called, so an edit made on that instance is not seen by `Get()`, and whichever of the two
+saves last overwrites the file. The static `MySettings.QueueSave()` and `MySettings.SaveIfRequired()` act on
+`Get()`. To save an instance from `LoadOrCreate()`, call `Save()`, `QueueSave()` or `SaveIfRequired()` on that
+instance. Use `Get()` throughout when the application wants one shared copy.
+
 ### Saving Data
 
 Modify properties and call `Save()` to persist changes immediately.

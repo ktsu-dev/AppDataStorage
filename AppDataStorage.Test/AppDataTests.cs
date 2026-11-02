@@ -988,6 +988,48 @@ public sealed class AppDataTests
 		Assert.IsGreaterThanOrEqualTo(beforeQueueTime, appData.SaveQueuedTime, "SaveQueuedTime was not set correctly.");
 	}
 
+	// ktsu-dev/AppDataStorage#330: the docs describe LoadOrCreate() and Get() as separate instances, and
+	// the static QueueSave()/SaveIfRequired() as acting on Get() only. These pin that contract, and that
+	// each documented save path reaches disk.
+	[TestMethod]
+	[DoNotParallelize]
+	public void TestLoadOrCreateReturnsAnInstanceSeparateFromGet()
+	{
+		TestAppData singleton = TestAppData.Get();
+		TestAppData copy = TestAppData.LoadOrCreate();
+
+		Assert.AreNotSame(singleton, copy, "LoadOrCreate() is documented as returning a new instance, not the Get() singleton.");
+		Assert.AreEqual(singleton.FilePath, copy.FilePath, "Both instances are documented as using the same file.");
+	}
+
+	[TestMethod]
+	[DoNotParallelize]
+	public async Task TestEditOnGetSavedThroughStaticQueueSaveReachesDisk()
+	{
+		TestAppData settings = TestAppData.Get();
+		settings.Data = "edited through Get";
+
+		TestAppData.QueueSave();
+		await Task.Delay(settings.SaveDebounceTime + TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
+		TestAppData.SaveIfRequired();
+
+		Assert.Contains("edited through Get", await AppData.FileSystem.File.ReadAllTextAsync(settings.FilePath).ConfigureAwait(false));
+	}
+
+	[TestMethod]
+	[DoNotParallelize]
+	public async Task TestEditOnLoadOrCreateSavedThroughItsOwnQueueSaveReachesDisk()
+	{
+		using TestAppData settings = TestAppData.LoadOrCreate();
+		settings.Data = "edited through LoadOrCreate";
+
+		settings.QueueSave();
+		await Task.Delay(settings.SaveDebounceTime + TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
+		settings.SaveIfRequired();
+
+		Assert.Contains("edited through LoadOrCreate", await AppData.FileSystem.File.ReadAllTextAsync(settings.FilePath).ConfigureAwait(false));
+	}
+
 	[TestMethod]
 	[DoNotParallelize]
 	public async Task TestSaveIfRequiredStaticMethod()

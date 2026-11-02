@@ -686,6 +686,15 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// <summary>
 	/// Loads the app data from the file system or creates a new instance if the file does not exist.
 	/// </summary>
+	/// <remarks>
+	/// Every call reads the file again and returns a new instance. It is not the instance <see cref="Get"/>
+	/// returns, even though both use the same file, so an edit made on one is not seen by the other and
+	/// whichever saves last overwrites the file. The static <see cref="QueueSave()"/> and
+	/// <see cref="SaveIfRequired()"/> act on <see cref="Get"/>, so they do not save this instance: call
+	/// <see cref="AppData.QueueSave{T}(T)"/>, <see cref="AppData.SaveIfRequired{T}(T)"/>
+	/// or <see cref="Save()"/> on it instead. Use <see cref="Get"/> throughout when the application wants
+	/// one shared copy.
+	/// </remarks>
 	/// <returns>The loaded or newly created app data instance.</returns>
 	public static T LoadOrCreate() => LoadOrCreate(subdirectory: null, fileName: null);
 
@@ -704,12 +713,17 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	public static T LoadOrCreate(FileName? fileName) => LoadOrCreate(subdirectory: null, fileName);
 
 	/// <summary>
-	/// Queues a save operation for the current app data instance.
+	/// Queues a save operation for the <see cref="Get"/> singleton.
 	/// </summary>
+	/// <remarks>
+	/// This does not save an instance returned by <see cref="LoadOrCreate()"/> or its overloads, which are
+	/// separate copies. Call the instance's own <c>QueueSave()</c> for those.
+	/// </remarks>
 	public static void QueueSave() => Get().QueueSave();
 
 	/// <summary>
-	/// Saves the app data if required based on the debounce time and the last save time.
+	/// Saves the <see cref="Get"/> singleton if a save is queued and the debounce time has passed.
 	/// </summary>
+	/// <inheritdoc cref="QueueSave()" path="/remarks"/>
 	public static void SaveIfRequired() => Get().SaveIfRequired();
 }
