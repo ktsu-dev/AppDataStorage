@@ -39,6 +39,9 @@ public static class AppData
 		WriteIndented = true,
 		IncludeFields = true,
 		ReferenceHandler = ReferenceHandler.Preserve,
+		// NaN and the infinities are ordinary settings values ("no limit", "not measured yet").
+		// Without this they make Save() throw. Finite numbers are still written as JSON numbers.
+		NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
 		Converters =
 		{
 			new JsonStringEnumConverter(),
