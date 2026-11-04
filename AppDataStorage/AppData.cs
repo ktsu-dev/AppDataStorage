@@ -4,8 +4,10 @@ namespace ktsu.AppDataStorage;
 
 using System.Diagnostics;
 using System.IO.Abstractions;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 using ktsu.CaseConverter;
 using ktsu.RoundTripStringJsonConverter;
@@ -42,12 +44,58 @@ public static class AppData
 		// NaN and the infinities are ordinary settings values ("no limit", "not measured yet").
 		// Without this they make Save() throw. Finite numbers are still written as JSON numbers.
 		NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+		TypeInfoResolver = new DefaultJsonTypeInfoResolver
+		{
+			Modifiers = { UseNonPublicSettersOfAppDataProperties },
+		},
 		Converters =
 		{
 			new JsonStringEnumConverter(),
 			new RoundTripStringJsonConverterFactory(),
 		}
 	};
+
+	/// <summary>
+	/// Lets deserialization use the non-public setter of a public property on an <see cref="AppData{T}"/> type.
+	/// </summary>
+	/// <remarks>
+	/// System.Text.Json writes a public property whose setter is private, protected or internal, but skips
+	/// it when reading unless it has <see cref="JsonIncludeAttribute"/>. Nothing fails, so the stored value
+	/// silently loads back as its default and the next save erases it. <c>{ get; private set; }</c> is the
+	/// natural shape for an encapsulated setting, so the setter is used instead.
+	/// </remarks>
+	/// <param name="typeInfo">The contract being built.</param>
+	internal static void UseNonPublicSettersOfAppDataProperties(JsonTypeInfo typeInfo)
+	{
+		if (typeInfo.Kind != JsonTypeInfoKind.Object || !IsAppDataType(typeInfo.Type))
+		{
+			return;
+		}
+
+		foreach (JsonPropertyInfo property in typeInfo.Properties)
+		{
+			if (property.Set is null
+				&& property.AttributeProvider is PropertyInfo clrProperty
+				&& clrProperty.GetSetMethod(nonPublic: true) is MethodInfo setter
+				&& !setter.IsPublic)
+			{
+				property.Set = (target, value) => setter.Invoke(target, [value]);
+			}
+		}
+	}
+
+	private static bool IsAppDataType(Type type)
+	{
+		for (Type? current = type.BaseType; current is not null; current = current.BaseType)
+		{
+			if (current.IsGenericType && current.GetGenericTypeDefinition() == typeof(AppData<>))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
 
 	/// <summary>
 	/// Thread-local factory for creating file system instances to ensure test isolation.
