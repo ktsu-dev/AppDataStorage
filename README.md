@@ -18,13 +18,13 @@
 
 - **Easy-to-use API**: Inherit from `AppData<T>` and get automatic JSON persistence with `LoadOrCreate()`, `Save()`, and `Get()`.
 - **Automatic Backup**: Creates backup files before overwriting to prevent data loss, with timestamped collision handling.
-- **Safe Write Pattern**: Writes to a temporary file first, then atomically replaces the original to avoid corruption.
+- **Safe Write Pattern**: Writes to a temporary file and flushes it to disk, then replaces the original in one step, so a crash or power loss leaves either the old or the new file, never an empty one.
 - **Debounced Saves**: `QueueSave()` and `SaveIfRequired()` prevent frequent file writes with a 3-second debounce window.
 - **Thread-Safe Operations**: All file operations are synchronized with lock objects (uses `Lock` type on .NET 9+, `object` on earlier versions).
 - **Singleton Access**: `Get()` provides lazy-initialized, singleton-like access to your app data instance.
 - **Custom Storage Locations**: Support for custom subdirectories and file names via `LoadOrCreate()` overloads, and for an arbitrary absolute directory via `LoadOrCreateIn()`.
 - **File System Abstraction**: Uses `System.IO.Abstractions` for easy unit testing with mock file systems.
-- **Corrupt File Recovery**: Automatically falls back to backup files when the main data file is corrupt or missing.
+- **Corrupt File Recovery**: Automatically falls back to backup files when the main data file is corrupt, empty or missing.
 - **Dispose-on-Exit**: Registers for process exit to ensure queued saves are flushed before the application terminates.
 
 ## Installation
