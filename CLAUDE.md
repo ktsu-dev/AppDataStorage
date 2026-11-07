@@ -68,11 +68,11 @@ copy.Save();
 - Debounced saves via `QueueSave()` / `SaveIfRequired()` (3-second debounce, timed with `Stopwatch.GetTimestamp()` so a wall-clock step back cannot hold a save back)
 - Whether a save is outstanding is the `HasQueuedSave` flag, set by `QueueSave()` and cleared by a successful `Save()`. It is not `SaveQueuedTime > LastSaveTime`: `DateTime.UtcNow` advances in whole microseconds on macOS, so a queue straight after a save can read the same instant and would be dropped
 - Automatic backup files (`.bk` suffix) with timestamped collision handling
-- Safe write pattern: write to `.tmp`, backup existing, move `.tmp` to final
+- Safe write pattern: write `.tmp` and flush it to disk, then `File.Replace` it over the final file (keeping `.bk` until done), or move it into place when there is no final file yet
 - Lazy singleton access via `Get()` backed by `Lazy<T>`
 - `LoadOrCreate()` reads the file into a new instance on every call and never returns the `Get()` singleton, so the two do not see each other's edits. The static `QueueSave()` / `SaveIfRequired()` act on `Get()` only
 - `LoadOrCreate()` overloads support custom subdirectories and file names; `LoadOrCreateIn()` takes an absolute root directory
-- Corrupt file recovery: falls back to `.bk` backup, then creates a fresh instance
+- Corrupt file recovery: an unreadable, empty or missing main file falls back to `.tmp`, then `.bk`, then creates a fresh instance. An empty main file is archived as `.empty.<timestamp>`, not overwritten
 - Process exit handler ensures queued saves are flushed via `IDisposable`
 
 ### Testing
