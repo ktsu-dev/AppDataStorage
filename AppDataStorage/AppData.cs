@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -226,7 +227,7 @@ public static class AppData
 			EnsureDirectoryExists(appData.FilePath);
 			AbsoluteFilePath tempFilePath = MakeTempFilePath(appData.FilePath);
 			AbsoluteFilePath bkFilePath = MakeBackupFilePath(appData.FilePath);
-			FileSystem.File.WriteAllText(tempFilePath, text);
+			WriteDurably(tempFilePath, text);
 
 			// With no main file, a backup is not a copy of anything about to be replaced: it is left over
 			// from an interrupted write, and may be the only copy of the user's last good data. Deleting
@@ -236,20 +237,45 @@ public static class AppData
 				_ = Archive(bkFilePath, string.Empty);
 			}
 
-			try
+			FileSystem.File.Delete(bkFilePath);
+
+			// The main file is replaced in one step rather than deleted and then moved over, so it is
+			// never missing. Deleting it first also defeated ext4's auto_da_alloc, which flushes a file's
+			// data only when it is renamed over an existing file (ktsu-dev/AppDataStorage#325).
+			if (FileSystem.File.Exists(appData.FilePath))
 			{
-				FileSystem.File.Delete(bkFilePath);
-				FileSystem.File.Copy(appData.FilePath, bkFilePath);
-				FileSystem.File.Delete(appData.FilePath);
+				FileSystem.File.Replace(tempFilePath, appData.FilePath, bkFilePath);
 			}
-			catch (FileNotFoundException)
+			else
 			{
-				// Ignore
+				FileSystem.File.Move(tempFilePath, appData.FilePath);
 			}
 
-			FileSystem.File.Move(tempFilePath, appData.FilePath);
 			FileSystem.File.Delete(bkFilePath);
 		}
+	}
+
+	/// <summary>
+	/// Writes <paramref name="text"/> to <paramref name="filePath"/> and flushes it to the disk before
+	/// returning.
+	/// </summary>
+	/// <remarks>
+	/// Writing alone only hands the data to the OS cache. File systems such as NTFS and ext4 journal
+	/// metadata but not file data, so the rename that follows can reach the disk before the content
+	/// does, and a power loss or OS crash in between leaves the settings file empty
+	/// (ktsu-dev/AppDataStorage#325).
+	/// </remarks>
+	/// <param name="filePath">The file to write.</param>
+	/// <param name="text">The text to write.</param>
+	private static void WriteDurably(AbsoluteFilePath filePath, string text)
+	{
+		using FileSystemStream stream = FileSystem.FileStream.New(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+		using (StreamWriter writer = new(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), bufferSize: 4096, leaveOpen: true))
+		{
+			writer.Write(text);
+		}
+
+		stream.Flush(flushToDisk: true);
 	}
 
 	/// <summary>
@@ -268,20 +294,32 @@ public static class AppData
 			EnsureDirectoryExists(appData.FilePath);
 			try
 			{
-				return FileSystem.File.ReadAllText(appData.FilePath);
+				string text = FileSystem.File.ReadAllText(appData.FilePath);
+				if (!string.IsNullOrWhiteSpace(text))
+				{
+					return text;
+				}
+
+				// A power loss or OS crash shortly after a save can leave the main file's directory entry
+				// with no data behind it. Reading that as "no settings" would let LoadOrCreate save
+				// defaults over it without trace, so it is archived as unreadable and the recovery
+				// candidates get their turn (ktsu-dev/AppDataStorage#325).
+				_ = Archive(appData.FilePath, ".empty");
 			}
 			catch (FileNotFoundException)
 			{
-				// WriteText deletes the main file before moving the temp file into its place. A
-				// process killed in that window leaves the main file gone, the temp file holding the
-				// content of the save that was in flight, and the backup holding the content before
-				// it. The temp file is therefore the newer of the two candidates and is tried first;
-				// recovering the backup instead silently discards the newest save.
-				if (TryRestoreFrom(MakeTempFilePath(appData.FilePath), appData.FilePath)
-					|| TryRestoreFrom(MakeBackupFilePath(appData.FilePath), appData.FilePath))
-				{
-					return ReadText(appData);
-				}
+				// Fall through to the recovery candidates.
+			}
+
+			// Older versions of WriteText deleted the main file before moving the temp file into its
+			// place. A process killed in that window leaves the main file gone, the temp file holding
+			// the content of the save that was in flight, and the backup holding the content before
+			// it. The temp file is therefore the newer of the two candidates and is tried first;
+			// recovering the backup instead silently discards the newest save.
+			if (TryRestoreFrom(MakeTempFilePath(appData.FilePath), appData.FilePath)
+				|| TryRestoreFrom(MakeBackupFilePath(appData.FilePath), appData.FilePath))
+			{
+				return ReadText(appData);
 			}
 
 			return string.Empty;
@@ -466,6 +504,13 @@ public static class AppData
 	/// This is useful for test isolation while keeping the same factory.
 	/// </summary>
 	internal static void ClearCachedFileSystem() => ThreadLocalFileSystem.Value = null;
+
+	/// <summary>
+	/// Uses <paramref name="fileSystem"/> for the current thread only, until <see cref="ClearCachedFileSystem"/>
+	/// is called. This lets a test observe file system calls without changing the factory other tests share.
+	/// </summary>
+	/// <param name="fileSystem">The test file system to use on this thread.</param>
+	internal static void UseFileSystemOnThisThread(IFileSystem fileSystem) => ThreadLocalFileSystem.Value = fileSystem;
 
 	/// <summary>
 	/// Resets the filesystem to use the default system filesystem for the current thread.
