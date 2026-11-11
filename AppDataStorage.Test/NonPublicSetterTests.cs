@@ -144,4 +144,96 @@ public sealed class NonPublicSetterTests
 		using EncapsulatedSettings again = EncapsulatedSettings.LoadOrCreateIn(root);
 		Assert.AreEqual(80, again.Volume, "Saving a reloaded instance should not erase the stored value.");
 	}
+
+	public sealed class ValidatedPrivateSettings : AppData<ValidatedPrivateSettings>
+	{
+		public int Volume
+		{
+			get;
+			private set => field = value is < 0 or > 100 ? throw new ArgumentOutOfRangeException(nameof(value)) : value;
+		} = 50;
+	}
+
+	public sealed class ValidatedPublicSettings : AppData<ValidatedPublicSettings>
+	{
+		public int Volume
+		{
+			get;
+			set => field = value is < 0 or > 100 ? throw new ArgumentOutOfRangeException(nameof(value)) : value;
+		} = 50;
+	}
+
+	public sealed class ValidatedPrivateSingleton : AppData<ValidatedPrivateSingleton>
+	{
+		public int Volume
+		{
+			get;
+			private set => field = value is < 0 or > 100 ? throw new ArgumentOutOfRangeException(nameof(value)) : value;
+		} = 50;
+	}
+
+	private const string OutOfRange = "{\"Volume\":150}";
+
+	private static string[] Archived(AbsoluteFilePath filePath) =>
+		AppData.FileSystem.Directory.GetFiles(filePath.AbsoluteDirectoryPath.ToString(), $"{Path.GetFileName(filePath.ToString())}.corrupt.*");
+
+	private static AbsoluteFilePath WriteStored<T>(AbsoluteDirectoryPath root)
+		where T : AppData<T>, IDisposable, new()
+	{
+		AbsoluteFilePath filePath;
+		using (T probe = AppData<T>.LoadOrCreateIn(root))
+		{
+			filePath = probe.FilePath;
+		}
+
+		AppData.EnsureDirectoryExists(filePath);
+		AppData.FileSystem.File.WriteAllText(filePath, OutOfRange);
+		return filePath;
+	}
+
+	[TestMethod]
+	public void PrivateSetterThatRejectsTheStoredValueFallsBackToDefaults()
+	{
+		AbsoluteDirectoryPath root = Root("non_public_setter_rejects");
+		AbsoluteFilePath filePath = WriteStored<ValidatedPrivateSettings>(root);
+
+		using ValidatedPrivateSettings loaded = ValidatedPrivateSettings.LoadOrCreateIn(root);
+
+		Assert.AreEqual(50, loaded.Volume, "A value the private setter rejects should fall back to the default.");
+		string[] archived = Archived(filePath);
+		Assert.HasCount(1, archived, "The rejected file must be archived as .corrupt, not left to fail again.");
+		Assert.AreEqual(OutOfRange, AppData.FileSystem.File.ReadAllText(archived[0]), "The archive must hold the original content.");
+	}
+
+	[TestMethod]
+	public void PublicSetterThatRejectsTheStoredValueStillFallsBackToDefaults()
+	{
+		AbsoluteDirectoryPath root = Root("public_setter_rejects");
+		AbsoluteFilePath filePath = WriteStored<ValidatedPublicSettings>(root);
+
+		using ValidatedPublicSettings loaded = ValidatedPublicSettings.LoadOrCreateIn(root);
+
+		Assert.AreEqual(50, loaded.Volume, "A value the public setter rejects should fall back to the default.");
+		Assert.HasCount(1, Archived(filePath), "The rejected file must be archived as .corrupt.");
+	}
+
+	[TestMethod]
+	[DoNotParallelize]
+	public void GetDoesNotThrowWhenAPrivateSetterRejectsTheStoredValue()
+	{
+		AbsoluteFilePath filePath;
+		using (ValidatedPrivateSingleton probe = new())
+		{
+			filePath = probe.FilePath;
+		}
+
+		AppData.EnsureDirectoryExists(filePath);
+		AppData.FileSystem.File.WriteAllText(filePath, OutOfRange);
+
+		ValidatedPrivateSingleton instance = ValidatedPrivateSingleton.Get();
+
+		Assert.AreEqual(50, instance.Volume, "Get() should fall back to the default rather than throw.");
+		Assert.AreSame(instance, ValidatedPrivateSingleton.Get(), "Get() should keep returning the recovered instance.");
+		Assert.HasCount(1, Archived(filePath), "The rejected file must be archived as .corrupt.");
+	}
 }

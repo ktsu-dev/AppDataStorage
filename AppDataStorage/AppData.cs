@@ -5,6 +5,7 @@ namespace ktsu.AppDataStorage;
 using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -84,8 +85,32 @@ public static class AppData
 				&& clrProperty.GetSetMethod(nonPublic: true) is MethodInfo setter
 				&& !setter.IsPublic)
 			{
-				property.Set = (target, value) => setter.Invoke(target, [value]);
+				property.Set = (target, value) => InvokeSetter(setter, target, value);
 			}
+		}
+	}
+
+	/// <summary>
+	/// Calls a setter through reflection, throwing what the setter throws rather than the
+	/// <see cref="TargetInvocationException"/> reflection wraps it in.
+	/// </summary>
+	/// <remarks>
+	/// The load path recovers from a value the setter rejects (an <see cref="ArgumentException"/>, say) by
+	/// archiving the file and falling back. A wrapped exception does not match that recovery, so a stored
+	/// value a private setter rejects would otherwise escape LoadOrCreate() and every Get().
+	/// </remarks>
+	/// <param name="setter">The setter to call.</param>
+	/// <param name="target">The object whose property is set.</param>
+	/// <param name="value">The value to set.</param>
+	private static void InvokeSetter(MethodInfo setter, object target, object? value)
+	{
+		try
+		{
+			setter.Invoke(target, [value]);
+		}
+		catch (TargetInvocationException ex) when (ex.InnerException is not null)
+		{
+			ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
 		}
 	}
 
