@@ -1,7 +1,8 @@
-## v1.19.1 (patch)
+## v1.19.2-pre.1 (prerelease)
 
-Changes since v1.19.0:
+Changes since v1.19.1:
 
-- Load a nested settings object's private and internal setters [patch] (#366) (matt-edmondson)
-- Flush a save to disk, replace the file in one step, and recover an empty settings file [patch] (#368) (matt-edmondson)
+- Bump TestableIO.System.IO.Abstractions.TestingHelpers from 22.3.0 to 23.0.0 (dependabot[bot])
+- Bump TestableIO.System.IO.Abstractions and Testably.Abstractions.FileSystem.Interface (dependabot[bot])
+- Bump the ktsu group with 13 updates (dependabot[bot])
 
