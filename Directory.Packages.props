@@ -9,11 +9,11 @@
     <PackageVersion Include="Polyfill" Version="11.4.5" />
     <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
-    <PackageVersion Include="TestableIO.System.IO.Abstractions" Version="22.3.0" />
+    <PackageVersion Include="TestableIO.System.IO.Abstractions" Version="23.0.0" />
     <PackageVersion Include="TestableIO.System.IO.Abstractions.TestingHelpers" Version="22.3.0" />
     <PackageVersion Include="TestableIO.System.IO.Abstractions.Wrappers" Version="22.3.0" />
     <PackageVersion Include="ktsu.Semantics.Strings" Version="6.0.0" />
     <PackageVersion Include="System.Text.Json" Version="10.0.14" />
-    <PackageVersion Include="Testably.Abstractions.FileSystem.Interface" Version="10.4.0" />
+    <PackageVersion Include="Testably.Abstractions.FileSystem.Interface" Version="11.0.0" />
   </ItemGroup>
 </Project>
