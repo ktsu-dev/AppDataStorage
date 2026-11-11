@@ -1,16 +1,7 @@
-## v1.19.0 (minor)
+## v1.19.1 (patch)
 
-Changes since v1.18.0:
+Changes since v1.19.0:
 
-- Recover from a stored value a private setter rejects [patch] (#370) (matt-edmondson)
-- Load properties whose setter is private or internal [patch] (#364) (matt-edmondson)
-- Save and load NaN and infinite float settings [patch] (#363) (matt-edmondson)
-- Document that LoadOrCreate() is a separate copy from Get() [patch] (#360) (matt-edmondson)
-- Regenerate CompatibilitySuppressions.xml after the Polyfill 11.4.5 bump [patch] (#359) (matt-edmondson)
-- Time the save debounce on a monotonic clock [patch] (matt-edmondson)
-- Add LoadOrCreateIn to load app data from an absolute root directory [minor] (matt-edmondson)
-- Recover the backup when the temp file left by a crash is empty [patch] (matt-edmondson)
-- Use Assert.HasCount for the archive count in the new test (Claude)
-- Recover from a saved value a semantic type rejects, and retry Get() after a failed load [patch] (Claude)
-- Archive a settings file that fails to deserialize instead of deleting it [patch] (Claude)
+- Load a nested settings object's private and internal setters [patch] (#366) (matt-edmondson)
+- Flush a save to disk, replace the file in one step, and recover an empty settings file [patch] (#368) (matt-edmondson)
 
