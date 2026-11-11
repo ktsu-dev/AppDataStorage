@@ -2,6 +2,7 @@
 
 Changes since v1.18.0:
 
+- Recover from a stored value a private setter rejects [patch] (#370) (matt-edmondson)
 - Load properties whose setter is private or internal [patch] (#364) (matt-edmondson)
 - Save and load NaN and infinite float settings [patch] (#363) (matt-edmondson)
 - Document that LoadOrCreate() is a separate copy from Get() [patch] (#360) (matt-edmondson)
