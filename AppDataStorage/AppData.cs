@@ -58,18 +58,23 @@ public static class AppData
 	};
 
 	/// <summary>
-	/// Lets deserialization use the non-public setter of a public property on an <see cref="AppData{T}"/> type.
+	/// Lets deserialization use the non-public setter of a public property on any object in an
+	/// <see cref="AppData{T}"/> graph: the <see cref="AppData{T}"/> type itself and the settings objects it holds.
 	/// </summary>
 	/// <remarks>
 	/// System.Text.Json writes a public property whose setter is private, protected or internal, but skips
 	/// it when reading unless it has <see cref="JsonIncludeAttribute"/>. Nothing fails, so the stored value
 	/// silently loads back as its default and the next save erases it. <c>{ get; private set; }</c> is the
-	/// natural shape for an encapsulated setting, so the setter is used instead.
+	/// natural shape for an encapsulated setting, at the top level or in a nested group such as
+	/// <c>Window</c> or <c>Audio</c>, so the setter is used instead. These options only ever serialize an
+	/// <see cref="AppData{T}"/> graph, so this reaches no other caller's serialization. Only properties
+	/// already in the contract are touched, so <see cref="JsonIgnoreAttribute"/> still applies, and types
+	/// written by a converter have no object contract, so they are unaffected.
 	/// </remarks>
 	/// <param name="typeInfo">The contract being built.</param>
 	internal static void UseNonPublicSettersOfAppDataProperties(JsonTypeInfo typeInfo)
 	{
-		if (typeInfo.Kind != JsonTypeInfoKind.Object || !IsAppDataType(typeInfo.Type))
+		if (typeInfo.Kind != JsonTypeInfoKind.Object)
 		{
 			return;
 		}
@@ -108,19 +113,6 @@ public static class AppData
 		{
 			ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
 		}
-	}
-
-	private static bool IsAppDataType(Type type)
-	{
-		for (Type? current = type.BaseType; current is not null; current = current.BaseType)
-		{
-			if (current.IsGenericType && current.GetGenericTypeDefinition() == typeof(AppData<>))
-			{
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	/// <summary>

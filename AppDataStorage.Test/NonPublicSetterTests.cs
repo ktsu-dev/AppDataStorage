@@ -40,6 +40,74 @@ public sealed class NonPublicSetterTests
 		}
 	}
 
+	public sealed class WindowSettings
+	{
+		public int Width { get; private set; } = 800;
+		public string Title { get; internal set; } = "untitled";
+
+		[JsonIgnore]
+		public int Ignored { get; private set; } = 7;
+
+		public PositionSettings Position { get; set; } = new();
+
+		public void Change(int width, string title, int ignored)
+		{
+			Width = width;
+			Title = title;
+			Ignored = ignored;
+		}
+	}
+
+	public sealed class PositionSettings
+	{
+		public int X { get; private set; }
+
+		public void MoveTo(int x) => X = x;
+	}
+
+	public sealed class NestedSettings : AppData<NestedSettings>
+	{
+		public WindowSettings Window { get; set; } = new();
+	}
+
+	[TestMethod]
+	public void NestedNonPublicSettersRoundTrip()
+	{
+		AbsoluteDirectoryPath root = Root("nested_non_public_setters");
+		using (NestedSettings settings = NestedSettings.LoadOrCreateIn(root))
+		{
+			settings.Window.Change(1920, "main", ignored: 9);
+			settings.Window.Position.MoveTo(42);
+			settings.Save();
+		}
+
+		using NestedSettings reloaded = NestedSettings.LoadOrCreateIn(root);
+		Assert.AreEqual(1920, reloaded.Window.Width, "A private setter on a nested object should be used when loading.");
+		Assert.AreEqual("main", reloaded.Window.Title, "An internal setter on a nested object should be used when loading.");
+		Assert.AreEqual(42, reloaded.Window.Position.X, "A private setter two levels down should be used when loading.");
+		Assert.AreEqual(7, reloaded.Window.Ignored, "A nested [JsonIgnore] property should still be ignored.");
+	}
+
+	[TestMethod]
+	public void NextSaveKeepsTheStoredNestedValue()
+	{
+		AbsoluteDirectoryPath root = Root("nested_non_public_setters_resave");
+		using (NestedSettings settings = NestedSettings.LoadOrCreateIn(root))
+		{
+			settings.Window.Change(1920, "main", ignored: 0);
+			settings.Save();
+		}
+
+		using (NestedSettings reloaded = NestedSettings.LoadOrCreateIn(root))
+		{
+			reloaded.Save();
+		}
+
+		using NestedSettings again = NestedSettings.LoadOrCreateIn(root);
+		Assert.AreEqual(1920, again.Window.Width, "Saving a reloaded instance should not erase the stored nested value.");
+		Assert.AreEqual("main", again.Window.Title, "Saving a reloaded instance should not erase the stored nested value.");
+	}
+
 	[TestMethod]
 	public void NonPublicSettersRoundTrip()
 	{
