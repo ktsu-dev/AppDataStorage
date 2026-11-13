@@ -5,7 +5,9 @@ namespace ktsu.AppDataStorage;
 using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -90,6 +92,71 @@ public static class AppData
 			}
 		}
 	}
+
+	/// <summary>
+	/// The type that first used each settings file, per file system, so two types never share one file.
+	/// </summary>
+	/// <remarks>
+	/// Keyed by file system as well as path, because each test thread gets its own mock file system and
+	/// the same path there is a different file.
+	/// </remarks>
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "ConditionalWeakTable has no collection initializer on netstandard2.0, so [] does not compile there.")]
+	private static readonly ConditionalWeakTable<IFileSystem, Dictionary<string, Type>> FileOwners = new();
+
+	/// <summary>
+	/// Records that <typeparamref name="T"/> uses <paramref name="filePath"/>, and throws if a different type
+	/// already does.
+	/// </summary>
+	/// <remarks>
+	/// The default file name is the simple type name in snake case, so <c>PluginA.Settings</c> and
+	/// <c>PluginB.Settings</c>, or <c>Gen&lt;int&gt;</c> and <c>Gen&lt;string&gt;</c>, resolve to the same file.
+	/// Each type holds its own lock, and each would load the other's file without error and save over it,
+	/// silently wiping the other's data (ktsu-dev/AppDataStorage#336). The default name is not changed,
+	/// because that would move existing users' data. A collision is an error instead, raised the first
+	/// time the second type loads or saves.
+	/// </remarks>
+	/// <typeparam name="T">The type of the app data.</typeparam>
+	/// <param name="filePath">The settings file the type is about to read or write.</param>
+	/// <exception cref="InvalidOperationException">Thrown when a different type already uses <paramref name="filePath"/>.</exception>
+	internal static void ClaimFile<T>(AbsoluteFilePath filePath) where T : AppData<T>, new()
+	{
+		Dictionary<string, Type> owners = FileOwners.GetValue(FileSystem, _ => new(PathComparer));
+		string key = filePath.ToString();
+		lock (owners)
+		{
+			if (!owners.TryGetValue(key, out Type? owner))
+			{
+				owners[key] = typeof(T);
+				return;
+			}
+
+			if (owner != typeof(T))
+			{
+				throw new InvalidOperationException(
+					$"{Describe(typeof(T))} cannot use '{key}', because {Describe(owner)} already uses it. " +
+					"Two app data types with the same name share a default file name. Give one of them its own file " +
+					"with the LoadOrCreate(fileName) or LoadOrCreate(subdirectory) overloads.");
+			}
+		}
+	}
+
+	/// <summary>
+	/// File names are case-insensitive on Windows and, by default, on macOS.
+	/// </summary>
+	private static StringComparer PathComparer =>
+		RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+			? StringComparer.OrdinalIgnoreCase
+			: StringComparer.Ordinal;
+
+	/// <summary>
+	/// Names a type with its namespace and generic arguments, which is what tells two colliding types apart.
+	/// </summary>
+	/// <param name="type">The type to name.</param>
+	/// <returns>The readable full name.</returns>
+	private static string Describe(Type type) =>
+		type.IsGenericType
+			? $"{type.Namespace}.{type.Name.Split('`')[0]}<{string.Join(", ", type.GetGenericArguments().Select(Describe))}>"
+			: type.FullName ?? type.Name;
 
 	/// <summary>
 	/// Calls a setter through reflection, throwing what the setter throws rather than the
@@ -651,6 +718,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	{
 		lock (Lock)
 		{
+			AppData.ClaimFile<T>(FilePath);
 			string jsonString = JsonSerializer.Serialize(this, typeof(T), AppData.JsonSerializerOptions);
 			AppData.WriteText((T)this, jsonString);
 			LastSaveTime = DateTime.UtcNow;
@@ -765,6 +833,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 				FileNameOverride = fileName,
 			};
 
+			AppData.ClaimFile<T>(newAppData.FilePath);
 			string jsonString = AppData.ReadText(newAppData);
 
 			if (string.IsNullOrEmpty(jsonString))
