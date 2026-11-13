@@ -106,8 +106,13 @@ namespace ktsu.AppDataStorage.Test
 			}
 
 			AppData.UseFileSystemOnThisThread(new MockFileSystem());
-			using CollisionPluginB.Settings b = CollisionPluginB.Settings.LoadOrCreateIn(root);
-			b.Save();
+			using (CollisionPluginB.Settings b = CollisionPluginB.Settings.LoadOrCreateIn(root))
+			{
+				b.Volume = 7;
+				b.Save();
+			}
+
+			Assert.AreEqual(7, CollisionPluginB.Settings.LoadOrCreateIn(root).Volume, "On its own file system, the second type owns the path.");
 		}
 	}
 
