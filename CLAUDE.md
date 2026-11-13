@@ -72,6 +72,7 @@ copy.Save();
 - Lazy singleton access via `Get()` backed by `Lazy<T>`
 - `LoadOrCreate()` reads the file into a new instance on every call and never returns the `Get()` singleton, so the two do not see each other's edits. The static `QueueSave()` / `SaveIfRequired()` act on `Get()` only
 - `LoadOrCreate()` overloads support custom subdirectories and file names; `LoadOrCreateIn()` takes an absolute root directory
+- `Save()` reads the serialized document back before writing it and throws `JsonException` if it cannot, since `ReferenceHandler.Preserve` writes `$`-prefixed dictionary keys it then refuses to read. A hand-added top-level `"$schema"` is dropped before deserializing, so it loads rather than being archived as corrupt (ktsu-dev/AppDataStorage#376)
 - Corrupt file recovery: an unreadable, empty or missing main file falls back to `.tmp`, then `.bk`, then creates a fresh instance. An empty main file is archived as `.empty.<timestamp>`, not overwritten
 - Process exit handler ensures queued saves are flushed via `IDisposable`
 
