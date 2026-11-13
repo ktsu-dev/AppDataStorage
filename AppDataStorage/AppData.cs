@@ -263,6 +263,10 @@ public static class AppData
 	private static void WriteDurably(AbsoluteFilePath filePath, string text, AbsoluteFilePath modeSource)
 	{
 		using FileSystemStream stream = CreateForWriting(filePath, modeSource);
+
+		// The umask can only narrow the create mode, so the exact mode is set once the file exists. This never
+		// makes it wider than the settings file, and the disposal above covers a failure here.
+		CopyUnixFileMode(modeSource, filePath);
 		using (StreamWriter writer = new(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), bufferSize: 4096, leaveOpen: true))
 		{
 			writer.Write(text);
@@ -304,32 +308,40 @@ public static class AppData
 		{
 			UnixFileMode mode = FileSystem.File.GetUnixFileMode(modeSource);
 			FileSystem.File.Delete(filePath);
-			FileSystemStream stream = FileSystem.FileStream.New(filePath, new FileStreamOptions
+			return FileSystem.FileStream.New(filePath, new FileStreamOptions
 			{
 				Mode = FileMode.CreateNew,
 				Access = FileAccess.Write,
 				Share = FileShare.None,
 				UnixCreateMode = mode,
 			});
-
-			try
-			{
-				// The umask can only narrow the create mode, so this sets it exactly; it never widens past it
-				// unless the settings file itself was wider.
-				FileSystem.File.SetUnixFileMode(filePath, mode);
-				return stream;
-			}
-			catch
-			{
-				stream.Dispose();
-				throw;
-			}
 		}
 #else
 		_ = modeSource;
 #endif
 
 		return FileSystem.FileStream.New(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+	}
+
+	/// <summary>
+	/// Gives <paramref name="destination"/> exactly the Unix permissions of <paramref name="source"/>, when
+	/// <paramref name="source"/> exists and the platform has them.
+	/// </summary>
+	/// <param name="source">The file whose permissions are copied.</param>
+	/// <param name="destination">The file that receives them.</param>
+	private static void CopyUnixFileMode(AbsoluteFilePath source, AbsoluteFilePath destination)
+	{
+#if NET8_0_OR_GREATER
+		if (OperatingSystem.IsWindows() || !FileSystem.File.Exists(source))
+		{
+			return;
+		}
+
+		FileSystem.File.SetUnixFileMode(destination, FileSystem.File.GetUnixFileMode(source));
+#else
+		_ = source;
+		_ = destination;
+#endif
 	}
 
 	/// <summary>
