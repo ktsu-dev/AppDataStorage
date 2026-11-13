@@ -262,11 +262,7 @@ public static class AppData
 	/// <param name="modeSource">The file whose Unix permissions <paramref name="filePath"/> takes, if it exists.</param>
 	private static void WriteDurably(AbsoluteFilePath filePath, string text, AbsoluteFilePath modeSource)
 	{
-		using FileSystemStream stream = FileSystem.FileStream.New(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-
-		// Before any content is written, so a secret never sits in a file more readable than the one it replaces.
-		CopyUnixFileMode(modeSource, filePath);
-
+		using FileSystemStream stream = CreateForWriting(filePath, modeSource);
 		using (StreamWriter writer = new(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), bufferSize: 4096, leaveOpen: true))
 		{
 			writer.Write(text);
@@ -276,32 +272,64 @@ public static class AppData
 	}
 
 	/// <summary>
-	/// Gives <paramref name="destination"/> the Unix permissions of <paramref name="source"/>, when
-	/// <paramref name="source"/> exists and the platform has them.
+	/// Creates <paramref name="filePath"/> for writing, with the Unix permissions of
+	/// <paramref name="modeSource"/> from the moment it exists, when <paramref name="modeSource"/> exists and
+	/// the platform has them.
 	/// </summary>
 	/// <remarks>
 	/// A save writes a new file and renames it over the settings file, so the settings file would otherwise
 	/// take the new file's default mode (0666 less the umask, usually 0644). A file the user restricted to
 	/// 0600 because it holds a token would become readable by every account after the next save
-	/// (ktsu-dev/AppDataStorage#380). Windows needs nothing here: <c>File.Replace</c> keeps the replaced
-	/// file's attributes and ACLs. The file system abstraction has the Unix mode APIs from .NET 8 on, so
-	/// the .NET 7 and netstandard builds keep the default mode.
+	/// (ktsu-dev/AppDataStorage#380).
+	/// <para>
+	/// The mode is given at creation, not applied afterwards: Unix checks permissions when a file is opened,
+	/// so another account that opened a more permissive file in the meantime could read everything later
+	/// written through it. For the same reason a stale <c>.tmp</c> from an interrupted save is deleted rather
+	/// than truncated, and the new one is created with <see cref="FileMode.CreateNew"/>, so a file someone
+	/// else put there in between is refused rather than written to.
+	/// </para>
+	/// <para>
+	/// Windows needs nothing here: <c>File.Replace</c> keeps the replaced file's attributes and ACLs. The file
+	/// system abstraction has the Unix mode APIs from .NET 8 on, so the .NET 7 and netstandard builds keep
+	/// the default mode.
+	/// </para>
 	/// </remarks>
-	/// <param name="source">The file whose permissions are copied.</param>
-	/// <param name="destination">The file that receives them.</param>
-	private static void CopyUnixFileMode(AbsoluteFilePath source, AbsoluteFilePath destination)
+	/// <param name="filePath">The file to create.</param>
+	/// <param name="modeSource">The file whose permissions <paramref name="filePath"/> takes.</param>
+	/// <returns>A stream that writes to the new file.</returns>
+	private static FileSystemStream CreateForWriting(AbsoluteFilePath filePath, AbsoluteFilePath modeSource)
 	{
 #if NET8_0_OR_GREATER
-		if (OperatingSystem.IsWindows() || !FileSystem.File.Exists(source))
+		if (!OperatingSystem.IsWindows() && FileSystem.File.Exists(modeSource))
 		{
-			return;
-		}
+			UnixFileMode mode = FileSystem.File.GetUnixFileMode(modeSource);
+			FileSystem.File.Delete(filePath);
+			FileSystemStream stream = FileSystem.FileStream.New(filePath, new FileStreamOptions
+			{
+				Mode = FileMode.CreateNew,
+				Access = FileAccess.Write,
+				Share = FileShare.None,
+				UnixCreateMode = mode,
+			});
 
-		FileSystem.File.SetUnixFileMode(destination, FileSystem.File.GetUnixFileMode(source));
+			try
+			{
+				// The umask can only narrow the create mode, so this sets it exactly; it never widens past it
+				// unless the settings file itself was wider.
+				FileSystem.File.SetUnixFileMode(filePath, mode);
+				return stream;
+			}
+			catch
+			{
+				stream.Dispose();
+				throw;
+			}
+		}
 #else
-		_ = source;
-		_ = destination;
+		_ = modeSource;
 #endif
+
+		return FileSystem.FileStream.New(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
 	}
 
 	/// <summary>

@@ -79,6 +79,27 @@ public sealed class UnixFileModeTests
 	}
 
 	[TestMethod]
+	public void AReaderHoldingAStaleTempFileNeverSeesTheNewContent()
+	{
+		using TokenSettings settings = TokenSettings.LoadOrCreateIn(Root);
+		string filePath = settings.FilePath.ToString();
+		File.SetUnixFileMode(filePath, OwnerOnly);
+
+		// A .tmp left by an interrupted save, world-readable, which another account has already opened.
+		string tempPath = filePath + ".tmp";
+		File.WriteAllText(tempPath, string.Empty);
+		File.SetUnixFileMode(tempPath, OwnerOnly | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+		using FileStream reader = new(tempPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+
+		settings.Token = "s3cr3t";
+		settings.Save();
+
+		using StreamReader text = new(reader);
+		Assert.DoesNotContain("s3cr3t", text.ReadToEnd(), "The save must write to a newly created file, not through a descriptor someone else already holds.");
+		Assert.AreEqual(OwnerOnly, File.GetUnixFileMode(filePath));
+	}
+
+	[TestMethod]
 	public void ANewSettingsFileKeepsTheDefaultMode()
 	{
 		string probe = Path.Combine(directory, "probe");
