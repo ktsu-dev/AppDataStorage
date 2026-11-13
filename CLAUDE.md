@@ -68,7 +68,7 @@ copy.Save();
 - Debounced saves via `QueueSave()` / `SaveIfRequired()` (3-second debounce, timed with `Stopwatch.GetTimestamp()` so a wall-clock step back cannot hold a save back)
 - Whether a save is outstanding is the `HasQueuedSave` flag, set by `QueueSave()` and cleared by a successful `Save()`. It is not `SaveQueuedTime > LastSaveTime`: `DateTime.UtcNow` advances in whole microseconds on macOS, so a queue straight after a save can read the same instant and would be dropped
 - Automatic backup files (`.bk` suffix) with timestamped collision handling
-- Safe write pattern: write `.tmp` and flush it to disk, then `File.Replace` it over the final file (keeping `.bk` until done), or move it into place when there is no final file yet
+- Safe write pattern: write `.tmp` and flush it to disk, then `File.Replace` it over the final file (keeping `.bk` until done), or move it into place when there is no final file yet. On Unix (.NET 8+ builds) the `.tmp` takes the existing file's permissions before any content is written, so a 0600 file stays 0600 (ktsu-dev/AppDataStorage#380)
 - Lazy singleton access via `Get()` backed by `Lazy<T>`
 - `LoadOrCreate()` reads the file into a new instance on every call and never returns the `Get()` singleton, so the two do not see each other's edits. The static `QueueSave()` / `SaveIfRequired()` act on `Get()` only
 - `LoadOrCreate()` overloads support custom subdirectories and file names; `LoadOrCreateIn()` takes an absolute root directory
