@@ -10,6 +10,7 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
@@ -91,6 +92,68 @@ public static class AppData
 				property.Set = (target, value) => InvokeSetter(setter, target, value);
 			}
 		}
+	}
+
+	/// <summary>
+	/// Throws before a save writes a document that the load path could not read back.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="ReferenceHandler.Preserve"/> writes a dictionary key that starts with <c>$</c>, such as
+	/// <c>"$HOME"</c>, but rejects it when reading. Because the load path archives a file it cannot read and
+	/// falls back to defaults, such a save would succeed and the next launch would silently reset every
+	/// setting (ktsu-dev/AppDataStorage#376). Reading the document back here turns that data loss into an
+	/// error at save time, while the file on disk is still the last good copy.
+	/// </remarks>
+	/// <typeparam name="T">The type of the app data.</typeparam>
+	/// <param name="jsonString">The document about to be written.</param>
+	/// <exception cref="JsonException">Thrown when the document cannot be deserialized as <typeparamref name="T"/>.</exception>
+	internal static void EnsureReadsBack<T>(string jsonString) where T : AppData<T>, new()
+	{
+		try
+		{
+			JsonSerializer.Deserialize<T>(jsonString, JsonSerializerOptions)?.Dispose();
+		}
+		catch (Exception ex) when (ex is JsonException or ArgumentException or FormatException or NotSupportedException)
+		{
+			throw new JsonException(
+				$"{typeof(T).Name} was not saved, because the saved file could not be loaded again: {ex.Message} " +
+				"A dictionary key that starts with '$' is the usual cause.",
+				ex);
+		}
+	}
+
+	/// <summary>
+	/// Removes a top-level <c>"$schema"</c> property, which a user adds by hand for editor validation.
+	/// </summary>
+	/// <remarks>
+	/// Under <see cref="ReferenceHandler.Preserve"/> System.Text.Json rejects any unknown property that
+	/// starts with <c>$</c>, though it ignores other unknown properties. Without this, adding
+	/// <c>"$schema"</c> would get the whole file archived as corrupt and every setting reset to its
+	/// default (ktsu-dev/AppDataStorage#376). A document that cannot be parsed is returned unchanged, so it
+	/// fails in the deserializer as before.
+	/// </remarks>
+	/// <param name="jsonString">The document read from disk.</param>
+	/// <returns>The document without its top-level <c>"$schema"</c> property.</returns>
+	internal static string WithoutSchemaProperty(string jsonString)
+	{
+		if (!jsonString.Contains("\"$schema\""))
+		{
+			return jsonString;
+		}
+
+		try
+		{
+			if (JsonNode.Parse(jsonString) is JsonObject root && root.Remove("$schema"))
+			{
+				return root.ToJsonString();
+			}
+		}
+		catch (Exception ex) when (ex is JsonException or ArgumentException or InvalidOperationException)
+		{
+			// Not a readable object: leave it to the deserializer, which archives it as corrupt.
+		}
+
+		return jsonString;
 	}
 
 	/// <summary>
@@ -788,12 +851,17 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 	/// <summary>
 	/// Saves the app data to the file system. If the file already exists, it is backed up first in case the save fails the original file is not lost.
 	/// </summary>
+	/// <exception cref="JsonException">
+	/// Thrown, before anything is written, when the saved file could not be loaded again, such as for a
+	/// dictionary key that starts with <c>$</c>. The file on disk keeps its last good contents.
+	/// </exception>
 	public void Save()
 	{
 		lock (Lock)
 		{
 			AppData.ClaimFile<T>(FilePath);
 			string jsonString = JsonSerializer.Serialize(this, typeof(T), AppData.JsonSerializerOptions);
+			AppData.EnsureReadsBack<T>(jsonString);
 			AppData.WriteText((T)this, jsonString);
 			LastSaveTime = DateTime.UtcNow;
 			HasQueuedSave = false;
@@ -918,7 +986,7 @@ public abstract class AppData<T>() : IDisposable where T : AppData<T>, IDisposab
 
 			try
 			{
-				newAppData = JsonSerializer.Deserialize<T>(jsonString, AppData.JsonSerializerOptions)
+				newAppData = JsonSerializer.Deserialize<T>(AppData.WithoutSchemaProperty(jsonString), AppData.JsonSerializerOptions)
 					?? throw new JsonException("Deserialized settings file to null.");
 				newAppData.Root = root;
 				newAppData.Subdirectory = subdirectory;
