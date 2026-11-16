@@ -1,7 +1,6 @@
-## v1.19.3 (patch)
+## v1.19.4-pre.1 (prerelease)
 
-Changes since v1.19.2:
+Changes since v1.19.3:
 
-- Refuse a save that can't be loaded back, and load a hand-added $schema [patch] (#382) (matt-edmondson)
-- Keep a settings file's Unix permissions across a save [patch] (#383) (matt-edmondson)
+- Bump the ktsu group with 13 updates (dependabot[bot])
 
